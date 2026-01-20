@@ -1,0 +1,11 @@
+# Backend Python dependencies
+# TODO: Add specific versions in next session
+
+fastapi
+uvicorn[standard]
+sqlalchemy
+asyncpg
+alembic
+pydantic
+pydantic-settings
+python-dotenv
