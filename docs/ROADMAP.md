@@ -1,34 +1,32 @@
 # Roadmap
 
-**Last Updated**: 2026-01-19
+**Last Updated**: 2026-01-20
 **Current Phase**: MVP - Foundation
 
 ## Now (Current Work)
 
 <!-- ONE task in progress at a time -->
-- [ ] Set up project structure and development environment
+- [ ] Implement database schema and migrations (Alembic)
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-1. Set up backend foundation (FastAPI + PostgreSQL + Docker)
-2. Implement database schema and migrations (Alembic)
-3. Build core data models (Meal, MealType, DayTemplate, WeekPlan)
-4. Implement round-robin meal selection algorithm
-5. Build API endpoints for daily use (GET /today, POST /slots/{id}/complete)
-6. Build API endpoints for weekly planning (generate, template switching)
-7. Set up frontend foundation (Next.js + PWA)
-8. Build Today View (mobile-first, primary screen)
-9. Build completion tracking UI with status selection
-10. Implement CSV meal import functionality
-11. Build Week View (overview and template switching)
-12. Build Meals Library (CRUD for meals)
-13. Build Setup screens (Meal Types, Day Templates, Week Plans)
-14. Implement offline support (service worker, cache strategy)
-15. Build Stats view (adherence, streaks)
-16. Seed initial data (Meal Types, Day Templates, Week Plan)
-17. End-to-end testing (daily flows, weekly generation)
-18. Deployment setup (Docker Compose production config)
+1. Build core data models (Meal, MealType, DayTemplate, WeekPlan)
+2. Implement round-robin meal selection algorithm
+3. Build API endpoints for daily use (GET /today, POST /slots/{id}/complete)
+4. Build API endpoints for weekly planning (generate, template switching)
+5. Set up frontend foundation (Next.js + PWA)
+6. Build Today View (mobile-first, primary screen)
+7. Build completion tracking UI with status selection
+8. Implement CSV meal import functionality
+9. Build Week View (overview and template switching)
+10. Build Meals Library (CRUD for meals)
+11. Build Setup screens (Meal Types, Day Templates, Week Plans)
+12. Implement offline support (service worker, cache strategy)
+13. Build Stats view (adherence, streaks)
+14. Seed initial data (Meal Types, Day Templates, Week Plan)
+15. End-to-end testing (daily flows, weekly generation)
+16. Deployment setup (Docker Compose production config)
 
 ## Later (Backlog)
 
@@ -46,6 +44,8 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Set up backend foundation (FastAPI + PostgreSQL + Docker) (2026-01-20)
+- [x] Set up project structure and development environment (2026-01-19)
 - [x] Created PRD and Tech Spec (2026-01-19)
 - [x] Initialized SpecFlow documentation structure (2026-01-19)
 

@@ -5,6 +5,60 @@
 
 ---
 
+## Session: 2026-01-20
+
+**Role**: backend
+**Task**: Set up backend foundation (FastAPI + PostgreSQL + Docker)
+**Branch**: feat/backend-foundation
+
+### Summary
+- Implemented complete backend foundation with FastAPI, PostgreSQL, and Docker
+- Created production-ready configuration management with Pydantic Settings
+- Set up async SQLAlchemy with connection pooling and lifecycle management
+- Configured Alembic for database migrations with async support
+- Added CORS middleware and health check endpoints
+- Pinned all dependency versions for reproducibility
+- Fixed CORS configuration parsing to handle comma-separated strings
+- Resolved Docker port conflicts and verified full stack startup
+
+### Files Changed
+- backend/app/config.py (implemented with environment variable support)
+- backend/app/database.py (async SQLAlchemy with session management)
+- backend/app/main.py (CORS, lifecycle hooks, health endpoints)
+- backend/requirements.txt (pinned versions)
+- backend/alembic.ini (created)
+- backend/alembic/env.py (async migration support)
+- backend/alembic/script.py.mako (migration template)
+- backend/alembic/README (migration guide)
+- .env.example (configuration template)
+- docker-compose.yml (removed obsolete version, changed DB port to 5436)
+- frontend/Dockerfile (handle missing package-lock.json)
+- docs/ROADMAP.md (updated task status)
+- docs/SESSION_LOG.md (this entry)
+
+### Decisions
+- Used field validator for CORS_ORIGINS to parse comma-separated strings
+- Changed database port to 5436 to avoid conflicts with other local services
+- Configured connection pool (size=5, max_overflow=10) for production readiness
+- Added both root (/) and /health endpoints for monitoring
+- Enabled auto-reload in development for faster iteration
+
+### Testing Performed
+- Verified Docker Compose builds all images successfully
+- Confirmed PostgreSQL container starts and accepts connections
+- Validated FastAPI application starts and connects to database
+- Tested health endpoints return correct responses
+- Verified API documentation accessible at /docs
+
+### Blockers
+- None
+
+### Next
+- Implement database schema and migrations (Alembic)
+- Build core data models (Meal, MealType, DayTemplate, WeekPlan)
+
+---
+
 ## Session: 2026-01-19
 
 **Role**: architecture
