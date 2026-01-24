@@ -6,14 +6,13 @@
 ## Now (Current Work)
 
 <!-- ONE task in progress at a time -->
-- [ ] Build API endpoints for daily use (GET /today, POST /slots/{id}/complete)
+- [ ] Build API endpoints for weekly planning (generate, template switching)
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-1. Build API endpoints for weekly planning (generate, template switching)
-2. Set up frontend foundation (Next.js + PWA)
-4. Build Today View (mobile-first, primary screen)
+1. Set up frontend foundation (Next.js + PWA)
+2. Build Today View (mobile-first, primary screen)
 5. Build completion tracking UI with status selection
 6. Implement CSV meal import functionality
 7. Build Week View (overview and template switching)
@@ -41,6 +40,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Build API endpoints for daily use (GET /today, POST /slots/{id}/complete) (2026-01-24)
 - [x] Build Pydantic schemas for API requests/responses (2026-01-24)
 - [x] Implement round-robin meal selection algorithm (2026-01-22)
 - [x] Implement database schema and migrations (Alembic) (2026-01-20)

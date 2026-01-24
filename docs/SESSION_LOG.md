@@ -5,6 +5,62 @@
 
 ---
 
+## Session: 2026-01-24 (2)
+
+**Role**: backend
+**Task**: Build API endpoints for daily use (GET /today, POST /slots/{id}/complete)
+**Branch**: feat/daily-api
+
+### Summary
+- Implemented primary daily use API endpoints per Tech Spec section 4.3
+- Created service layer for today view business logic
+- Added comprehensive integration tests (15 new tests)
+- All 40 tests pass
+
+### Files Changed
+- backend/app/api/today.py (created - daily use API routes)
+- backend/app/api/__init__.py (updated - export today_router)
+- backend/app/main.py (updated - register router)
+- backend/app/services/today.py (created - today view business logic)
+- backend/tests/test_today_api.py (created - 15 integration tests)
+- docs/ROADMAP.md (updated)
+- docs/SESSION_LOG.md (this entry)
+
+### Endpoints Implemented
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| /api/v1/today | GET | Today's meal plan with is_next indicator |
+| /api/v1/yesterday | GET | Yesterday's plan for catch-up |
+| /api/v1/slots/{id}/complete | POST | Mark slot with completion status |
+| /api/v1/slots/{id}/complete | DELETE | Undo completion (reset to null) |
+
+### Key Features
+- `is_next` computed as first slot with null completion_status
+- Streak calculation counts consecutive completed days backwards
+- Stats include completed count, total slots, and streak days
+- Graceful handling of missing plans (empty response)
+- All 5 completion statuses supported: followed, adjusted, skipped, replaced, social
+
+### Testing Performed
+- 15 new integration tests covering all endpoints
+- Tests for edge cases: no plan, slot not found, invalid status
+- Streak calculation tests (consecutive days, break on incomplete)
+- All 40 tests pass (25 existing + 15 new)
+
+### Decisions
+- Service layer pattern: business logic in services/today.py, routes thin
+- Streak calculation stops on first incomplete day or override day
+- Uses existing Pydantic schemas from previous session
+
+### Blockers
+- None
+
+### Next
+- Build API endpoints for weekly planning (generate, template switching)
+- Set up frontend foundation
+
+---
+
 ## Session: 2026-01-24
 
 **Role**: backend
