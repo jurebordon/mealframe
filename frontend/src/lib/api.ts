@@ -198,15 +198,22 @@ export async function clearDayOverride(date: string): Promise<OverrideResponse> 
 // ============================================================================
 
 /**
- * List all meals (paginated).
+ * List all meals (paginated, with optional search and meal type filter).
  */
 export async function getMeals(
   page = 1,
-  pageSize = 20
+  pageSize = 20,
+  search?: string,
+  mealTypeId?: string
 ): Promise<PaginatedResponse<MealListItem>> {
-  return fetchApi<PaginatedResponse<MealListItem>>(
-    `/meals?page=${page}&page_size=${pageSize}`
-  )
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  if (search) params.set('search', search)
+  if (mealTypeId) params.set('meal_type_id', mealTypeId)
+
+  return fetchApi<PaginatedResponse<MealListItem>>(`/meals?${params}`)
 }
 
 /**

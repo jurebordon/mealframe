@@ -1,24 +1,32 @@
 'use client'
 
-import React from "react"
-
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+import { useMealTypes } from '@/hooks/use-meal-types'
 
 export interface MealFormData {
   id?: string
   name: string
-  portion: string
-  calories: number
-  protein: number
-  carbs: number
-  fat: number
-  types: MealType[]
-  notes?: string
+  portion_description: string
+  calories_kcal: number | null
+  protein_g: number | null
+  carbs_g: number | null
+  fat_g: number | null
+  meal_type_ids: string[]
+  notes: string
+}
+
+const EMPTY_FORM: MealFormData = {
+  name: '',
+  portion_description: '',
+  calories_kcal: null,
+  protein_g: null,
+  carbs_g: null,
+  fat_g: null,
+  meal_type_ids: [],
+  notes: '',
 }
 
 interface MealEditorProps {
@@ -38,33 +46,17 @@ export function MealEditor({
   initialData,
   mode,
 }: MealEditorProps) {
-  const [formData, setFormData] = useState<MealFormData>({
-    name: '',
-    portion: '',
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    types: [],
-    notes: '',
-  })
+  const [formData, setFormData] = useState<MealFormData>(EMPTY_FORM)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const { data: mealTypes } = useMealTypes()
 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData)
     } else {
-      setFormData({
-        name: '',
-        portion: '',
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        types: [],
-        notes: '',
-      })
+      setFormData(EMPTY_FORM)
     }
+    setShowDeleteConfirm(false)
   }, [initialData, open])
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -73,12 +65,12 @@ export function MealEditor({
     onOpenChange(false)
   }
 
-  const toggleMealType = (type: MealType) => {
+  const toggleMealType = (id: string) => {
     setFormData((prev) => ({
       ...prev,
-      types: prev.types.includes(type)
-        ? prev.types.filter((t) => t !== type)
-        : [...prev.types, type],
+      meal_type_ids: prev.meal_type_ids.includes(id)
+        ? prev.meal_type_ids.filter((t) => t !== id)
+        : [...prev.meal_type_ids, id],
     }))
   }
 
@@ -86,6 +78,17 @@ export function MealEditor({
     if (onDelete) {
       onDelete()
       onOpenChange(false)
+    }
+  }
+
+  const setNumericField = (field: 'calories_kcal' | 'protein_g' | 'carbs_g' | 'fat_g', raw: string) => {
+    if (raw === '') {
+      setFormData({ ...formData, [field]: null })
+      return
+    }
+    const val = Number(raw)
+    if (!isNaN(val) && val >= 0) {
+      setFormData({ ...formData, [field]: val })
     }
   }
 
@@ -158,8 +161,8 @@ export function MealEditor({
                     Portion Description *
                   </label>
                   <textarea
-                    value={formData.portion}
-                    onChange={(e) => setFormData({ ...formData, portion: e.target.value })}
+                    value={formData.portion_description}
+                    onChange={(e) => setFormData({ ...formData, portion_description: e.target.value })}
                     className="min-h-[80px] w-full rounded-lg border border-input bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     placeholder="e.g., 200g Greek yogurt + 30g granola + 100g mixed berries"
                     required
@@ -172,7 +175,7 @@ export function MealEditor({
                 {/* Macros Grid */}
                 <div>
                   <label className="mb-3 block text-sm font-semibold text-foreground">
-                    Macros *
+                    Macros
                   </label>
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                     <div>
@@ -181,14 +184,11 @@ export function MealEditor({
                       </label>
                       <input
                         type="number"
-                        value={formData.calories}
-                        onChange={(e) =>
-                          setFormData({ ...formData, calories: Number(e.target.value) })
-                        }
+                        value={formData.calories_kcal ?? ''}
+                        onChange={(e) => setNumericField('calories_kcal', e.target.value)}
                         className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        placeholder="0"
+                        placeholder="—"
                         min="0"
-                        required
                       />
                     </div>
                     <div>
@@ -197,14 +197,11 @@ export function MealEditor({
                       </label>
                       <input
                         type="number"
-                        value={formData.protein}
-                        onChange={(e) =>
-                          setFormData({ ...formData, protein: Number(e.target.value) })
-                        }
+                        value={formData.protein_g ?? ''}
+                        onChange={(e) => setNumericField('protein_g', e.target.value)}
                         className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        placeholder="0"
+                        placeholder="—"
                         min="0"
-                        required
                       />
                     </div>
                     <div>
@@ -213,28 +210,22 @@ export function MealEditor({
                       </label>
                       <input
                         type="number"
-                        value={formData.carbs}
-                        onChange={(e) =>
-                          setFormData({ ...formData, carbs: Number(e.target.value) })
-                        }
+                        value={formData.carbs_g ?? ''}
+                        onChange={(e) => setNumericField('carbs_g', e.target.value)}
                         className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        placeholder="0"
+                        placeholder="—"
                         min="0"
-                        required
                       />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs text-muted-foreground">Fat (g)</label>
                       <input
                         type="number"
-                        value={formData.fat}
-                        onChange={(e) =>
-                          setFormData({ ...formData, fat: Number(e.target.value) })
-                        }
+                        value={formData.fat_g ?? ''}
+                        onChange={(e) => setNumericField('fat_g', e.target.value)}
                         className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        placeholder="0"
+                        placeholder="—"
                         min="0"
-                        required
                       />
                     </div>
                   </div>
@@ -243,23 +234,26 @@ export function MealEditor({
                 {/* Meal Types */}
                 <div>
                   <label className="mb-3 block text-sm font-semibold text-foreground">
-                    Meal Types * (select at least one)
+                    Meal Types
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((type) => (
+                    {mealTypes?.map((mt) => (
                       <button
-                        key={type}
+                        key={mt.id}
                         type="button"
-                        onClick={() => toggleMealType(type)}
+                        onClick={() => toggleMealType(mt.id)}
                         className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                          formData.types.includes(type)
+                          formData.meal_type_ids.includes(mt.id)
                             ? 'border-primary bg-primary text-primary-foreground'
                             : 'border-border bg-background text-foreground hover:border-primary/50'
                         }`}
                       >
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                        {mt.name}
                       </button>
                     ))}
+                    {!mealTypes?.length && (
+                      <p className="text-sm text-muted-foreground">Loading meal types...</p>
+                    )}
                   </div>
                 </div>
 
@@ -275,10 +269,12 @@ export function MealEditor({
                     placeholder="Additional notes, preferences, or substitutions"
                   />
                 </div>
+              </div>
 
-                {/* Actions */}
+              {/* Footer - Fixed */}
+              <div className="shrink-0 border-t border-border p-6 pt-4">
                 {showDeleteConfirm ? (
-                  <div className="flex flex-col gap-3 border-t border-border pt-4">
+                  <div className="flex flex-col gap-3">
                     <p className="text-sm text-muted-foreground">
                       Are you sure you want to delete this meal?
                     </p>
@@ -304,7 +300,7 @@ export function MealEditor({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 border-t border-border pt-4">
+                  <div className="flex items-center gap-2">
                     {mode === 'edit' && onDelete && (
                       <Button
                         type="button"
@@ -327,7 +323,7 @@ export function MealEditor({
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={formData.types.length === 0} size="sm" className="flex-1">
+                      <Button type="submit" size="sm" className="flex-1">
                         {mode === 'add' ? 'Add Meal' : 'Save'}
                       </Button>
                     </div>
