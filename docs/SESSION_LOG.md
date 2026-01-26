@@ -5,6 +5,69 @@
 
 ---
 
+## Session: 2026-01-26 (4)
+
+**Role**: fullstack
+**Task**: Implement CSV meal import functionality
+**Branch**: feat/csv-meal-import
+
+### Summary
+- Built the full CSV meal import pipeline: backend service, API endpoint, frontend integration
+- Updated `MealImportResult` Pydantic schema to match frozen spec (MEAL_IMPORT_GUIDE.md) response format
+- Created meal import service with CSV parsing, validation, and bulk creation with meal-type associations
+- Created `POST /api/v1/meals/import` endpoint (multipart/form-data)
+- Wrote 14 integration tests covering happy path, warnings, errors, and edge cases
+- Rewrote frontend CSVImporter component to call real API instead of client-side parsing
+- Added `importMeals()` to frontend API client and import types to types.ts
+- Wired import into the /meals page with an "Import CSV" button
+
+### Files Changed
+- backend/app/schemas/meal.py (updated - MealImportResult aligned to frozen spec format with summary/warnings/errors)
+- backend/app/schemas/__init__.py (updated - export new schema types)
+- backend/app/services/meals.py (created - CSV parsing, validation, meal creation with type associations)
+- backend/app/services/__init__.py (updated - export import_meals_from_csv)
+- backend/app/api/meals.py (created - POST /meals/import endpoint)
+- backend/app/api/__init__.py (updated - register meals_router)
+- backend/app/main.py (updated - register meals_router)
+- backend/tests/test_meal_import.py (created - 14 integration tests)
+- frontend/src/lib/types.ts (updated - MealImportResult, MealImportSummary, etc.)
+- frontend/src/lib/api.ts (updated - importMeals() with multipart/form-data)
+- frontend/src/components/mealframe/csv-importer.tsx (rewritten - calls real API, shows results)
+- frontend/src/app/meals/page.tsx (updated - Import CSV button, CSVImporter modal)
+- docs/ROADMAP.md (updated - task complete, promoted Meals Library CRUD to Now)
+- docs/SESSION_LOG.md (this entry)
+
+### Key Features
+- CSV format per MEAL_IMPORT_GUIDE.md: name, portion_description (required), plus optional macros, meal_types, notes
+- Meal types resolved by exact name match (case-sensitive, comma-separated)
+- Unknown meal types generate warnings but don't block meal creation
+- Missing required fields skip the row and report errors
+- Handles UTF-8 BOM from Excel exports
+- Trailing blank rows are filtered out
+- Frontend shows upload → importing spinner → results with summary/warnings/errors
+
+### Decisions
+- Schema aligned to frozen spec exactly: `{ success, summary: { total_rows, created, skipped, warnings }, warnings: [{ row, message }], errors: [{ row, message }] }`
+- Removed client-side CSV parsing from frontend — backend handles all validation and parsing
+- Content-Type header not set for multipart uploads (browser sets boundary automatically)
+- Used `utf-8-sig` decoding to handle BOM from Excel
+- Added explicit `db.flush()` after meal-type association inserts for transaction consistency
+
+### Testing Performed
+- 14 backend integration tests: all pass
+- Tests cover: valid CSV with all columns, required fields only, multiple meal types, duplicate names, unknown meal types (warning), invalid numerics (warning), missing name (error), missing portion (error), missing column header, empty file, header only, trailing blank rows, mixed valid/invalid rows, UTF-8 BOM
+- npm run build: Passes, 8 static pages generated (including /meals at 3.91 kB)
+- All component types align correctly (no TypeScript errors)
+- Pre-existing weekly test failures unrelated to this session (seeded data conflicts)
+
+### Blockers
+- None
+
+### Next
+- Build Meals Library (CRUD for meals)
+
+---
+
 ## Session: 2026-01-26 (3)
 
 **Role**: fullstack
