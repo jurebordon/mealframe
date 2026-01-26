@@ -286,6 +286,34 @@ export interface OverrideResponse {
 }
 
 // ============================================================================
+// Meal Import
+// ============================================================================
+
+export interface MealImportWarning {
+  row: number
+  message: string
+}
+
+export interface MealImportError {
+  row: number
+  message: string
+}
+
+export interface MealImportSummary {
+  total_rows: number
+  created: number
+  skipped: number
+  warnings: number
+}
+
+export interface MealImportResult {
+  success: boolean
+  summary: MealImportSummary
+  warnings: MealImportWarning[]
+  errors: MealImportError[]
+}
+
+// ============================================================================
 // Pagination
 // ============================================================================
 

@@ -1,123 +1,57 @@
 'use client'
 
-import React from "react"
-
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { X, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { X, Upload, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { MealFormData } from './meal-editor'
+import { importMeals } from '@/lib/api'
+import type { MealImportResult } from '@/lib/types'
 
 interface CSVImporterProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onImport: (meals: MealFormData[]) => void
+  onImportComplete?: () => void
 }
 
-interface ParsedRow {
-  row: number
-  data: MealFormData | null
-  error?: string
-}
-
-export function CSVImporter({ open, onOpenChange, onImport }: CSVImporterProps) {
+export function CSVImporter({ open, onOpenChange, onImportComplete }: CSVImporterProps) {
   const [file, setFile] = useState<File | null>(null)
-  const [parsedData, setParsedData] = useState<ParsedRow[]>([])
-  const [step, setStep] = useState<'upload' | 'preview' | 'complete'>('upload')
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [step, setStep] = useState<'upload' | 'importing' | 'complete'>('upload')
+  const [result, setResult] = useState<MealImportResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
       setFile(selectedFile)
-      parseCSV(selectedFile)
     }
   }
 
-  const parseCSV = async (file: File) => {
-    setIsProcessing(true)
-    const text = await file.text()
-    const lines = text.split('\n').filter((line) => line.trim())
-    const parsed: ParsedRow[] = []
+  const handleImport = async () => {
+    if (!file) return
 
-    // Skip header row
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i]
-      const values = line.split(',').map((v) => v.trim())
+    setStep('importing')
+    setError(null)
 
-      // Expected format: name,portion,calories,protein,carbs,fat,types,notes
-      if (values.length < 7) {
-        parsed.push({
-          row: i + 1,
-          data: null,
-          error: 'Missing required columns',
-        })
-        continue
+    try {
+      const importResult = await importMeals(file)
+      setResult(importResult)
+      setStep('complete')
+      if (importResult.success && importResult.summary.created > 0) {
+        onImportComplete?.()
       }
-
-      const [name, portion, calories, protein, carbs, fat, types, notes] = values
-
-      // Validate
-      if (!name || !portion) {
-        parsed.push({
-          row: i + 1,
-          data: null,
-          error: 'Name and portion are required',
-        })
-        continue
-      }
-
-      const parsedTypes = types
-        .split('|')
-        .map((t) => t.trim().toLowerCase())
-        .filter((t) => ['breakfast', 'lunch', 'dinner', 'snack'].includes(t)) as Array<
-        'breakfast' | 'lunch' | 'dinner' | 'snack'
-      >
-
-      if (parsedTypes.length === 0) {
-        parsed.push({
-          row: i + 1,
-          data: null,
-          error: 'At least one valid meal type required',
-        })
-        continue
-      }
-
-      parsed.push({
-        row: i + 1,
-        data: {
-          name,
-          portion,
-          calories: Number(calories) || 0,
-          protein: Number(protein) || 0,
-          carbs: Number(carbs) || 0,
-          fat: Number(fat) || 0,
-          types: parsedTypes,
-          notes: notes || '',
-        },
-      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Import failed')
+      setStep('upload')
     }
-
-    setParsedData(parsed)
-    setStep('preview')
-    setIsProcessing(false)
-  }
-
-  const handleImport = () => {
-    const validMeals = parsedData.filter((p) => p.data !== null).map((p) => p.data!)
-    onImport(validMeals)
-    setStep('complete')
   }
 
   const handleClose = () => {
     setFile(null)
-    setParsedData([])
+    setResult(null)
+    setError(null)
     setStep('upload')
     onOpenChange(false)
   }
-
-  const validCount = parsedData.filter((p) => p.data !== null).length
-  const errorCount = parsedData.filter((p) => p.error).length
 
   return (
     <AnimatePresence>
@@ -161,13 +95,22 @@ export function CSVImporter({ open, onOpenChange, onImport }: CSVImporterProps) 
             {/* Upload Step */}
             {step === 'upload' && (
               <div className="space-y-6">
+                {error && (
+                  <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                      <p className="text-sm text-destructive">{error}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-xl border-2 border-dashed border-border bg-muted/20 p-12 text-center">
                   <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                   <p className="mb-2 text-sm font-semibold text-foreground">
-                    Choose a CSV file
+                    {file ? file.name : 'Choose a CSV file'}
                   </p>
                   <p className="mb-4 text-xs text-muted-foreground">
-                    Expected format: name, portion, calories, protein, carbs, fat, types (pipe-separated), notes
+                    Required columns: name, portion_description. Optional: calories_kcal, protein_g, carbs_g, fat_g, meal_types, notes
                   </p>
                   <input
                     type="file"
@@ -177,8 +120,8 @@ export function CSVImporter({ open, onOpenChange, onImport }: CSVImporterProps) 
                     id="csv-upload"
                   />
                   <label htmlFor="csv-upload">
-                    <Button asChild>
-                      <span>Select File</span>
+                    <Button asChild variant={file ? 'outline' : 'default'}>
+                      <span>{file ? 'Change File' : 'Select File'}</span>
                     </Button>
                   </label>
                 </div>
@@ -186,69 +129,10 @@ export function CSVImporter({ open, onOpenChange, onImport }: CSVImporterProps) 
                 <div className="rounded-lg border border-border bg-muted/20 p-4">
                   <p className="mb-2 text-xs font-semibold text-foreground">CSV Format Example:</p>
                   <pre className="overflow-x-auto text-xs text-muted-foreground">
-                    {`name,portion,calories,protein,carbs,fat,types,notes
-Greek Yogurt Bowl,200g yogurt + 30g granola,320,18,42,8,breakfast|snack,High protein
-Chicken & Rice,150g chicken + 200g rice,520,45,65,8,lunch|dinner,Post-workout`}
+                    {`name,portion_description,calories_kcal,protein_g,carbs_g,fat_g,meal_types,notes
+"Scrambled Eggs","2 eggs + 1 slice toast",320,18,15,22,"Breakfast","Use whole wheat"
+"Chicken Bowl","150g chicken + rice",520,42,50,12,"Lunch,Dinner","Meal prep friendly"`}
                   </pre>
-                </div>
-              </div>
-            )}
-
-            {/* Preview Step */}
-            {step === 'preview' && (
-              <div className="space-y-6">
-                {/* Summary */}
-                <div className="flex items-center gap-4 rounded-lg border border-border bg-muted/20 p-4">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      {validCount} valid meals, {errorCount} errors
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Review the parsed data below before importing
-                    </p>
-                  </div>
-                  {isProcessing && (
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  )}
-                </div>
-
-                {/* Preview List */}
-                <div className="max-h-96 space-y-2 overflow-y-auto">
-                  {parsedData.map((row) => (
-                    <div
-                      key={row.row}
-                      className={`rounded-lg border p-3 ${
-                        row.error
-                          ? 'border-destructive/50 bg-destructive/5'
-                          : 'border-border bg-card'
-                      }`}
-                    >
-                      {row.error ? (
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-foreground">Row {row.row}</p>
-                            <p className="text-xs text-destructive">{row.error}</p>
-                          </div>
-                        </div>
-                      ) : row.data ? (
-                        <div className="flex items-start gap-2">
-                          <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-foreground">{row.data.name}</p>
-                            <p className="text-xs text-muted-foreground">{row.data.portion}</p>
-                            <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
-                              <span>{row.data.calories} cal</span>
-                              <span>•</span>
-                              <span>{row.data.protein}g P</span>
-                              <span>•</span>
-                              <span>{row.data.types.join(', ')}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
                 </div>
 
                 {/* Actions */}
@@ -256,26 +140,75 @@ Chicken & Rice,150g chicken + 200g rice,520,45,65,8,lunch|dinner,Post-workout`}
                   <Button variant="outline" onClick={handleClose}>
                     Cancel
                   </Button>
-                  <Button onClick={handleImport} disabled={validCount === 0}>
-                    Import {validCount} Meals
+                  <Button onClick={handleImport} disabled={!file}>
+                    Import
                   </Button>
                 </div>
               </div>
             )}
 
+            {/* Importing Step */}
+            {step === 'importing' && (
+              <div className="space-y-6 text-center py-12">
+                <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <p className="text-sm text-muted-foreground">
+                  Importing meals from {file?.name}...
+                </p>
+              </div>
+            )}
+
             {/* Complete Step */}
-            {step === 'complete' && (
-              <div className="space-y-6 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/20">
-                  <CheckCircle className="h-8 w-8 text-success" />
-                </div>
-                <div>
-                  <h3 className="mb-2 text-xl font-bold text-foreground">Import Complete!</h3>
+            {step === 'complete' && result && (
+              <div className="space-y-6">
+                {/* Summary */}
+                <div className="text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/20">
+                    <CheckCircle className="h-8 w-8 text-success" />
+                  </div>
+                  <h3 className="mb-2 text-xl font-bold text-foreground">
+                    Import {result.success ? 'Complete' : 'Failed'}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Successfully imported {validCount} meals
-                    {errorCount > 0 && ` with ${errorCount} skipped rows`}
+                    {result.summary.created} meals created
+                    {result.summary.skipped > 0 && `, ${result.summary.skipped} rows skipped`}
+                    {result.summary.warnings > 0 && `, ${result.summary.warnings} warnings`}
                   </p>
                 </div>
+
+                {/* Warnings */}
+                {result.warnings.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                      Warnings
+                    </p>
+                    <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
+                      {result.warnings.map((w, i) => (
+                        <p key={i} className="text-xs text-muted-foreground">
+                          <span className="font-medium">Row {w.row}:</span> {w.message}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Errors */}
+                {result.errors.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      Errors (rows skipped)
+                    </p>
+                    <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                      {result.errors.map((e, i) => (
+                        <p key={i} className="text-xs text-muted-foreground">
+                          <span className="font-medium">Row {e.row}:</span> {e.message}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <Button onClick={handleClose} className="w-full">
                   Done
                 </Button>

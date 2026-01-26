@@ -20,6 +20,7 @@ import type {
   MealCreate,
   MealUpdate,
   MealListItem,
+  MealImportResult,
   MealTypeResponse,
   MealTypeCreate,
   MealTypeUpdate,
@@ -247,6 +248,36 @@ export async function deleteMeal(id: string): Promise<void> {
   })
 }
 
+/**
+ * Import meals from a CSV file.
+ * Uses multipart/form-data (not JSON).
+ */
+export async function importMeals(file: File): Promise<MealImportResult> {
+  const url = `${API_BASE_URL}/meals/import`
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+    // Do NOT set Content-Type header — browser sets it with boundary for multipart
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const errorResponse = data as ErrorResponse
+    throw new ApiError(
+      response.status,
+      errorResponse.error?.code || 'UNKNOWN_ERROR',
+      errorResponse.error?.message || 'An error occurred',
+      errorResponse.error?.details
+    )
+  }
+
+  return data as MealImportResult
+}
+
 // ============================================================================
 // Meal Types Endpoints
 // ============================================================================
@@ -390,6 +421,7 @@ export const api = {
   createMeal,
   updateMeal,
   deleteMeal,
+  importMeals,
 
   // Meal Types
   getMealTypes,
