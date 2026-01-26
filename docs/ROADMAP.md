@@ -6,19 +6,19 @@
 ## Now (Current Work)
 
 <!-- ONE task in progress at a time -->
-- [ ] Seed initial data (Meal Types, Day Templates, Week Plan)
+- [ ] Build Week View (overview and template switching)
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-1. Build Week View (overview and template switching)
-2. Implement CSV meal import functionality
-3. Build Meals Library (CRUD for meals)
-4. Build Setup screens (Meal Types, Day Templates, Week Plans)
-5. Implement offline support (service worker, cache strategy)
-6. Build Stats view (adherence, streaks)
-7. End-to-end testing (daily flows, weekly generation)
-8. Deployment setup (Docker Compose production config)
+1. Implement CSV meal import functionality
+1. Implement CSV meal import functionality
+2. Build Meals Library (CRUD for meals)
+3. Build Setup screens (Meal Types, Day Templates, Week Plans)
+4. Implement offline support (service worker, cache strategy)
+5. Build Stats view (adherence, streaks)
+6. End-to-end testing (daily flows, weekly generation)
+7. Deployment setup (Docker Compose production config)
 
 ## Later (Backlog)
 
@@ -36,6 +36,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Seed initial data (Meal Types, Day Templates, Week Plan, Sample Meals) (2026-01-26)
 - [x] Build Today View with API integration and completion flow (2026-01-26)
 - [x] Set up frontend foundation with v0 design system (2026-01-24)
 - [x] Build API endpoints for weekly planning (generate, template switching) (2026-01-24)

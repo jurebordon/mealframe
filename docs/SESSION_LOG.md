@@ -5,6 +5,52 @@
 
 ---
 
+## Session: 2026-01-26 (2)
+
+**Role**: backend
+**Task**: Seed initial data (Meal Types, Day Templates, Week Plan, Sample Meals)
+**Branch**: feat/seed-data
+
+### Summary
+- Created idempotent seed script (`backend/app/seed.py`) that populates all initial data from SEED_DATA.md
+- Seeded 12 meal types, 31 sample meals with meal-type associations, 5 day templates with slots, 1 default week plan with 7 day mappings, and app config
+- Generated a weekly plan for the current week and verified GET /today returns populated meals
+- Script is re-runnable: checks for existing data before inserting
+
+### Files Changed
+- backend/app/seed.py (created - idempotent seed script)
+- docs/ROADMAP.md (updated - task complete, promoted Week View to Now)
+- docs/SESSION_LOG.md (this entry)
+
+### Data Seeded
+| Entity | Count | Details |
+|--------|-------|---------|
+| App Config | 1 | timezone=Europe/Ljubljana, week_start_day=0 |
+| Meal Types | 12 | Breakfast through Hiking Fuel |
+| Meals | 31 | 3 Breakfast, 2 Pre-Workout Breakfast, 2 Mid-Morning Protein, 3 Lunch, 3 Afternoon Filler, 2 Pre-Workout Snack, 3 Post-Workout Snack, 4 Dinner, 3 Light Dinner, 3 Weekend Breakfast, 3 Hiking Fuel |
+| Day Templates | 5 | Normal Workday (5 slots), Morning Workout (5), Evening Workout (5), Weekend (3), Hiking Weekend (4) |
+| Week Plan | 1 | Default Week with 7 day mappings |
+
+### Decisions
+- Seed script runs standalone via `python -m app.seed` (not an API endpoint or Alembic migration)
+- Idempotency via check-before-insert: queries existing records by name before creating
+- Requires DATABASE_URL env var pointing to localhost:5436 when running outside Docker
+- Generated weekly plan separately via API after seeding (not part of seed script)
+
+### Testing Performed
+- Seed script: Ran successfully, all 12 meal types + 31 meals + 5 templates + 1 plan created
+- Idempotency: Re-ran seed, all entities skipped (no duplicates)
+- API: POST /weekly-plans/generate created week for 2026-01-26
+- API: GET /today returns Normal Workday with 5 populated meal slots (Scrambled Eggs, Protein Coffee, Chicken Rice Bowl, Cottage Cheese Bowl, Grilled Salmon)
+
+### Blockers
+- None
+
+### Next
+- Build Week View (overview and template switching)
+
+---
+
 ## Session: 2026-01-26
 
 **Role**: frontend
