@@ -7,8 +7,8 @@ import { Home, Calendar, UtensilsCrossed, SlidersHorizontal, TrendingUp } from '
 const navItems = [
   { href: '/', label: 'Today', icon: Home },
   { href: '/week', label: 'Week', icon: Calendar },
-  { href: '/library', label: 'Meals', icon: UtensilsCrossed },
-  { href: '/settings', label: 'Setup', icon: SlidersHorizontal },
+  { href: '/meals', label: 'Meals', icon: UtensilsCrossed },
+  { href: '/setup', label: 'Setup', icon: SlidersHorizontal },
   { href: '/stats', label: 'Stats', icon: TrendingUp },
 ]
 
