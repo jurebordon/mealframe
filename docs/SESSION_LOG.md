@@ -5,6 +5,57 @@
 
 ---
 
+## Session: 2026-01-26
+
+**Role**: frontend
+**Task**: Build Today View (mobile-first, primary screen)
+**Branch**: feat/today-view
+
+### Summary
+- Built the Today View as the primary screen at `/`, connected to `GET /api/v1/today`
+- Created TanStack Query hooks with optimistic updates for completion flow
+- Integrated v0 design components: MealCardGesture, CompletionSheetAnimated, CompletionAnimation, ProgressRing, StreakBadge, Toast
+- Added AppShell (bottom nav + sidebar) to root layout for app-wide navigation
+- All UI states implemented: loading, error, empty (no plan / override), meals with hero "next" card, day complete celebration
+- Full completion flow: tap for status picker, long-press/swipe for quick "followed", animation, undo via toast
+
+### Files Changed
+- frontend/src/app/page.tsx (rewritten - Today View with API integration)
+- frontend/src/app/layout.tsx (updated - AppShell wrapper added)
+- frontend/src/hooks/use-today.ts (created - useToday, useCompleteSlot, useUncompleteSlot hooks)
+- frontend/src/components/navigation/bottom-nav.tsx (updated - route `/today` → `/`)
+- frontend/src/components/navigation/sidebar.tsx (updated - route `/today` → `/`)
+- docs/ROADMAP.md (updated - task complete, reprioritized Next)
+- docs/SESSION_LOG.md (this entry)
+
+### Key Features
+- Optimistic updates on completion (instant UI, rollback on error)
+- Automatic `is_next` recomputation after completion
+- Streak badge only shown when streak > 0
+- Empty state differentiates between "no plan generated" and "override day"
+- Navigation now functional across all pages via AppShell in layout
+
+### Decisions
+- Today View lives at `/` (root route), not `/today` — updated all nav links accordingly
+- AppShell in layout.tsx (not page-level) so all pages get navigation automatically
+- Completion tracking UI built directly into Today View (not a separate task — the v0 components already provide the full interaction)
+- Moved "Seed initial data" to Now since the Today View needs data to be useful
+
+### Testing Performed
+- npm run build: Passes, 8 static pages generated
+- Dev server: Starts, compiles `/` successfully, HTTP 200
+- Backend health check: API healthy, `/today` returns empty plan (expected — no seed data)
+- Backend tests: Pre-existing pytest-asyncio version mismatch (ScopeMismatch error) — not caused by this session
+
+### Blockers
+- None
+
+### Next
+- Seed initial data (Meal Types, Day Templates, Week Plan) so Today View has real content
+- Build Week View (overview and template switching)
+
+---
+
 ## Session: 2026-01-24 (4)
 
 **Role**: frontend
