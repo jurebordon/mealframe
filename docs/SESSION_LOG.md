@@ -5,6 +5,55 @@
 
 ---
 
+## Session: 2026-01-27 (8)
+
+**Role**: backend + frontend
+**Task**: Build Stats view (adherence, streaks)
+**Branch**: feat/stats-view
+
+### Summary
+- Created stats service with adherence rate calculation, streak tracking, per-meal-type breakdown, and daily data points
+- Added `GET /api/v1/stats?days=N` endpoint with full response including daily adherence for charting
+- Extended `StatsResponse` schema with new `DailyAdherence` model for per-day chart data
+- Built complete Stats page with 4 overview cards, daily adherence bar chart with 7-day rolling average, per-meal-type progress bars with "Focus area" badges, completion status pie chart, and time period selector (7/30/90 days)
+- Created TanStack Query hook and API function for stats
+- Wrote 13 integration tests covering response structure, status breakdown, adherence calculation, streaks, overrides, meal type ordering, daily data, and parameter validation
+
+### Files Changed
+**Backend (new):**
+- backend/app/services/stats.py (created — stats calculation service)
+- backend/app/api/stats.py (created — GET /stats endpoint)
+- backend/tests/test_stats.py (created — 13 integration tests)
+
+**Backend (modified):**
+- backend/app/schemas/stats.py (added DailyAdherence schema)
+- backend/app/schemas/__init__.py (exported DailyAdherence)
+- backend/app/services/__init__.py (exported get_stats)
+- backend/app/api/__init__.py (exported stats_router)
+- backend/app/main.py (registered stats_router)
+
+**Frontend (new):**
+- frontend/src/hooks/use-stats.ts (created — TanStack Query hook)
+
+**Frontend (modified):**
+- frontend/src/lib/types.ts (added StatsResponse, StatusBreakdown, MealTypeAdherence, DailyAdherence types)
+- frontend/src/lib/api.ts (added getStats function)
+- frontend/src/app/stats/page.tsx (rewrote — full stats page with charts)
+
+### Decisions
+- Streak calculation is strict: all slots must have a completion status for a day to count toward a streak
+- Adherence formula: `(followed + adjusted) / (total - social - unmarked)` per Tech Spec 4.3
+- Used recharts (already in dependencies) for ComposedChart and PieChart — loaded only on /stats route
+- Daily adherence array included in API response to avoid N+1 queries for chart data
+
+### Blockers
+- None
+
+### Next
+- End-to-end testing (daily flows, weekly generation)
+
+---
+
 ## Session: 2026-01-26 (7)
 
 **Role**: frontend
