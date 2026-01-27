@@ -5,6 +5,45 @@
 
 ---
 
+## Session: 2026-01-27 (9)
+
+**Role**: frontend
+**Task**: End-to-end testing with Playwright
+**Branch**: test/e2e-playwright
+
+### Summary
+- Set up Playwright with Chromium in the frontend project
+- Created API-driven test helpers that work with existing seed data (reset completions, fetch today/week data, create fixtures)
+- Wrote 8 daily flow tests: date header, "Next" indicator, progress ring, completion sheet opening, "Followed" status, sequential completion, "Day Complete" celebration, undo via toast
+- Wrote 8 weekly flow tests: day cards with progress, week plan name, "Today" highlight, day expansion, "Generate Next Week" button, template picker modal, template switching, "No Plan" override
+- Wrote 3 offline tests: offline banner appears, recovers on reconnect, all routes accessible
+- Total: 19 E2E tests, all passing against Docker services
+
+### Decisions
+- Used API-driven fixtures instead of shared seed data for test isolation
+- Tests reset today's completions via DELETE /slots/{id}/complete before each daily test
+- Used `force: true` for modal clicks where backdrop intercepts pointer events
+- Offline tests dispatch browser events rather than reload (no service worker in dev mode)
+- Filtered E2E fixture templates from template picker assertions to avoid test data pollution
+
+### Files Changed
+**Frontend (new):**
+- frontend/playwright.config.ts (Playwright configuration)
+- frontend/e2e/helpers.ts (API-driven fixture setup and reset utilities)
+- frontend/e2e/daily-flow.spec.ts (8 daily meal completion flow tests)
+- frontend/e2e/weekly-flow.spec.ts (8 weekly plan and template switching tests)
+- frontend/e2e/offline.spec.ts (3 offline behavior and route tests)
+
+**Modified:**
+- frontend/package.json (added @playwright/test, test:e2e scripts)
+- .gitignore (added Playwright artifacts)
+- docs/ROADMAP.md (moved E2E testing to Done)
+- docs/SESSION_LOG.md (this entry)
+
+### Status: COMPLETE
+
+---
+
 ## Session: 2026-01-27 (8)
 
 **Role**: backend + frontend

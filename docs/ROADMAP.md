@@ -6,12 +6,11 @@
 ## Now (Current Work)
 
 <!-- ONE task in progress at a time -->
-- [ ] End-to-end testing (daily flows, weekly generation)
+- [ ] Deployment setup (Docker Compose production config)
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-1. Deployment setup (Docker Compose production config)
 
 ## Later (Backlog)
 
@@ -29,6 +28,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] End-to-end testing with Playwright (daily flows, weekly generation, offline) (2026-01-27)
 - [x] Build Stats view (adherence, streaks, daily chart, meal type breakdown) (2026-01-27)
 - [x] Implement offline support (service worker, cache strategy, completion sync) (2026-01-26)
 - [x] Build Setup screens (Meal Types, Day Templates, Week Plans) with full CRUD (2026-01-26)
