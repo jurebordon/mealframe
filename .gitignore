@@ -38,6 +38,12 @@ yarn.lock
 pnpm-lock.yaml
 *.tsbuildinfo
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 # next-pwa generated service worker files
 frontend/public/sw.js
 frontend/public/sw.js.map
