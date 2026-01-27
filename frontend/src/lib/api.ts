@@ -33,6 +33,7 @@ import type {
   WeekPlanCreate,
   WeekPlanUpdate,
   WeekPlanListItem,
+  StatsResponse,
   PaginatedResponse,
   ErrorResponse,
 } from './types'
@@ -453,6 +454,17 @@ export async function setDefaultWeekPlan(id: string): Promise<WeekPlanResponse> 
   })
 }
 
+// ============================================================================
+// Stats Endpoints
+// ============================================================================
+
+/**
+ * Get adherence statistics for a given period.
+ */
+export async function getStats(days = 30): Promise<StatsResponse> {
+  return fetchApi<StatsResponse>(`/stats?days=${days}`)
+}
+
 // Convenience object for importing all API functions
 export const api = {
   // Today/Daily
@@ -497,6 +509,9 @@ export const api = {
   updateWeekPlan,
   deleteWeekPlan,
   setDefaultWeekPlan,
+
+  // Stats
+  getStats,
 }
 
 export default api

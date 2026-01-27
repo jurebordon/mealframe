@@ -339,6 +339,47 @@ export interface MealImportResult {
 }
 
 // ============================================================================
+// Stats
+// ============================================================================
+
+export interface StatusBreakdown {
+  followed: number
+  adjusted: number
+  skipped: number
+  replaced: number
+  social: number
+  unmarked: number
+}
+
+export interface MealTypeAdherence {
+  meal_type_id: string
+  name: string
+  total: number
+  followed: number
+  adherence_rate: string // Decimal as string from backend
+}
+
+export interface DailyAdherence {
+  date: string
+  total: number
+  followed: number
+  adherence_rate: string // Decimal as string from backend
+}
+
+export interface StatsResponse {
+  period_days: number
+  total_slots: number
+  completed_slots: number
+  by_status: StatusBreakdown
+  adherence_rate: string // Decimal as string from backend
+  current_streak: number
+  best_streak: number
+  override_days: number
+  by_meal_type: MealTypeAdherence[]
+  daily_adherence: DailyAdherence[]
+}
+
+// ============================================================================
 // Pagination
 // ============================================================================
 
