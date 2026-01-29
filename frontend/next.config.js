@@ -61,6 +61,9 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   reactStrictMode: true,
 
+  // Standalone output for Docker production builds
+  output: 'standalone',
+
   // Transpile packages that might have issues
   transpilePackages: ['lucide-react'],
 }

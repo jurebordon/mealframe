@@ -1,21 +1,51 @@
-# Frontend Dockerfile
-# Development Dockerfile for Next.js application
-
-FROM node:20-alpine
+# ---- Base stage ----
+FROM node:20-alpine AS base
 
 WORKDIR /app
 
-# Copy package files
+# ---- Dependencies stage ----
+FROM base AS deps
+
 COPY package.json package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
 
-# Install dependencies
-# Use npm install if no package-lock.json exists, otherwise use npm ci
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+# ---- Development stage ----
+FROM deps AS dev
 
-# Copy application source
 COPY . .
 
 EXPOSE 3000
 
-# Development mode (hot reload)
 CMD ["npm", "run", "dev"]
+
+# ---- Build stage ----
+FROM deps AS builder
+
+COPY . .
+
+# Build argument for API URL baked into the client bundle
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+RUN npm run build
+
+# ---- Production stage ----
+FROM base AS prod
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy standalone output
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT=3000 \
+    HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]

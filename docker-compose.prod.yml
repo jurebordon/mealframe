@@ -1,0 +1,46 @@
+# Production Docker Compose override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+
+services:
+  db:
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+
+  api:
+    build:
+      target: prod
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://mealframe:${DB_PASSWORD}@db:5432/mealframe
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://mealframe.localhost}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+    ports: !reset []
+    volumes: !reset []
+    command: !reset ""
+
+  web:
+    build:
+      target: prod
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+    restart: unless-stopped
+    ports: !reset []
+    volumes: !reset []
+    command: !reset ""
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: mealframe-nginx
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - web
+
+volumes:
+  pgdata:
