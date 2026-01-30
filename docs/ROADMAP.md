@@ -6,12 +6,11 @@
 ## Now (Current Work)
 
 <!-- ONE task in progress at a time -->
-- [ ] Week selector with navigation (carousel to switch between weeks, generate/regenerate per week)
+- [ ] Fix: Template picker modal UX on mobile (scroll bleed-through, "No Plan" option hidden - make fullscreen)
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-- [ ] Fix: Template picker modal UX on mobile (scroll bleed-through, "No Plan" option hidden - make fullscreen)
 - [ ] Fix: Undo action for completed meals (wrong status selected)
 
 ## Later (Backlog)
@@ -30,6 +29,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Week selector with navigation (arrow-based week switching, smart regeneration) (2026-01-30)
 - [x] Deployment setup (Docker Compose production config, Nginx, multi-stage builds) (2026-01-30)
 - [x] End-to-end testing with Playwright (daily flows, weekly generation, offline) (2026-01-27)
 - [x] Build Stats view (adherence, streaks, daily chart, meal type breakdown) (2026-01-27)

@@ -5,6 +5,63 @@
 
 ---
 
+## Session: 2026-01-30 (11)
+
+**Role**: fullstack
+**Task**: Week selector with navigation (arrow-based week switching, smart regeneration)
+**Branch**: feat/week-selector
+
+### Summary
+- Added week selector component with left/right arrow navigation
+- Implemented smart regeneration that preserves completed slots
+- Updated GET /weekly-plans/current to accept week_start_date query parameter
+- Modified POST /weekly-plans/generate to return 200 for regeneration (201 for new weeks)
+- Navigation allows 4 weeks back, unlimited forward
+- "Regenerate" button appears for weeks with uncompleted slots
+- "Generate Week" appears for weeks without plans
+
+### Files Changed
+**Backend (modified):**
+- backend/app/api/weekly.py (added week_start_date param, smart regeneration, dynamic status codes)
+- backend/app/services/weekly.py (added get_week_instance, regenerate_weekly_plan functions)
+- backend/app/services/__init__.py (exported new functions)
+- backend/tests/test_weekly_api.py (updated conflict test, added regeneration tests)
+
+**Frontend (new):**
+- frontend/src/components/mealframe/week-selector.tsx (arrow navigation component)
+
+**Frontend (modified):**
+- frontend/src/app/week/page.tsx (integrated week selector, selected week state)
+- frontend/src/hooks/use-week.ts (added useWeek hook with date param)
+- frontend/src/lib/api.ts (added getWeek function with date param)
+
+### API Changes
+| Endpoint | Change |
+|----------|--------|
+| GET /weekly-plans/current | Added optional `week_start_date` query param |
+| POST /weekly-plans/generate | Returns 201 for new weeks, 200 for regeneration |
+
+### Smart Regeneration Logic
+- When generate is called for an existing week, only uncompleted slots are refreshed
+- Completed slots (any completion_status) retain their meal assignments
+- New meals are assigned via round-robin to uncompleted slots only
+- Useful for refreshing meal variety without losing tracking progress
+
+### Decisions
+- Used arrow buttons instead of carousel for more explicit navigation
+- 4 weeks back limit to keep the scope manageable while allowing history review
+- Unlimited future weeks to support planning ahead
+- Regeneration preserves all completed slots (not just today's)
+
+### Testing Performed
+- 143 backend tests pass (including 4 new weekly API tests)
+- Frontend build passes (8 static pages)
+- Manual testing: generate, regenerate, navigation, week-by-date fetching
+
+### Status: COMPLETE
+
+---
+
 ## Session: 2026-01-30 (10)
 
 **Role**: devops + frontend
