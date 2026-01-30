@@ -5,6 +5,47 @@
 
 ---
 
+## Session: 2026-01-30 (12)
+
+**Role**: frontend
+**Task**: Fix template picker modal UX on mobile (scroll bleed-through, "No Plan" option hidden)
+**Branch**: fix/template-picker-mobile-ux
+
+### Summary
+- Made template picker fullscreen on mobile (< 768px viewport)
+- Added body scroll lock when modal is open to prevent scroll bleed-through
+- Ensured "No Plan" option is always visible without scrolling
+- Added close button with aria-label for accessibility
+- Desktop behavior unchanged (centered modal with max-h-85vh)
+- Content area uses flex-1 on mobile, fixed max-height on desktop
+- Confirmation screen also uses fullscreen layout on mobile
+
+### Files Changed
+**Frontend (modified):**
+- [frontend/src/components/mealframe/template-picker.tsx](frontend/src/components/mealframe/template-picker.tsx) - Fullscreen mobile modal, body scroll lock, improved layout
+
+### Implementation Details
+- Used `useIsMobile()` hook to detect viewport < 768px
+- Added `useEffect` to lock/unlock body scroll based on modal open state
+- Modal height changes from `h-full` (mobile) to `max-h-[85vh]` (desktop)
+- Modal animation changes from slide-up on mobile to fade-in on desktop
+- Content area is `flex-1` on mobile to fill available space and ensure "No Plan" is visible
+
+### Decisions
+- Kept custom modal implementation instead of switching to Drawer component (vaul)
+- Body scroll lock implemented directly rather than relying on library
+- Fullscreen on mobile provides maximum content visibility and prevents scroll issues
+- Desktop retains centered modal for better desktop UX
+
+### Testing Performed
+- Frontend build passes with no TypeScript errors
+- Manual testing required: verify fullscreen on mobile, scroll lock, "No Plan" visibility
+- E2E tests not run (backend database connection issues unrelated to this change)
+
+### Status: COMPLETE
+
+---
+
 ## Session: 2026-01-30 (11)
 
 **Role**: fullstack
