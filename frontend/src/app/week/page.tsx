@@ -6,10 +6,11 @@ import { TemplatePicker } from '@/components/mealframe/template-picker'
 import type { Template } from '@/components/mealframe/template-picker'
 import type { Meal } from '@/components/mealframe/day-card-expandable'
 import { Button } from '@/components/ui/button'
-import { useCurrentWeek, useGenerateWeek, useSwitchTemplate, useSetOverride } from '@/hooks/use-week'
+import { WeekSelector, getCurrentWeekStart, formatDateForApi } from '@/components/mealframe/week-selector'
+import { useWeek, useGenerateWeek, useSwitchTemplate, useSetOverride } from '@/hooks/use-week'
 import { useDayTemplates } from '@/hooks/use-day-templates'
 import type { WeeklyPlanInstanceDayResponse } from '@/lib/types'
-import { CalendarPlus, Loader2 } from 'lucide-react'
+import { CalendarPlus, Loader2, RefreshCw } from 'lucide-react'
 
 function formatWeekRange(weekStartDate: string): string {
   const start = new Date(weekStartDate + 'T00:00:00')
@@ -68,8 +69,24 @@ function mapSlotsToMeals(day: WeeklyPlanInstanceDayResponse): Meal[] {
   }))
 }
 
+/**
+ * Check if a week has any uncompleted slots (for regenerate button visibility).
+ */
+function hasUncompletedSlots(weekPlan: { days: WeeklyPlanInstanceDayResponse[] }): boolean {
+  return weekPlan.days.some(day =>
+    day.slots.some(slot => slot.completion_status === null)
+  )
+}
+
 export default function WeekPage() {
-  const { data: weekPlan, isLoading, error } = useCurrentWeek()
+  // Track the selected week (Monday date)
+  const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(getCurrentWeekStart)
+
+  // Format for API calls
+  const weekStartDateStr = formatDateForApi(selectedWeekStart)
+
+  // Fetch data for the selected week
+  const { data: weekPlan, isLoading, error } = useWeek(weekStartDateStr)
   const { data: dayTemplates } = useDayTemplates()
   const generateWeek = useGenerateWeek()
   const switchTemplate = useSwitchTemplate()
@@ -110,11 +127,21 @@ export default function WeekPage() {
   }
 
   const handleGenerate = () => {
-    generateWeek.mutate(undefined)
+    generateWeek.mutate({ week_start_date: weekStartDateStr })
   }
 
-  // No plan exists (404)
+  const handleWeekChange = (newWeekStart: Date) => {
+    setSelectedWeekStart(newWeekStart)
+    // Clear any selected day when changing weeks
+    setSelectedDayDate(null)
+    setShowTemplatePicker(false)
+  }
+
+  // Determine if this is a 404 (no plan exists)
   const noPlan = error && 'status' in error && (error as { status: number }).status === 404
+
+  // Check if regeneration is possible (plan exists with uncompleted slots)
+  const canRegenerate = weekPlan && hasUncompletedSlots(weekPlan)
 
   if (isLoading) {
     return (
@@ -132,9 +159,14 @@ export default function WeekPage() {
     return (
       <main className="min-h-screen bg-background">
         <div className="mx-auto max-w-2xl px-4 pb-24 pt-safe">
+          {/* Header with Week Selector */}
           <header className="mb-8 pt-6">
-            <h1 className="text-2xl font-semibold text-foreground">Week View</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <WeekSelector
+              selectedWeekStart={selectedWeekStart}
+              onWeekChange={handleWeekChange}
+              className="mb-4"
+            />
+            <p className="mt-2 text-center text-sm text-muted-foreground">
               No meal plan for this week yet
             </p>
           </header>
@@ -143,7 +175,7 @@ export default function WeekPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <CalendarPlus className="h-8 w-8 text-primary" />
             </div>
-            <h2 className="mb-2 text-lg font-semibold text-foreground">Generate Your Week</h2>
+            <h2 className="mb-2 text-lg font-semibold text-foreground">Generate This Week</h2>
             <p className="mb-6 text-sm text-muted-foreground leading-relaxed">
               Create a meal plan for this week using your templates and meal rotation.
             </p>
@@ -179,7 +211,11 @@ export default function WeekPage() {
       <main className="min-h-screen bg-background">
         <div className="mx-auto max-w-2xl px-4 pb-24 pt-safe">
           <header className="mb-8 pt-6">
-            <h1 className="text-2xl font-semibold text-foreground">Week View</h1>
+            <WeekSelector
+              selectedWeekStart={selectedWeekStart}
+              onWeekChange={handleWeekChange}
+              className="mb-4"
+            />
           </header>
           <section className="rounded-xl border border-destructive/50 bg-destructive/5 p-6">
             <p className="text-sm text-destructive">
@@ -195,31 +231,40 @@ export default function WeekPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex min-h-16 max-w-2xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-pretty text-sm font-semibold text-foreground sm:text-base">
-              {formatWeekRange(weekPlan.week_start_date)}
-            </h1>
+        <div className="mx-auto flex min-h-16 max-w-2xl flex-col gap-3 px-4 py-3">
+          {/* Week Selector */}
+          <WeekSelector
+            selectedWeekStart={selectedWeekStart}
+            onWeekChange={handleWeekChange}
+          />
+
+          {/* Plan name and regenerate button */}
+          <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               {weekPlan.week_plan?.name || 'Week Plan'}
             </p>
-          </div>
-          <Button
-            size="sm"
-            variant="default"
-            className="shrink-0"
-            onClick={handleGenerate}
-            disabled={generateWeek.isPending}
-          >
-            {generateWeek.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              'Generate Next Week'
+            {canRegenerate && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={handleGenerate}
+                disabled={generateWeek.isPending}
+              >
+                {generateWeek.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-3 w-3" />
+                    Regenerate
+                  </>
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
       </header>
 
@@ -246,8 +291,16 @@ export default function WeekPage() {
         {/* Helper Text */}
         <div className="mt-8 rounded-xl border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Tap any day to view all meals. Use the edit button to change templates or mark a day as
-            &quot;No Plan&quot; when you&apos;re traveling or eating out.
+            {canRegenerate ? (
+              <>
+                Tap any day to view meals. Use <strong>Regenerate</strong> to refresh uncompleted meals
+                while keeping your completed progress.
+              </>
+            ) : (
+              <>
+                All meals for this week have been completed! Navigate to a future week to generate a new plan.
+              </>
+            )}
           </p>
         </div>
       </main>

@@ -300,6 +300,35 @@ class TestGetCurrentWeek:
         assert saturday["weekday"] == "Saturday"
         assert len(saturday["slots"]) == 1  # Light day template
 
+    @pytest.mark.asyncio
+    async def test_returns_week_by_start_date_param(
+        self,
+        client: AsyncClient,
+        current_week_instance: WeeklyPlanInstance,
+    ):
+        """Returns week plan when week_start_date query param is provided."""
+        week_start = current_week_instance.week_start_date.isoformat()
+        response = await client.get(f"/api/v1/weekly-plans/current?week_start_date={week_start}")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["id"] == str(current_week_instance.id)
+        assert data["week_start_date"] == week_start
+
+    @pytest.mark.asyncio
+    async def test_returns_404_for_nonexistent_week(
+        self,
+        client: AsyncClient,
+    ):
+        """Returns 404 when requesting a week that doesn't exist."""
+        future_monday = "2099-01-04"  # A Monday in the future
+        response = await client.get(f"/api/v1/weekly-plans/current?week_start_date={future_monday}")
+
+        assert response.status_code == 404
+        data = response.json()
+        assert "No plan exists" in data["detail"]["error"]["message"]
+
 
 class TestGenerateWeek:
     """Tests for POST /api/v1/weekly-plans/generate endpoint."""
@@ -347,21 +376,70 @@ class TestGenerateWeek:
         assert data["week_start_date"] == target_monday.isoformat()
 
     @pytest.mark.asyncio
-    async def test_generate_week_conflict_when_exists(
+    async def test_regenerate_week_when_exists(
         self,
         client: AsyncClient,
         current_week_instance: WeeklyPlanInstance,
     ):
-        """Returns 409 when week already exists."""
+        """Regenerates uncompleted slots when week already exists (smart regeneration)."""
         response = await client.post(
             "/api/v1/weekly-plans/generate",
             json={"week_start_date": current_week_instance.week_start_date.isoformat()},
         )
 
-        assert response.status_code == 409
+        # Should return 200 OK (not 409 Conflict) - regeneration instead of conflict
+        assert response.status_code == 200
         data = response.json()
-        assert data["detail"]["error"]["code"] == "CONFLICT"
-        assert "already exists" in data["detail"]["error"]["message"]
+        assert data["week_start_date"] == current_week_instance.week_start_date.isoformat()
+        # Should still have days
+        assert len(data["days"]) == 7
+
+    @pytest.mark.asyncio
+    async def test_regenerate_preserves_completed_slots(
+        self,
+        db: AsyncSession,
+        client: AsyncClient,
+        current_week_instance: WeeklyPlanInstance,
+    ):
+        """Regeneration should preserve slots that have completion status."""
+        # Get current week to find a slot to complete
+        week_response = await client.get("/api/v1/weekly-plans/current")
+        assert week_response.status_code == 200
+        week_data = week_response.json()
+
+        # Find a slot from Monday
+        monday_data = week_data["days"][0]
+        assert len(monday_data["slots"]) > 0
+
+        # Complete the first slot
+        first_slot = monday_data["slots"][0]
+        slot_id = first_slot["id"]
+        original_meal_id = first_slot["meal"]["id"] if first_slot.get("meal") else None
+
+        # Mark slot as completed
+        complete_response = await client.post(
+            f"/api/v1/slots/{slot_id}/complete",
+            json={"status": "followed"},
+        )
+        assert complete_response.status_code == 200
+
+        # Now regenerate the week
+        regen_response = await client.post(
+            "/api/v1/weekly-plans/generate",
+            json={"week_start_date": current_week_instance.week_start_date.isoformat()},
+        )
+        assert regen_response.status_code == 200
+
+        # The completed slot should still have the same meal and completion status
+        regen_data = regen_response.json()
+        regen_monday = regen_data["days"][0]
+
+        # Find the slot with the same ID
+        regen_slot = next((s for s in regen_monday["slots"] if s["id"] == slot_id), None)
+        assert regen_slot is not None, "Completed slot should still exist"
+        assert regen_slot["completion_status"] == "followed", "Completion status should be preserved"
+        if original_meal_id:
+            assert regen_slot["meal"]["id"] == original_meal_id, "Meal assignment should be preserved"
 
     @pytest.mark.asyncio
     async def test_generate_week_fails_without_default_plan(

@@ -20,7 +20,9 @@ from .meals import (
 
 from .weekly import (
     generate_weekly_plan,
+    regenerate_weekly_plan,
     get_current_week_instance,
+    get_week_instance,
     get_full_weekly_instance,
     get_instance_day,
     get_slots_for_instance_day,
@@ -75,7 +77,9 @@ __all__ = [
     "update_round_robin_state",
     # Weekly planning
     "generate_weekly_plan",
+    "regenerate_weekly_plan",
     "get_current_week_instance",
+    "get_week_instance",
     "get_full_weekly_instance",
     "get_instance_day",
     "get_slots_for_instance_day",

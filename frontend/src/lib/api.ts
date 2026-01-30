@@ -141,10 +141,20 @@ export async function uncompleteSlot(slotId: string): Promise<CompleteSlotRespon
 // ============================================================================
 
 /**
+ * Get a week's plan by start date.
+ * @param weekStartDate - Optional Monday of the target week. Defaults to current week.
+ */
+export async function getWeek(weekStartDate?: string): Promise<WeeklyPlanInstanceResponse> {
+  const params = weekStartDate ? `?week_start_date=${weekStartDate}` : ''
+  return fetchApi<WeeklyPlanInstanceResponse>(`/weekly-plans/current${params}`)
+}
+
+/**
  * Get the current week's plan.
+ * @deprecated Use getWeek() instead
  */
 export async function getCurrentWeek(): Promise<WeeklyPlanInstanceResponse> {
-  return fetchApi<WeeklyPlanInstanceResponse>('/weekly-plans/current')
+  return getWeek()
 }
 
 /**
@@ -474,6 +484,7 @@ export const api = {
   uncompleteSlot,
 
   // Weekly
+  getWeek,
   getCurrentWeek,
   generateWeek,
   switchDayTemplate,

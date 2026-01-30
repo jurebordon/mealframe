@@ -13,7 +13,7 @@ See Tech Spec section 4.4 for full specification.
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -34,7 +34,9 @@ from ..schemas.meal import MealCompact
 from ..schemas.meal_type import MealTypeCompact
 from ..services.weekly import (
     generate_weekly_plan,
+    regenerate_weekly_plan,
     get_current_week_instance,
+    get_week_instance,
     get_full_weekly_instance,
     get_instance_day,
     get_slots_for_instance_day,
@@ -137,28 +139,33 @@ async def build_instance_response(
 
 @router.get("/current", response_model=WeeklyPlanInstanceResponse)
 async def get_current_week(
+    week_start_date: date | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> WeeklyPlanInstanceResponse:
     """
-    Get the current week's plan.
+    Get a week's plan.
 
-    Returns the weekly plan instance for the current week with all days and slots.
+    Returns the weekly plan instance for the specified week with all days and slots.
     Each day includes:
     - Template information
     - Slots with meal assignments
     - Completion summary
 
-    If no plan exists for the current week, returns 404.
+    Query parameters:
+    - week_start_date (optional): Monday of the target week. Defaults to current week.
+
+    If no plan exists for the specified week, returns 404.
     """
-    instance = await get_current_week_instance(db)
+    instance = await get_week_instance(db, week_start_date)
 
     if not instance:
+        week_desc = f"week starting {week_start_date}" if week_start_date else "the current week"
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={
                 "error": {
                     "code": ErrorCode.NOT_FOUND,
-                    "message": "No plan exists for the current week",
+                    "message": f"No plan exists for {week_desc}",
                 }
             },
         )
@@ -169,25 +176,36 @@ async def get_current_week(
 @router.post(
     "/generate",
     response_model=WeeklyPlanInstanceResponse,
-    status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {"description": "New week created"},
+        200: {"description": "Existing week regenerated (uncompleted slots refreshed)"},
+    },
 )
 async def generate_week(
     request: WeeklyPlanGenerateRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> WeeklyPlanInstanceResponse:
     """
-    Generate a new weekly plan.
+    Generate or regenerate a weekly plan.
 
-    Creates a new weekly plan instance using the default week plan.
-    For each day, assigns meals via round-robin rotation.
+    If no plan exists for the target week:
+    - Creates a new weekly plan instance using the default week plan
+    - For each day, assigns meals via round-robin rotation
+    - Returns 201 Created
+
+    If a plan already exists (smart regeneration):
+    - Only regenerates slots that have no completion status
+    - Preserves all completed slots and their meal assignments
+    - Useful for refreshing meal assignments without losing progress
+    - Returns 200 OK
 
     Request body:
     - week_start_date (optional): Monday of the target week. Defaults to next Monday.
 
-    Returns the generated weekly plan with all days and slots.
+    Returns the generated/regenerated weekly plan with all days and slots.
 
     Errors:
-    - 409 Conflict: Week already exists
     - 400 Bad Request: No default week plan, or invalid date
     """
     try:
@@ -195,22 +213,32 @@ async def generate_week(
             db,
             week_start_date=request.week_start_date,
         )
+        response.status_code = status.HTTP_201_CREATED
         return await build_instance_response(db, instance)
 
     except ValueError as e:
         error_message = str(e)
 
-        # Determine appropriate status code
+        # If week already exists, try smart regeneration
         if "already exists" in error_message:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "error": {
-                        "code": ErrorCode.CONFLICT,
-                        "message": error_message,
-                    }
-                },
-            )
+            try:
+                instance = await regenerate_weekly_plan(
+                    db,
+                    week_start_date=request.week_start_date,
+                )
+                # Return 200 OK for regeneration (not 201 Created)
+                response.status_code = status.HTTP_200_OK
+                return await build_instance_response(db, instance)
+            except ValueError as regen_error:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "error": {
+                            "code": ErrorCode.VALIDATION_ERROR,
+                            "message": str(regen_error),
+                        }
+                    },
+                )
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

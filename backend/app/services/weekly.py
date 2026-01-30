@@ -204,6 +204,18 @@ async def get_current_week_instance(db: AsyncSession) -> Optional[WeeklyPlanInst
     return await get_weekly_instance_by_week_start(db, week_start)
 
 
+async def get_week_instance(
+    db: AsyncSession, week_start_date: Optional[date] = None
+) -> Optional[WeeklyPlanInstance]:
+    """Get the weekly plan instance for a specific week or current week if not specified."""
+    if week_start_date is None:
+        week_start = get_week_start_date(date.today())
+    else:
+        # Normalize to Monday if not already
+        week_start = get_week_start_date(week_start_date)
+    return await get_weekly_instance_by_week_start(db, week_start)
+
+
 async def get_full_weekly_instance(
     db: AsyncSession, instance_id: UUID
 ) -> Optional[WeeklyPlanInstance]:
@@ -451,3 +463,89 @@ def is_date_in_week(target_date: date, week_start: date) -> bool:
     """Check if a date falls within the week starting at week_start."""
     week_end = week_start + timedelta(days=6)
     return week_start <= target_date <= week_end
+
+
+async def regenerate_weekly_plan(
+    db: AsyncSession,
+    week_start_date: date,
+) -> WeeklyPlanInstance:
+    """
+    Regenerate uncompleted slots in an existing weekly plan.
+
+    Only regenerates slots that:
+    1. Have no completion_status (uncompleted)
+    2. Are in the future OR are today but not yet completed
+
+    Preserves all completed slots and their meal assignments.
+
+    Args:
+        db: Database session
+        week_start_date: Monday of the target week
+
+    Returns:
+        Updated WeeklyPlanInstance
+
+    Raises:
+        ValueError: If week doesn't exist or invalid date
+    """
+    # Validate it's a Monday
+    week_start = get_week_start_date(week_start_date)
+    if week_start != week_start_date:
+        # Auto-correct to Monday of that week
+        week_start_date = week_start
+
+    # Get existing instance
+    instance = await get_weekly_instance_by_week_start(db, week_start_date)
+    if not instance:
+        raise ValueError(f"No week plan exists for week starting {week_start_date}")
+
+    # Get full instance with days
+    full_instance = await get_full_weekly_instance(db, instance.id)
+    if not full_instance:
+        raise ValueError(f"Could not load week plan for {week_start_date}")
+
+    today = date.today()
+
+    # For each day, regenerate uncompleted slots
+    for instance_day in full_instance.days:
+        # Skip override days (no meals to regenerate)
+        if instance_day.is_override:
+            continue
+
+        # Skip if no template
+        if not instance_day.day_template_id:
+            continue
+
+        # Get current slots for this day
+        current_slots = await get_slots_for_instance_day(db, instance.id, instance_day.date)
+
+        # Find uncompleted slots (completion_status is NULL)
+        uncompleted_slots = [s for s in current_slots if s.completion_status is None]
+
+        if not uncompleted_slots:
+            # All slots are completed, nothing to regenerate
+            continue
+
+        # Get the template with its slots
+        template = await get_day_template_by_id(db, instance_day.day_template_id)
+        if not template:
+            continue
+
+        # Build a map of template slot positions to meal types
+        template_slots_by_position = {ts.position: ts for ts in template.slots}
+
+        # Regenerate each uncompleted slot with a new meal
+        for slot in uncompleted_slots:
+            template_slot = template_slots_by_position.get(slot.position)
+            if not template_slot:
+                continue
+
+            # Get a new meal via round-robin
+            new_meal = await get_next_meal_for_type(db, template_slot.meal_type_id)
+
+            # Update the slot with new meal
+            slot.meal_id = new_meal.id if new_meal else None
+            slot.updated_at = datetime.now(timezone.utc)
+
+    await db.flush()
+    return instance
