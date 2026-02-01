@@ -19,9 +19,11 @@ services:
       DATABASE_URL: postgresql+asyncpg://mealframe:${DB_PASSWORD}@db:5432/mealframe
       CORS_ORIGINS: ${CORS_ORIGINS:-https://meals.bordon.family}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+    ports:
+      - "8003:8003"
     volumes: !reset []
     command: !reset ""
-    # Don't expose port - web container will connect internally
+    # Exposed on port 8003 for NPM to proxy /api/ requests
 
   web:
     build:

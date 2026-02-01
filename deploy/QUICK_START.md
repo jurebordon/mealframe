@@ -274,7 +274,14 @@ Your app is now:
 
 ## Troubleshooting
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md#troubleshooting) for common issues.
+**Backend connectivity issues?** See [TROUBLESHOOTING_BACKEND.md](TROUBLESHOOTING_BACKEND.md) for step-by-step diagnosis.
+
+**Run diagnostic script on VM:**
+```bash
+ssh root@192.168.1.100
+cd /opt/mealframe
+bash deploy/diagnose.sh
+```
 
 **Quick fixes:**
 ```bash
@@ -289,3 +296,5 @@ docker compose -f docker-compose.yml -f docker-compose.npm.yml up -d --build
 systemctl status mealframe-webhook
 journalctl -u mealframe-webhook -f
 ```
+
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md#troubleshooting) for more common issues.

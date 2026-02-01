@@ -158,6 +158,17 @@ pct status <CTID>
 
 ## 🆘 Troubleshooting
 
+**Backend connectivity issues?**
+
+Frontend loads but can't reach API? See [TROUBLESHOOTING_BACKEND.md](TROUBLESHOOTING_BACKEND.md)
+
+Run diagnostic script:
+```bash
+ssh root@192.168.1.100
+cd /opt/mealframe
+bash deploy/diagnose.sh
+```
+
 **App not loading?**
 
 ```bash
