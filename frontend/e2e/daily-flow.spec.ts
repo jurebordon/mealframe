@@ -151,4 +151,33 @@ test.describe('Daily meal completion flow', () => {
       await expect(page.getByText(firstMealName).first()).toBeVisible()
     }
   })
+
+  test('Tapping completed meal allows status change', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByText('Next', { exact: true })).toBeVisible({ timeout: 10000 })
+
+    // Complete a meal as "followed"
+    await clickHeroCard(page)
+    await expect(page.getByText('Mark completion status')).toBeVisible({ timeout: 5000 })
+    await page.getByLabel(/mark as followed/i).click()
+
+    // Wait for animation and toast
+    await expect(page.getByText('Marked as followed')).toBeVisible({ timeout: 5000 })
+    await page.waitForTimeout(3500) // Wait for toast to disappear
+
+    // Find the completed meal in "Remaining Today" section and click it
+    const remainingSection = page.locator('section').filter({ hasText: 'Remaining Today' })
+    const completedMealCard = remainingSection.locator('h3').first()
+    await completedMealCard.click()
+
+    // Sheet should open with "Change status" header and show "Current" badge
+    await expect(page.getByText('Change status')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Current')).toBeVisible()
+
+    // Change to "skipped"
+    await page.getByLabel(/mark as skipped/i).click()
+
+    // Toast should show "Changed to skipped"
+    await expect(page.getByText('Changed to skipped')).toBeVisible({ timeout: 5000 })
+  })
 })

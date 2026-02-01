@@ -34,6 +34,7 @@ export default function TodayView() {
 
   const handleCompletionSelect = useCallback((status: Exclude<CompletionStatus, 'pending'>) => {
     if (!selectedSlot) return
+    const wasAlreadyCompleted = selectedSlot.completion_status !== null
     setShowCompletionSheet(false)
 
     completeSlotMutation.mutate({ slotId: selectedSlot.id, status })
@@ -45,7 +46,7 @@ export default function TodayView() {
     setTimeout(() => {
       setShowAnimation(false)
       const label = status.charAt(0).toUpperCase() + status.slice(1)
-      setToastMessage(`Marked as ${label.toLowerCase()}`)
+      setToastMessage(wasAlreadyCompleted ? `Changed to ${label.toLowerCase()}` : `Marked as ${label.toLowerCase()}`)
       setShowToast(true)
     }, 1000)
   }, [selectedSlot, completeSlotMutation])
@@ -257,7 +258,7 @@ export default function TodayView() {
                     fat={slot.meal?.fat_g ?? undefined}
                     status={isCompleted ? 'completed' : 'default'}
                     completionStatus={slot.completion_status ?? undefined}
-                    onClick={!isCompleted ? () => handleMarkComplete(slot) : undefined}
+                    onClick={() => handleMarkComplete(slot)}
                     onQuickComplete={!isCompleted ? () => handleQuickComplete(slot) : undefined}
                     enableGestures={!isCompleted}
                   />
@@ -282,6 +283,7 @@ export default function TodayView() {
         onOpenChange={setShowCompletionSheet}
         onSelect={handleCompletionSelect}
         mealName={selectedSlot?.meal?.name ?? ''}
+        currentStatus={selectedSlot?.completion_status}
       />
 
       {/* Completion Animation */}

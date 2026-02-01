@@ -15,6 +15,8 @@ interface CompletionSheetAnimatedProps {
   onOpenChange: (open: boolean) => void
   mealName: string
   onSelect: (status: SelectableCompletionStatus) => void
+  /** Current status when editing an already-completed meal */
+  currentStatus?: SelectableCompletionStatus | null
 }
 
 const statusOptions: Array<{
@@ -129,8 +131,10 @@ export function CompletionSheetAnimated({
   onOpenChange,
   mealName,
   onSelect,
+  currentStatus,
 }: CompletionSheetAnimatedProps) {
   const [selectedStatus, setSelectedStatus] = useState<SelectableCompletionStatus | null>(null)
+  const isEditing = currentStatus != null
 
   const handleSelect = (status: SelectableCompletionStatus) => {
     setSelectedStatus(status)
@@ -175,7 +179,9 @@ export function CompletionSheetAnimated({
             {/* Header */}
             <div className="border-b border-border px-6 py-4">
               <div className="mb-1 flex items-start justify-between gap-3">
-                <h2 id="completion-sheet-title" className="text-balance text-lg font-semibold text-foreground">Mark completion status</h2>
+                <h2 id="completion-sheet-title" className="text-balance text-lg font-semibold text-foreground">
+                  {isEditing ? 'Change status' : 'Mark completion status'}
+                </h2>
                 <button
                   onClick={() => onOpenChange(false)}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
@@ -193,7 +199,8 @@ export function CompletionSheetAnimated({
               <div className="space-y-3">
                 {statusOptions.map((option, index) => {
                   const isSelected = selectedStatus === option.status
-                  
+                  const isCurrent = currentStatus === option.status
+
                   return (
                     <motion.button
                       key={option.status}
@@ -202,13 +209,14 @@ export function CompletionSheetAnimated({
                       transition={{ delay: index * 0.05 }}
                       onClick={() => handleSelect(option.status)}
                       disabled={selectedStatus !== null}
-                      aria-label={`Mark as ${option.label.toLowerCase()}: ${option.description}`}
+                      aria-label={`Mark as ${option.label.toLowerCase()}: ${option.description}${isCurrent ? ' (current)' : ''}`}
                       className={cn(
                         'relative flex min-h-[64px] w-full items-center gap-4 rounded-xl border-2 p-4 text-left transition-all active:scale-95',
                         option.color,
                         option.isPrimary && 'min-h-[72px]',
                         isSelected && 'scale-[0.98]',
-                        selectedStatus && !isSelected && 'opacity-40'
+                        selectedStatus && !isSelected && 'opacity-40',
+                        isCurrent && 'ring-2 ring-foreground/20'
                       )}
                       type="button"
                     >
@@ -230,8 +238,13 @@ export function CompletionSheetAnimated({
 
                       {/* Content */}
                       <div className="flex-1 space-y-1">
-                        <div className={cn('font-semibold', option.isPrimary && 'text-base')}>
+                        <div className={cn('flex items-center gap-2 font-semibold', option.isPrimary && 'text-base')}>
                           {option.label}
+                          {isCurrent && (
+                            <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-normal">
+                              Current
+                            </span>
+                          )}
                         </div>
                         <div className={cn('text-sm opacity-80', option.isPrimary && 'text-base')}>
                           {option.description}
