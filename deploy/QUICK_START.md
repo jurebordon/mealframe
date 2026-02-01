@@ -6,11 +6,22 @@ Follow these steps in order. Full details in [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GU
 
 ### ☐ Step 1: Create Proxmox CT (10 min)
 
+**In Proxmox web UI:**
+- Create CT: Ubuntu 22.04, 2GB RAM, 2 cores, 20GB disk
+- Static IP: 192.168.1.100 (or your preferred IP)
+- Note the Container ID (e.g., `100`)
+
+**On Proxmox HOST (not the CT):**
+
 ```bash
-# In Proxmox web UI:
-# - Create CT: Ubuntu 22.04, 2GB RAM, 2 cores, 20GB disk
-# - Static IP: 192.168.1.100 (or your preferred IP)
-# - Enable nesting: pct set <CTID> -features nesting=1,keyctl=1
+# SSH to Proxmox host
+ssh root@proxmox-host-ip
+
+# Enable nesting (replace 100 with your Container ID)
+pct set 100 -features nesting=1,keyctl=1
+
+# Start the container
+pct start 100
 ```
 
 ### ☐ Step 2: Setup CT (5 min)
