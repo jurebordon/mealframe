@@ -5,6 +5,90 @@
 
 ---
 
+## Session: 2026-02-02 (14)
+
+**Role**: infrastructure/devops
+**Task**: Homelab deployment with Nginx Proxy Manager
+**Branch**: main (direct commits)
+
+### Summary
+- Deployed MealFrame to Proxmox VM (192.168.1.100) with production Docker Compose
+- Configured Nginx Proxy Manager (192.168.1.50) as reverse proxy with SSL
+- Fixed backend API connectivity issue (NPM couldn't reach FastAPI)
+- Configured split DNS in OPNsense to avoid DNS rebind warnings
+- App now accessible at https://meals.bordon.family from anywhere
+
+### Files Changed
+**Deployment Configuration (created):**
+- [deploy/TROUBLESHOOTING_BACKEND.md](deploy/TROUBLESHOOTING_BACKEND.md) - Comprehensive backend connectivity troubleshooting guide
+- [deploy/diagnose.sh](deploy/diagnose.sh) - Automated diagnostic script for quick issue detection
+- [deploy/NPM_FIX.md](deploy/NPM_FIX.md) - Step-by-step NPM proxy configuration fix
+
+**Deployment Configuration (modified):**
+- [docker-compose.npm.yml](docker-compose.npm.yml:22-23) - Exposed API container on port 8003 for NPM to reach
+- [deploy/QUICK_START.md](deploy/QUICK_START.md) - Added troubleshooting section references
+- [deploy/README.md](deploy/README.md) - Added backend connectivity troubleshooting section
+
+**Documentation:**
+- [docs/ROADMAP.md](docs/ROADMAP.md) - Added auto-deployment enablement to Next queue, documented completed work
+
+### Implementation Details
+**Problem:**
+- Frontend loaded through domain but API calls returned 404
+- Next.js standalone doesn't proxy `/api/` requests in production
+- NPM was only forwarding to web container (port 3000), not the API
+
+**Solution:**
+1. Exposed API container on port 8003 in production Docker Compose
+2. Configured NPM Advanced tab with nginx location block for `/api/`
+3. NPM now routes:
+   - `/` → web:3000 (Next.js frontend)
+   - `/api/*` → api:8003 (FastAPI backend)
+
+**DNS Configuration:**
+- Split DNS in OPNsense: `meals.bordon.family` → 192.168.1.50 (NPM) on local network
+- DNS rebind exception added for `meals.bordon.family`
+- External traffic routes through public IP → router port forward → NPM
+
+### Decisions
+- Chose to expose API port (8003) rather than bundle Nginx in web container (simpler architecture)
+- NPM handles all routing and SSL termination (single point of configuration)
+- Split DNS preferred over disabling DNS rebind check (maintains security)
+- Created comprehensive troubleshooting docs for future reference
+
+### Architecture
+```
+Browser → meals.bordon.family
+  ↓ (DNS: local=192.168.1.50, external=public IP)
+  ↓
+NPM (192.168.1.50) - SSL termination, reverse proxy
+  ↓
+  ├─→ Web: 192.168.1.100:3000 (Next.js)
+  └─→ API: 192.168.1.100:8003 (FastAPI)
+```
+
+### Troubleshooting Journey
+1. Initial issue: API returned OPNsense error (port forwarding reached firewall instead of NPM)
+2. Second issue: Frontend loaded but API 404 (NPM not configured for /api/ routing)
+3. Third issue: DNS rebind warning from OPNsense (local network accessing domain that resolves to local IP)
+4. Solutions applied in order, each resolving one layer of the problem
+
+### Testing Performed
+- Verified containers running: `docker ps` shows all 3 containers up
+- Local API test: `curl http://localhost:8003/api/v1/meal-types` returns `[]`
+- Domain API test: `curl -k https://meals.bordon.family/api/v1/meal-types` returns `[]`
+- Browser access: Frontend loads, app functional (empty database)
+- Mobile access: Works from external network via mobile data
+
+### Status: COMPLETE
+
+### Next
+- Enable auto-deployment webhook in GitHub Actions (uncomment webhook call in deploy.yml)
+- Optionally: Set up port forwarding or NPM proxy for webhook endpoint (port 9000)
+- Populate database with initial meal data through web interface
+
+---
+
 ## Session: 2026-02-01 (13)
 
 **Role**: frontend
