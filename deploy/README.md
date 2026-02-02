@@ -6,12 +6,11 @@ This directory contains everything needed to deploy MealFrame to a Proxmox homel
 
 | File | Purpose |
 |------|---------|
-| **[QUICK_START.md](QUICK_START.md)** | ⚡ Start here! 10-step checklist (45 min total) |
+| **[QUICK_START.md](QUICK_START.md)** | ⚡ Start here! Step-by-step setup guide |
 | **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** | 📖 Complete deployment documentation |
 | **ct-setup.sh** | 🔧 Automated Proxmox CT setup script |
-| **deploy.sh** | 🚀 Deployment script (triggered by webhook) |
+| **deploy.sh** | 🚀 Deployment script (run via SSH from GitHub Actions) |
 | **.env.production.template** | 🔐 Production environment template |
-| **hooks.json.template** | 🪝 Webhook configuration template |
 
 ## 🚀 Quick Start
 
@@ -36,7 +35,7 @@ Just `git push` - your changes auto-deploy! 🎉
 │              Nginx Proxy Manager                         │
 │              (SSL, reverse proxy)                        │
 └─────────────────────┬───────────────────────────────────┘
-                      │ :3000
+                      │ :3000 / :8003
                       ↓
 ┌─────────────────────────────────────────────────────────┐
 │           Proxmox CT (192.168.1.100)                     │
@@ -47,30 +46,24 @@ Just `git push` - your changes auto-deploy! 🎉
 │  │  │  :3000   │◄─┤  :8003   │◄─┤  (internal)  │    │ │
 │  │  └──────────┘  └──────────┘  └──────────────┘    │ │
 │  └────────────────────────────────────────────────────┘ │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  Webhook Listener :9000                            │ │
-│  │  (listens for GitHub push events)                 │ │
-│  └────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
                       ↑
-                      │ webhook trigger
+                      │ SSH (port forwarded)
                       │
 ┌─────────────────────────────────────────────────────────┐
 │              GitHub Actions                              │
-│              (on push to main)                           │
+│       (SSH deploy on push to main)                       │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## 🔄 Deployment Flow
 
 1. **Developer pushes code** → GitHub (main branch)
-2. **GitHub Actions** → Generates webhook signature
-3. **Webhook sent** → Homelab CT (authenticated with HMAC)
-4. **Webhook listener** → Triggers deploy.sh
-5. **deploy.sh** → Pulls latest code, rebuilds containers
-6. **Containers restart** → App updated at meals.bordon.family
+2. **GitHub Actions triggers** → Connects to homelab via SSH
+3. **SSH runs deploy.sh** → Pulls latest code, rebuilds containers
+4. **Containers restart** → App updated at meals.bordon.family
 
-Total time: ~30 seconds from push to live.
+Total time: ~2-3 minutes from push to live (includes Docker build).
 
 ## 🛠️ Maintenance Commands
 
@@ -87,9 +80,6 @@ docker compose -f docker-compose.yml -f docker-compose.npm.yml logs -f
 docker compose logs -f web
 docker compose logs -f api
 docker compose logs -f db
-
-# Webhook logs
-journalctl -u mealframe-webhook -f
 
 # Deployment history
 cat /var/log/mealframe-deploy.log
@@ -121,7 +111,7 @@ docker exec -i mealframe-db psql -U mealframe mealframe < backup-20260130.sql
 
 ## 🔐 Security
 
-- ✅ HMAC-SHA256 webhook authentication
+- ✅ SSH key authentication for deployments
 - ✅ Secrets stored in GitHub Actions (not in code)
 - ✅ SSL via Let's Encrypt (NPM)
 - ✅ Database password in `.env.production` (not committed)
@@ -182,19 +172,17 @@ docker compose logs --tail=100
 docker compose restart
 ```
 
-**Webhook not triggering?**
+**GitHub Actions deployment failing?**
 
 ```bash
-# Check webhook service
-systemctl status mealframe-webhook
+# Check SSH connectivity from your machine
+ssh -p <SSH_PORT> <USERNAME>@<WAN_IP>
 
-# Test manually
-curl -X POST http://localhost:9000/hooks/deploy-mealframe \
-  -H "Content-Type: application/json" \
-  -d '{"ref":"refs/heads/main"}'
+# Verify deploy script is executable
+ls -la /opt/mealframe/deploy/deploy.sh
 
-# Check webhook logs
-journalctl -u mealframe-webhook -n 50
+# Check deployment logs on CT
+cat /var/log/mealframe-deploy.log
 ```
 
 **SSL issues?**

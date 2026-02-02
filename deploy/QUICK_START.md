@@ -118,53 +118,43 @@ nano .env.production
 # Replace CHANGE_ME_TO_SECURE_PASSWORD with your password (2 places)
 # Save (Ctrl+O, Enter, Ctrl+X)
 
-# Generate webhook secret
-openssl rand -hex 32
-# Copy this secret - you'll need it for GitHub
-
-# Setup webhook
-cp deploy/hooks.json.template hooks.json
-nano hooks.json
-# Replace CHANGE_ME_TO_SECURE_SECRET with your webhook secret
-# Save
-
 # Make deploy script executable
 chmod +x deploy/deploy.sh
-
-# Enable webhook service
-systemctl enable mealframe-webhook --now
-systemctl status mealframe-webhook  # Should show "active (running)"
-
-# If you get "Unit file does not exist", the ct-setup.sh didn't run properly
-# Create the service manually:
-# cat > /etc/systemd/system/mealframe-webhook.service <<'EOF'
-# [Unit]
-# Description=MealFrame Webhook Listener
-# After=network.target
-#
-# [Service]
-# Type=simple
-# User=root
-# WorkingDirectory=/opt/mealframe
-# ExecStart=/usr/bin/webhook -hooks /opt/mealframe/hooks.json -verbose -port 9000
-# Restart=always
-#
-# [Install]
-# WantedBy=multi-user.target
-# EOF
-# Then: systemctl daemon-reload && systemctl enable mealframe-webhook --now
 ```
 
-### ☐ Step 5: Configure GitHub Actions (2 min)
+### ☐ Step 5: Configure GitHub Actions Secrets (5 min)
+
+**Create SSH key for deployment:**
 
 ```bash
-# In your GitHub repo:
-# 1. Go to Settings → Secrets and variables → Actions
-# 2. Click "New repository secret"
-# 3. Name: WEBHOOK_SECRET
-# 4. Value: (paste the webhook secret from Step 4)
-# 5. Click "Add secret"
+# On your Mac, generate a deployment key
+ssh-keygen -t ed25519 -f ~/.ssh/mealframe-deploy -C "mealframe-deploy" -N ""
+
+# Copy public key to the CT
+ssh-copy-id -i ~/.ssh/mealframe-deploy.pub root@192.168.1.100
+
+# Test SSH connection
+ssh -i ~/.ssh/mealframe-deploy root@192.168.1.100 "echo 'SSH works!'"
+
+# Base64 encode the private key for GitHub
+cat ~/.ssh/mealframe-deploy | base64 | tr -d '\n'
+# Copy this entire output
 ```
+
+**Add secrets to GitHub repository:**
+
+Go to your repo → Settings → Secrets and variables → Actions → New repository secret:
+
+| Secret Name | Value |
+|-------------|-------|
+| `HOMELAB_SSH_KEY_BASE64` | The base64-encoded private key from above |
+| `HOMELAB_WAN_IP` | Your public IP (or use a DDNS hostname) |
+| `HOMELAB_SSH_PORT` | Your SSH port (forwarded through router) |
+| `HOMELAB_USERNAME` | `root` (or your deploy user) |
+
+**Set up SSH port forwarding on your router:**
+
+Forward an external port (e.g., 2222) to your CT's SSH port (22) at 192.168.1.100.
 
 ### ☐ Step 6: Configure NPM (5 min)
 
@@ -217,29 +207,15 @@ curl http://localhost:3000
 2. Domain: https://meals.bordon.family (after DNS propagates)
 3. Mobile: https://meals.bordon.family
 
-### ☐ Step 9: Enable Auto-Deploy (2 min)
+### ☐ Step 9: Test Auto-Deploy (2 min)
 
-```bash
-# Edit the GitHub Actions workflow on your Mac
-cd /Users/jure/Dev/meal-planner
-nano .github/workflows/deploy.yml
+Auto-deploy is already configured! The GitHub Actions workflow uses SSH to connect directly to your homelab and run the deployment script.
 
-# Uncomment these lines (around line 23-27):
-# curl -X POST https://meals.bordon.family:9000/hooks/deploy-mealframe \
-#   -H "Content-Type: application/json" \
-#   -H "X-Hub-Signature-256: sha256=$signature" \
-#   -d "$payload" \
-#   --max-time 10 || echo "Webhook trigger sent"
+**Verify it works:**
 
-# Commit and push
-git add .github/workflows/deploy.yml
-git commit -m "feat: enable webhook auto-deployment"
-git push
-```
-
-**Note:** For webhook to work from internet, either:
-- Option A: Forward port 9000 on router to 192.168.1.100:9000
-- Option B: Create NPM proxy for `webhook.bordon.family` → `192.168.1.100:9000`
+1. Check GitHub Actions tab in your repo - the deploy workflow should run on every push to main
+2. View workflow logs to confirm SSH connection succeeds
+3. Check deployment logs on CT: `cat /var/log/mealframe-deploy.log`
 
 ### ☐ Step 10: Test CI/CD (2 min)
 

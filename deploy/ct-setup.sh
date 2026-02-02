@@ -36,38 +36,25 @@ systemctl start docker
 docker --version
 docker compose version
 
-# Install webhook listener (for GitHub Actions deployments)
-echo "Installing webhook..."
-apt install -y webhook
+# Install git (for pulling code)
+echo "Installing git..."
+apt install -y git
 
 # Create mealframe directory
 echo "Creating application directory..."
 mkdir -p /opt/mealframe
 cd /opt/mealframe
 
-# Create systemd service for webhook
-cat > /etc/systemd/system/mealframe-webhook.service <<'EOF'
-[Unit]
-Description=MealFrame Webhook Listener
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/mealframe
-ExecStart=/usr/bin/webhook -hooks /opt/mealframe/hooks.json -verbose -port 9000
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
 echo ""
 echo "=== Setup Complete ==="
 echo ""
 echo "Next steps:"
 echo "1. Clone the repository: cd /opt/mealframe && git clone <your-repo-url> ."
-echo "2. Create .env.production file (see instructions)"
-echo "3. Set up webhook hooks.json (see instructions)"
-echo "4. Enable webhook: systemctl enable mealframe-webhook --now"
-echo "5. Start containers: docker compose -f docker-compose.prod.yml up -d"
+echo "2. Create .env.production from template (see deploy/.env.production.template)"
+echo "3. Make deploy script executable: chmod +x deploy/deploy.sh"
+echo "4. Start containers: docker compose -f docker-compose.yml -f docker-compose.npm.yml up -d"
+echo ""
+echo "For auto-deploy via GitHub Actions:"
+echo "- Set up SSH port forwarding on your router"
+echo "- Add SSH key and secrets to GitHub repository"
+echo "- See deploy/QUICK_START.md for details"

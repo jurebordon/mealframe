@@ -1,27 +1,30 @@
 #!/bin/bash
 # MealFrame Deployment Script
-# Triggered by GitHub webhook on push to main
+# Triggered by GitHub Actions via SSH or manually
 
 set -e
 
-echo "=== MealFrame Deployment Started at $(date) ===" | tee -a /var/log/mealframe-deploy.log
+DEPLOY_DIR="${DEPLOY_DIR:-/opt/mealframe}"
+LOG_FILE="/var/log/mealframe-deploy.log"
 
-cd /opt/mealframe
+echo "=== MealFrame Deployment Started at $(date) ===" | tee -a "$LOG_FILE"
+
+cd "$DEPLOY_DIR"
 
 # Pull latest code
-echo "Pulling latest code..." | tee -a /var/log/mealframe-deploy.log
+echo "Pulling latest code..." | tee -a "$LOG_FILE"
 git pull origin main
 
-# Pull latest Docker images
-echo "Pulling Docker images..." | tee -a /var/log/mealframe-deploy.log
-docker compose -f docker-compose.prod.yml pull
-
-# Restart containers
-echo "Restarting containers..." | tee -a /var/log/mealframe-deploy.log
-docker compose -f docker-compose.prod.yml up -d
+# Build and restart containers using NPM-compatible compose
+echo "Building and restarting containers..." | tee -a "$LOG_FILE"
+docker compose -f docker-compose.yml -f docker-compose.npm.yml up -d --build
 
 # Clean up old images
-echo "Cleaning up..." | tee -a /var/log/mealframe-deploy.log
+echo "Cleaning up old images..." | tee -a "$LOG_FILE"
 docker image prune -f
 
-echo "=== Deployment Complete at $(date) ===" | tee -a /var/log/mealframe-deploy.log
+# Show container status
+echo "Container status:" | tee -a "$LOG_FILE"
+docker compose -f docker-compose.yml -f docker-compose.npm.yml ps | tee -a "$LOG_FILE"
+
+echo "=== Deployment Complete at $(date) ===" | tee -a "$LOG_FILE"

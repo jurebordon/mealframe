@@ -5,6 +5,59 @@
 
 ---
 
+## Session: 2026-02-02 (15)
+
+**Role**: devops
+**Task**: Enable SSH-based auto-deployment from GitHub Actions
+**Branch**: feat/ssh-auto-deploy
+
+### Summary
+- Switched from webhook-based to SSH-based deployment (same approach as finance-dashboard)
+- Updated GitHub Actions workflow to use appleboy/ssh-action for direct SSH deployment
+- Updated deploy.sh to use the NPM-compatible docker-compose config
+- Removed webhook infrastructure (hooks.json.template, webhook service setup)
+- Updated all deployment documentation to reflect SSH-based approach
+
+### Files Changed
+**GitHub Actions:**
+- [.github/workflows/deploy.yml](.github/workflows/deploy.yml) - Replaced webhook curl with SSH-based deployment using appleboy/ssh-action
+
+**Deployment Scripts:**
+- [deploy/deploy.sh](deploy/deploy.sh) - Updated to use NPM-compatible compose files, added DEPLOY_DIR env var
+- [deploy/ct-setup.sh](deploy/ct-setup.sh) - Removed webhook service setup, added git install
+
+**Documentation:**
+- [deploy/QUICK_START.md](deploy/QUICK_START.md) - Replaced webhook setup with SSH key and port forwarding instructions
+- [deploy/README.md](deploy/README.md) - Updated architecture diagram and deployment flow for SSH approach
+
+**Deleted:**
+- deploy/hooks.json.template - No longer needed with SSH deployment
+
+### GitHub Secrets Required
+| Secret | Purpose |
+|--------|---------|
+| `HOMELAB_SSH_KEY_BASE64` | Base64-encoded SSH private key for deployment |
+| `HOMELAB_WAN_IP` | Public IP or DDNS hostname of homelab |
+| `HOMELAB_SSH_PORT` | SSH port (forwarded through router) |
+| `HOMELAB_USERNAME` | SSH username (e.g., root) |
+
+### Why SSH over Webhook
+- More reliable: SSH is a proven, battle-tested protocol
+- Simpler secrets: Reuses existing SSH infrastructure (same as finance-dashboard)
+- Better debugging: Can see full deployment output in GitHub Actions logs
+- No extra service: Don't need webhook listener running on CT
+
+### Router Configuration Required
+- Forward external SSH port (e.g., 2222) to CT's SSH port 22 at 192.168.1.100
+
+### Status: COMPLETE
+
+### Next
+- Set up SSH port forwarding and add GitHub secrets to enable auto-deployment
+- Pick next task from Later section in ROADMAP
+
+---
+
 ## Session: 2026-02-02 (14)
 
 **Role**: infrastructure/devops

@@ -10,7 +10,7 @@
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-- Enable auto-deployment webhook in GitHub Actions (uncomment webhook call in deploy.yml)
+- None - suggest next task from Later section
 
 ## Later (Backlog)
 
@@ -28,6 +28,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Enable SSH-based auto-deployment from GitHub Actions (2026-02-02)
 - [x] Homelab deployment to Proxmox VM with NPM reverse proxy and SSL (2026-02-02)
 - [x] Fix backend API connectivity through NPM (expose API port 8003, configure proxy) (2026-02-02)
 - [x] Configure split DNS in OPNsense to avoid DNS rebind warnings (2026-02-02)
