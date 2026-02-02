@@ -54,8 +54,8 @@ mealframe/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/jurebordon/meal-frame.git
-   cd meal-frame
+   git clone https://github.com/jurebordon/mealframe.git
+   cd mealframe
    ```
 
 2. Copy environment template (when available):
