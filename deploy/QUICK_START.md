@@ -1,5 +1,34 @@
 # MealFrame Homelab Deployment - Quick Start
 
+## Migrating from Webhook to SSH Deployment
+
+If you previously set up webhook-based deployment (ran ct-setup.sh with webhook service), run these commands on your CT to clean up:
+
+```bash
+# SSH to CT
+ssh root@192.168.1.100
+
+# Stop and disable the webhook service
+systemctl stop mealframe-webhook
+systemctl disable mealframe-webhook
+
+# Remove the webhook service file
+rm /etc/systemd/system/mealframe-webhook.service
+systemctl daemon-reload
+
+# Remove hooks.json if it exists
+rm -f /opt/mealframe/hooks.json
+
+# Uninstall webhook package (optional, frees up space)
+apt remove -y webhook
+
+echo "Webhook cleanup complete! Now set up SSH deployment (Step 5 below)."
+```
+
+Then continue with **Step 5: Configure GitHub Actions Secrets** to set up SSH-based deployment.
+
+---
+
 ## TL;DR Checklist
 
 Follow these steps in order. Full details in [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
@@ -268,9 +297,8 @@ docker compose -f docker-compose.yml -f docker-compose.npm.yml restart
 docker compose -f docker-compose.yml -f docker-compose.npm.yml down
 docker compose -f docker-compose.yml -f docker-compose.npm.yml up -d --build
 
-# Check webhook
-systemctl status mealframe-webhook
-journalctl -u mealframe-webhook -f
+# Check deployment logs
+cat /var/log/mealframe-deploy.log
 ```
 
 See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md#troubleshooting) for more common issues.
