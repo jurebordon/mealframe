@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Expected CSV columns per MEAL_IMPORT_GUIDE.md
 REQUIRED_COLUMNS = {"name", "portion_description"}
-OPTIONAL_COLUMNS = {"calories_kcal", "protein_g", "carbs_g", "fat_g", "meal_types", "notes"}
+OPTIONAL_COLUMNS = {"calories_kcal", "protein_g", "carbs_g", "sugar_g", "fat_g", "saturated_fat_g", "fiber_g", "meal_types", "notes"}
 ALL_COLUMNS = REQUIRED_COLUMNS | OPTIONAL_COLUMNS
 
 
@@ -166,9 +166,21 @@ async def import_meals_from_csv(
         if carb_warn:
             row_warnings.append(carb_warn)
 
+        sugar_g, sugar_warn = _parse_optional_decimal(row.get("sugar_g", ""), "sugar_g")
+        if sugar_warn:
+            row_warnings.append(sugar_warn)
+
         fat_g, fat_warn = _parse_optional_decimal(row.get("fat_g", ""), "fat_g")
         if fat_warn:
             row_warnings.append(fat_warn)
+
+        saturated_fat_g, sat_fat_warn = _parse_optional_decimal(row.get("saturated_fat_g", ""), "saturated_fat_g")
+        if sat_fat_warn:
+            row_warnings.append(sat_fat_warn)
+
+        fiber_g, fiber_warn = _parse_optional_decimal(row.get("fiber_g", ""), "fiber_g")
+        if fiber_warn:
+            row_warnings.append(fiber_warn)
 
         notes = row.get("notes", "").strip() or None
 
@@ -179,7 +191,10 @@ async def import_meals_from_csv(
             calories_kcal=calories_kcal,
             protein_g=protein_g,
             carbs_g=carbs_g,
+            sugar_g=sugar_g,
             fat_g=fat_g,
+            saturated_fat_g=saturated_fat_g,
+            fiber_g=fiber_g,
             notes=notes,
         )
         db.add(meal)
@@ -294,7 +309,10 @@ async def create_meal(db: AsyncSession, data: MealCreate) -> Meal:
         calories_kcal=data.calories_kcal,
         protein_g=data.protein_g,
         carbs_g=data.carbs_g,
+        sugar_g=data.sugar_g,
         fat_g=data.fat_g,
+        saturated_fat_g=data.saturated_fat_g,
+        fiber_g=data.fiber_g,
         notes=data.notes,
     )
     db.add(meal)
@@ -334,8 +352,14 @@ async def update_meal(db: AsyncSession, meal: Meal, data: MealUpdate) -> Meal:
         meal.protein_g = data.protein_g
     if data.carbs_g is not None:
         meal.carbs_g = data.carbs_g
+    if data.sugar_g is not None:
+        meal.sugar_g = data.sugar_g
     if data.fat_g is not None:
         meal.fat_g = data.fat_g
+    if data.saturated_fat_g is not None:
+        meal.saturated_fat_g = data.saturated_fat_g
+    if data.fiber_g is not None:
+        meal.fiber_g = data.fiber_g
     if data.notes is not None:
         meal.notes = data.notes
 

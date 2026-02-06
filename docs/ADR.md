@@ -220,6 +220,70 @@ Manual trigger (user clicks "Generate Next Week"), typically Sunday evening.
 
 ---
 
+## ADR-009: User Management for Multi-User Access
+
+**Date**: 2026-02-04
+**Status**: Proposed (Needs Discussion)
+**Context**: To expose MealFrame to other users beyond the single-user MVP deployment, we need authentication and user management.
+
+### Problem
+
+The MVP was designed for single-user use (ADR-005). The data model includes nullable `user_id` columns for future multi-user support, but no authentication exists. To share the app with others, we need:
+1. User registration and login
+2. Session management
+3. Data isolation (users only see their own data)
+4. Secure deployment (currently relies on private network)
+
+### Options Under Consideration
+
+**Option A: Email/Password Authentication**
+- Traditional registration with email verification
+- Password hashing (bcrypt/argon2)
+- JWT or session-based auth
+- Pros: Full control, no external dependencies, familiar UX
+- Cons: Password reset flow, security responsibility, spam registration
+
+**Option B: OAuth Only (Google/Apple/GitHub)**
+- Delegate authentication to trusted providers
+- No password management
+- Pros: Lower security burden, trusted providers, quick login
+- Cons: Dependency on external services, users need accounts elsewhere
+
+**Option C: Magic Link Authentication**
+- Email-based passwordless login
+- Send login link, valid for short time
+- Pros: No passwords to manage, simple UX, secure
+- Cons: Requires email service, friction for frequent logins
+
+**Option D: Invite-Only with Simple Auth**
+- Admin generates invite codes
+- Users register with code + email/password
+- Pros: Controlled growth, simple implementation
+- Cons: Manual invite management, still need password infrastructure
+
+### Questions to Resolve
+
+1. How many users do we expect? (Family/friends vs. public)
+2. Is self-registration required, or invite-only acceptable?
+3. Do we need mobile-friendly OAuth (native app consideration)?
+4. What's the timeline for multi-user support?
+5. Do we want to support account linking (multiple auth methods)?
+
+### Implementation Considerations
+
+- All tables already have `user_id` columns (nullable)
+- Need to populate `user_id` for existing data (migration)
+- Add `WHERE user_id = :current_user` to all queries
+- Consider using established library (e.g., `fastapi-users`, `authlib`)
+
+### Next Steps
+
+- Decide on initial user scope (family vs. public)
+- Choose authentication method based on scope
+- Prototype chosen approach in isolated branch
+
+---
+
 ## ADR-008: Grocery List Ingredient Extraction Strategy
 
 **Date**: 2026-02-03
@@ -305,6 +369,61 @@ Unmarked meals (`completion_status = NULL`) are:
 - Adherence stats might be incomplete (acceptable - they're for reflection)
 - "Yesterday Review" prompts catch-up (gentle reminder)
 - Streaks only count fully-tracked days (avoids gaming)
+
+---
+
+## ADR-010: Extended Nutritional Data Display
+
+**Date**: 2026-02-06
+**Status**: Proposed (Needs Discussion)
+**Context**: The meal model now supports `sugar_g`, `saturated_fat_g`, and `fiber_g` fields. Need to decide how to display this data in the frontend.
+
+### Problem
+
+We've added three new nutritional fields to meals:
+- `sugar_g` - Sugar content (subset of carbohydrates)
+- `saturated_fat_g` - Saturated fat content (subset of total fat)
+- `fiber_g` - Dietary fiber content
+
+The frontend currently displays only the "big four" macros: calories, protein, carbs, and fat. We need to decide how and where to surface the extended nutritional data.
+
+### Options Under Consideration
+
+**Option A: Expandable Macro Details**
+- Keep current compact view (P/C/F)
+- Add expandable section showing sugar, sat fat, fiber
+- Pros: Clean default view, details available on demand
+- Cons: Extra tap to see data, might go unused
+
+**Option B: Always Show All Nutrients**
+- Display all 7 values (kcal, protein, carbs, sugar, fat, sat fat, fiber)
+- Pros: Transparent, no hidden data
+- Cons: Cluttered UI, overwhelming for quick glance
+
+**Option C: Configurable Display**
+- User preference in settings: "Show extended nutrients"
+- Toggle between compact (4 values) and detailed (7 values)
+- Pros: User choice, respects different needs
+- Cons: More settings complexity
+
+**Option D: Context-Dependent Display**
+- Compact in Today View (quick glance)
+- Full details in Meal Library and meal detail views
+- Pros: Right level of detail per context
+- Cons: Inconsistent display across views
+
+### Questions to Resolve
+
+1. Do users care about sugar/sat fat/fiber for daily use?
+2. Should this data affect meal selection or filtering?
+3. Is there a standard format users expect (nutrition label style)?
+4. Should we show ratios (e.g., sugar as % of carbs)?
+
+### Next Steps
+
+- Gather user feedback on which nutrients matter most
+- Prototype Option D (context-dependent) and evaluate
+- Consider future: daily totals, weekly averages, targets
 
 ---
 

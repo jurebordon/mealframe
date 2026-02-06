@@ -20,7 +20,10 @@ class MealBase(BaseSchema):
     calories_kcal: int | None = Field(default=None, ge=0, description="Calories for defined portion")
     protein_g: Decimal | None = Field(default=None, ge=0, description="Protein grams")
     carbs_g: Decimal | None = Field(default=None, ge=0, description="Carbohydrate grams")
+    sugar_g: Decimal | None = Field(default=None, ge=0, description="Sugar grams (subset of carbs)")
     fat_g: Decimal | None = Field(default=None, ge=0, description="Fat grams")
+    saturated_fat_g: Decimal | None = Field(default=None, ge=0, description="Saturated fat grams (subset of fat)")
+    fiber_g: Decimal | None = Field(default=None, ge=0, description="Fiber grams")
     notes: str | None = Field(default=None, description="Preparation notes")
 
 
@@ -41,7 +44,10 @@ class MealUpdate(BaseSchema):
     calories_kcal: int | None = None
     protein_g: Decimal | None = None
     carbs_g: Decimal | None = None
+    sugar_g: Decimal | None = None
     fat_g: Decimal | None = None
+    saturated_fat_g: Decimal | None = None
+    fiber_g: Decimal | None = None
     notes: str | None = None
     meal_type_ids: list[UUID] | None = Field(
         default=None,
@@ -72,7 +78,10 @@ class MealCompact(BaseSchema):
     calories_kcal: int | None = None
     protein_g: Decimal | None = None
     carbs_g: Decimal | None = None
+    sugar_g: Decimal | None = None
     fat_g: Decimal | None = None
+    saturated_fat_g: Decimal | None = None
+    fiber_g: Decimal | None = None
 
 
 class MealListItem(BaseSchema):
@@ -97,7 +106,10 @@ class MealImportRow(BaseSchema):
     calories_kcal: int | None = None
     protein_g: Decimal | None = None
     carbs_g: Decimal | None = None
+    sugar_g: Decimal | None = None
     fat_g: Decimal | None = None
+    saturated_fat_g: Decimal | None = None
+    fiber_g: Decimal | None = None
     notes: str | None = None
     meal_types: str | None = Field(
         default=None,

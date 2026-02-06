@@ -1,7 +1,7 @@
 # Roadmap
 
-**Last Updated**: 2026-02-03
-**Current Phase**: MVP - Polish & UX Fixes
+**Last Updated**: 2026-02-04
+**Current Phase**: MVP Complete - Evaluating Phase 2
 
 ## Now (Current Work)
 
@@ -10,11 +10,14 @@
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-- None - suggest next task from Later section
+**Choose one to begin Phase 2:**
+- User management and authentication (ADR-009) - Required to expose app to other users
+- Grocery list generation (ADR-008) - Most requested feature for personal use
 
 ## Later (Backlog)
 
 <!-- Ideas and future work, not prioritized -->
+- CSV import: prompt to create missing meal types (don't require pre-creating them)
 - Push notification reminders (requires native app consideration)
 - Grocery list generation from weekly plan
 - Ingredient-based meal builder with macro calculation
