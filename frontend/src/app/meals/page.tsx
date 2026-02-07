@@ -56,7 +56,10 @@ export default function MealsPage() {
       calories_kcal: meal.calories_kcal,
       protein_g: meal.protein_g ? Number(meal.protein_g) : null,
       carbs_g: null,
+      sugar_g: null,
       fat_g: null,
+      saturated_fat_g: null,
+      fiber_g: null,
       meal_type_ids: meal.meal_types.map((mt) => mt.id),
       notes: '',
     })
@@ -70,7 +73,10 @@ export default function MealsPage() {
       calories_kcal: formData.calories_kcal,
       protein_g: formData.protein_g,
       carbs_g: formData.carbs_g,
+      sugar_g: formData.sugar_g,
       fat_g: formData.fat_g,
+      saturated_fat_g: formData.saturated_fat_g,
+      fiber_g: formData.fiber_g,
       notes: formData.notes || undefined,
       meal_type_ids: formData.meal_type_ids,
     }

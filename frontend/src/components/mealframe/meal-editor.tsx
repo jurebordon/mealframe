@@ -13,7 +13,10 @@ export interface MealFormData {
   calories_kcal: number | null
   protein_g: number | null
   carbs_g: number | null
+  sugar_g: number | null
   fat_g: number | null
+  saturated_fat_g: number | null
+  fiber_g: number | null
   meal_type_ids: string[]
   notes: string
 }
@@ -24,7 +27,10 @@ const EMPTY_FORM: MealFormData = {
   calories_kcal: null,
   protein_g: null,
   carbs_g: null,
+  sugar_g: null,
   fat_g: null,
+  saturated_fat_g: null,
+  fiber_g: null,
   meal_type_ids: [],
   notes: '',
 }
@@ -81,7 +87,7 @@ export function MealEditor({
     }
   }
 
-  const setNumericField = (field: 'calories_kcal' | 'protein_g' | 'carbs_g' | 'fat_g', raw: string) => {
+  const setNumericField = (field: 'calories_kcal' | 'protein_g' | 'carbs_g' | 'sugar_g' | 'fat_g' | 'saturated_fat_g' | 'fiber_g', raw: string) => {
     if (raw === '') {
       setFormData({ ...formData, [field]: null })
       return
@@ -218,11 +224,50 @@ export function MealEditor({
                       />
                     </div>
                     <div>
+                      <label className="mb-1 block text-xs text-muted-foreground">
+                        Sugar (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.sugar_g ?? ''}
+                        onChange={(e) => setNumericField('sugar_g', e.target.value)}
+                        className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="—"
+                        min="0"
+                      />
+                    </div>
+                    <div>
                       <label className="mb-1 block text-xs text-muted-foreground">Fat (g)</label>
                       <input
                         type="number"
                         value={formData.fat_g ?? ''}
                         onChange={(e) => setNumericField('fat_g', e.target.value)}
+                        className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="—"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-muted-foreground">
+                        Sat. Fat (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.saturated_fat_g ?? ''}
+                        onChange={(e) => setNumericField('saturated_fat_g', e.target.value)}
+                        className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="—"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-muted-foreground">
+                        Fiber (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.fiber_g ?? ''}
+                        onChange={(e) => setNumericField('fiber_g', e.target.value)}
                         className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="—"
                         min="0"
