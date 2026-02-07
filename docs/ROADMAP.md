@@ -10,6 +10,9 @@
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
+**Quick Fixes:**
+- CSV import: auto-create missing meal types (currently skips with warning)
+
 **Choose one to begin Phase 2:**
 - User management and authentication (ADR-009) - Required to expose app to other users
 - Grocery list generation (ADR-008) - Most requested feature for personal use
@@ -17,7 +20,6 @@
 ## Later (Backlog)
 
 <!-- Ideas and future work, not prioritized -->
-- CSV import: prompt to create missing meal types (don't require pre-creating them)
 - Push notification reminders (requires native app consideration)
 - Grocery list generation from weekly plan
 - Ingredient-based meal builder with macro calculation

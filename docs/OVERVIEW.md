@@ -1,6 +1,6 @@
 # System Overview
 
-**Last Updated**: 2026-01-19
+**Last Updated**: 2026-02-04
 
 ## Architecture
 
@@ -194,7 +194,7 @@ App
 │   ├── Header (date, streak, progress)
 │   ├── Next Meal Card (prominent)
 │   ├── Meal List (remaining slots)
-│   └── Yesterday Review Modal (conditional)
+│   └── Yesterday Review Modal (morning prompt for unmarked meals)
 │
 ├── Week View (/week)                 [Secondary]
 │   ├── Week Header (date range, generate button)
@@ -236,14 +236,36 @@ App
 
 ## Deployment
 
-### Docker Compose Architecture
+### Production Architecture (Homelab)
+
+```
+Browser → meals.bordon.family
+  ↓ (DNS: local=192.168.1.50, external=public IP)
+  ↓
+Nginx Proxy Manager (192.168.1.50) - SSL termination, reverse proxy
+  ↓
+  ├─→ Web: 192.168.1.100:3000 (Next.js standalone)
+  └─→ API: 192.168.1.100:8003 (FastAPI/Gunicorn)
+        ↓
+      PostgreSQL (internal)
+```
+
+### Docker Compose Services
 
 ```yaml
 services:
   db:           # PostgreSQL 15
-  api:          # FastAPI backend
-  web:          # Next.js frontend
+  api:          # FastAPI backend (Gunicorn + Uvicorn workers)
+  web:          # Next.js frontend (standalone output)
 ```
+
+### Auto-Deployment
+
+GitHub Actions triggers SSH-based deployment on push to main:
+1. SSH into deployment VM
+2. Pull latest code
+3. Rebuild and restart containers
+4. Migrations run automatically via entrypoint
 
 ### Environment Variables
 

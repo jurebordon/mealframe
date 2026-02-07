@@ -1,6 +1,24 @@
 # Vision
 
-**Last Updated**: 2026-01-19
+**Last Updated**: 2026-02-04
+
+## Current Phase Status
+
+**Phase 1 (MVP): COMPLETE** - Deployed 2026-02-02
+
+The MVP is fully functional and deployed at `meals.bordon.family`. All core features are working:
+- Today View with completion tracking and streaks
+- Week View with template switching and regeneration
+- Meals Library with CSV import
+- Setup screens for Meal Types, Day Templates, Week Plans
+- Stats view with adherence tracking
+- Offline support with sync queue
+- Yesterday Review modal for catch-up
+- Auto-deployment via GitHub Actions
+
+**Next Phase**: Evaluating Phase 2 features (user management, grocery lists, template sharing)
+
+---
 
 ## Problem Statement
 
