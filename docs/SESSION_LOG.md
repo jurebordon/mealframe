@@ -5,6 +5,83 @@
 
 ---
 
+## Session: 2026-02-07
+
+**Role**: backend + data migration
+**Task**: Add extended nutritional fields + import user meal data
+**Branch**: main (direct commits)
+
+### Summary
+- Added `sugar_g`, `saturated_fat_g`, `fiber_g` fields to Meal model
+- Created Alembic migration for new columns (auto-runs on deploy)
+- Updated all backend schemas and services to handle new fields
+- Updated CSV import dialog in frontend to show new fields
+- Created ADR-010 proposing frontend display options for extended nutrients
+- Helped user convert spreadsheet meal data to MealFrame CSV format (11 meals)
+- Added ROADMAP item: CSV import should prompt to create missing meal types
+
+### Files Changed
+- `backend/app/models/meal.py` - Added 3 new columns
+- `backend/app/schemas/meal.py` - Updated all schemas (MealBase, MealUpdate, MealCompact, MealImportRow)
+- `backend/app/services/meals.py` - Updated import/create/update functions
+- `backend/alembic/versions/20260206_add_nutrient_fields_to_meal.py` - New migration
+- `frontend/src/components/mealframe/csv-importer.tsx` - Updated import dialog text
+- `docs/ADR.md` - Added ADR-010
+- `docs/ROADMAP.md` - Added CSV import enhancement
+- `data/import/mealframe_import.csv` - User's meal data (11 meals)
+- `scripts/convert_spreadsheet_meals.py` - Conversion script (not committed)
+
+### Decisions
+- Extended nutrients are optional fields (backward compatible)
+- Migration will run automatically on deploy via `entrypoint.sh`
+- Frontend display of new nutrients deferred to ADR-010 discussion
+- ADR-010 proposes context-dependent display (compact in Today View, full in Library)
+
+### Blockers
+- None
+
+### Next
+- User will import the 11 meals via CSV import once deployment completes
+- Consider implementing ADR-010 Option D (context-dependent nutrient display)
+- May add more meals to the import CSV based on user's ingredient database
+
+---
+
+## Session: 2026-02-04 (Pivot)
+
+**Type**: Pivot session
+**Trigger**: MVP complete, need to assess documentation and plan Phase 2
+
+### Documents Reviewed
+- ROADMAP.md - Accurate, MVP work complete
+- SESSION_LOG.md (last 5 entries) - Consistent progress, no blockers
+- VISION.md - Outdated, still referred to MVP as current
+- OVERVIEW.md - Missing Yesterday Review, deployment details generic
+- ADR.md - ADR-008 (grocery list) appropriately documented as proposed
+
+### Changes Made
+- **VISION.md**: Added "Current Phase Status" section marking MVP as complete with deployment date and feature summary
+- **OVERVIEW.md**: Updated deployment section with actual architecture (NPM, split DNS, auto-deploy); clarified Yesterday Review modal description
+- **ADR.md**: Added ADR-009 for User Management - documents authentication options for multi-user support
+- **ROADMAP.md**: Updated phase to "MVP Complete - Evaluating Phase 2"; added two next task options (user management, grocery lists)
+
+### Decisions Made
+- MVP is officially complete as of 2026-02-02 deployment
+- Two Phase 2 priorities identified: user management (ADR-009) and grocery lists (ADR-008)
+- User management required before exposing app to additional users
+
+### Impact
+- Documentation now accurately reflects project state
+- Clear path forward for Phase 2 work
+- ADR-009 provides framework for authentication discussion
+
+### Next
+- Decide between user management or grocery list as first Phase 2 feature
+- If user management: resolve questions in ADR-009 (scope, auth method)
+- If grocery list: resolve questions in ADR-008 (parsing strategy)
+
+---
+
 ## Session: 2026-02-03 (16)
 
 **Role**: frontend
