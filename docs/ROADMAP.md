@@ -29,6 +29,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Extended macro display + daily totals + avg daily stats (2026-02-08)
 - [x] CSV import: auto-create missing meal types (2026-02-07)
 - [x] "Yesterday Review" modal on morning open (2026-02-03)
 - [x] Enable SSH-based auto-deployment from GitHub Actions (2026-02-02)

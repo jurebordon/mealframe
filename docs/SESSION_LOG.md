@@ -5,6 +5,49 @@
 
 ---
 
+## Session: 2026-02-08
+
+**Role**: backend + frontend
+**Task**: Extended macro display + daily totals + average daily stats
+**Branch**: feat/extended-macros-display
+
+### Summary
+- Added sugar_g, saturated_fat_g, fiber_g to all macro displays across the app
+- Added daily macro totals row to Week view day cards and Today view header
+- Added average daily calories and protein cards to Stats page
+- Fixed Pydantic Decimal string serialization causing JS string concatenation in reduce operations
+
+### Files Changed
+- [backend/app/services/today.py](backend/app/services/today.py) - Pass extended macros to MealCompact
+- [backend/app/api/weekly.py](backend/app/api/weekly.py) - Pass extended macros to MealCompact
+- [backend/app/schemas/meal.py](backend/app/schemas/meal.py) - Add extended fields to MealListItem
+- [backend/app/api/meals.py](backend/app/api/meals.py) - Pass extended fields when constructing MealListItem
+- [backend/app/schemas/stats.py](backend/app/schemas/stats.py) - Add avg_daily_calories/protein to StatsResponse
+- [backend/app/services/stats.py](backend/app/services/stats.py) - New _calculate_avg_daily_macros function
+- [frontend/src/lib/types.ts](frontend/src/lib/types.ts) - Add extended macro fields to all type interfaces
+- [frontend/src/components/mealframe/meal-card.tsx](frontend/src/components/mealframe/meal-card.tsx) - Show all 7 macros
+- [frontend/src/components/mealframe/meal-card-gesture.tsx](frontend/src/components/mealframe/meal-card-gesture.tsx) - Show all 7 macros
+- [frontend/src/components/mealframe/day-card-expandable.tsx](frontend/src/components/mealframe/day-card-expandable.tsx) - Extended Meal interface, daily totals, expanded meal macros
+- [frontend/src/app/page.tsx](frontend/src/app/page.tsx) - Daily macro totals in header, Number() conversion for props
+- [frontend/src/app/week/page.tsx](frontend/src/app/week/page.tsx) - Number() conversion in mapSlotsToMeals
+- [frontend/src/app/meals/page.tsx](frontend/src/app/meals/page.tsx) - Show all 7 macros in list items
+- [frontend/src/app/stats/page.tsx](frontend/src/app/stats/page.tsx) - Avg daily calories + protein cards
+
+### Decisions
+- Pydantic Decimal fields serialize as strings in JSON; must use Number() in frontend
+- Daily totals show all 7 macros (compact row with abbreviations: P, C, F, sugar, sat.F, fiber)
+- Stats page shows only avg calories and protein (not all macros)
+- Math.round() applied to totals for clean integer display
+
+### Blockers
+- Pre-existing test failures in test_today_api.py and test_weekly_api.py (MultipleResultsFound database state issue) — not related to this work
+
+### Next
+- Fix pre-existing test database state isolation issue
+- Consider Phase 2 features: user auth or grocery list generation
+
+---
+
 ## Session: 2026-02-07 (Quick Fix)
 
 **Role**: backend + docs
