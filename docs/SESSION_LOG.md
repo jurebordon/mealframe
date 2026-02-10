@@ -8,31 +8,33 @@
 ## Session: 2026-02-09
 
 **Role**: frontend
-**Task**: Fix completion UX — add clear status + reduce swipe sensitivity
-**Branch**: fix/completion-undo-and-swipe-sensitivity
+**Task**: Fix completion UX — swipe cascading bug, clear status, meal ordering
+**Branch**: fix/completion-undo-and-swipe-sensitivity (+ direct main commits)
 
 ### Summary
-- Investigated reported bug where meals appeared pre-marked as "followed" on Tuesday after marking Monday's meals
-- Confirmed completion tracking is correctly scoped per-slot (not per-meal) — no code defect found
-- Most likely cause: accidental swipe gestures while scrolling (100px threshold was too sensitive)
+- Investigated reported bug where all meals got marked as "followed" after swiping one
+- Root cause: swipe completion triggered on one card, React re-rendered a new card under the same finger, which immediately received the ongoing touch events and cascaded through all meals
+- Fixed with module-level 400ms cooldown guard + clearing touchStartRef on completion
 - Added "Clear status" button to completion sheet for resetting meals back to unmarked
 - Increased swipe-to-complete threshold from 100px to 140px
+- Fixed remaining meals ordering: uncompleted slots now sort before completed (by template position)
+- Fixed "Clear status" button being cut off on mobile (increased sheet max-height + safe area padding)
 
 ### Files Changed
-- [frontend/src/components/mealframe/completion-sheet-animated.tsx](frontend/src/components/mealframe/completion-sheet-animated.tsx) - Added `onClear` prop and "Clear status" dashed button (shown only when editing)
-- [frontend/src/app/page.tsx](frontend/src/app/page.tsx) - Added `handleClearStatus` callback, wired to completion sheet
-- [frontend/src/components/mealframe/meal-card-gesture.tsx](frontend/src/components/mealframe/meal-card-gesture.tsx) - Increased SWIPE_THRESHOLD from 100 to 140px
+- [frontend/src/components/mealframe/meal-card-gesture.tsx](frontend/src/components/mealframe/meal-card-gesture.tsx) - Module-level completion cooldown (400ms), clear touchStartRef in cancelGesture, increased swipe threshold 100→140px
+- [frontend/src/components/mealframe/completion-sheet-animated.tsx](frontend/src/components/mealframe/completion-sheet-animated.tsx) - Added `onClear` prop and "Clear status" button, increased max-height 60→70vh, safe area padding h-8→h-16
+- [frontend/src/app/page.tsx](frontend/src/app/page.tsx) - Added `handleClearStatus` callback, sort remaining slots (uncompleted first by position, then completed by position)
 
 ### Decisions
-- "Clear status" button uses dashed border style to visually separate it from the 5 status options
-- Button only appears when meal already has a status (not shown for fresh marking)
-- Yesterday Review modal not affected (doesn't pass `onClear` — correct since it's for marking unmarked meals)
+- Module-level `lastCompletionTime` variable used as cross-instance guard to prevent cascading — simpler than React context for a single timestamp
+- "Clear status" button uses dashed border style to visually separate from the 5 status options
+- Remaining meals sorted uncompleted-first so clearing a status moves the card back to its natural position
+- Yesterday Review modal not affected (doesn't pass `onClear`)
 
 ### Blockers
 - None
 
 ### Next
-- Monitor production usage to see if accidental completions still occur with 140px threshold
 - Consider Phase 2 features: user auth or grocery list generation
 
 ---

@@ -29,7 +29,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
-- [x] Fix: Clear status option + reduce swipe sensitivity (2026-02-09)
+- [x] Fix: Swipe cascading bug, clear status, meal ordering, sheet cutoff (2026-02-09)
 - [x] Extended macro display + daily totals + avg daily stats (2026-02-08)
 - [x] CSV import: auto-create missing meal types (2026-02-07)
 - [x] "Yesterday Review" modal on morning open (2026-02-03)
