@@ -291,9 +291,15 @@ export default function TodayView() {
             </h3>
 
             <div className="space-y-3">
-              {data.slots.map((slot) => {
-                if (slot.is_next) return null
-
+              {data.slots
+                .filter((slot) => !slot.is_next)
+                .sort((a, b) => {
+                  const aCompleted = a.completion_status !== null ? 1 : 0
+                  const bCompleted = b.completion_status !== null ? 1 : 0
+                  if (aCompleted !== bCompleted) return aCompleted - bCompleted
+                  return a.position - b.position
+                })
+                .map((slot) => {
                 const isCompleted = slot.completion_status !== null
 
                 return (
