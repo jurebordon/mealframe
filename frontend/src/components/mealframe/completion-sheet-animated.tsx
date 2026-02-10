@@ -15,6 +15,8 @@ interface CompletionSheetAnimatedProps {
   onOpenChange: (open: boolean) => void
   mealName: string
   onSelect: (status: SelectableCompletionStatus) => void
+  /** Called when user clears the completion status (reset to unmarked) */
+  onClear?: () => void
   /** Current status when editing an already-completed meal */
   currentStatus?: SelectableCompletionStatus | null
 }
@@ -131,6 +133,7 @@ export function CompletionSheetAnimated({
   onOpenChange,
   mealName,
   onSelect,
+  onClear,
   currentStatus,
 }: CompletionSheetAnimatedProps) {
   const [selectedStatus, setSelectedStatus] = useState<SelectableCompletionStatus | null>(null)
@@ -279,6 +282,40 @@ export function CompletionSheetAnimated({
                   )
                 })}
               </div>
+
+              {/* Clear Status Button — only when editing */}
+              {isEditing && onClear && (
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: statusOptions.length * 0.05 }}
+                  onClick={() => {
+                    onClear()
+                    onOpenChange(false)
+                  }}
+                  disabled={selectedStatus !== null}
+                  aria-label="Clear completion status and reset to unmarked"
+                  className={cn(
+                    'mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted/50 active:scale-95',
+                    selectedStatus && 'opacity-40'
+                  )}
+                  type="button"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    className="h-4 w-4"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Clear status
+                </motion.button>
+              )}
             </div>
 
             {/* Safe area padding for mobile */}

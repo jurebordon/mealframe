@@ -52,7 +52,7 @@ export function MealCardGesture({
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
 
   const LONG_PRESS_DURATION = 600 // ms
-  const SWIPE_THRESHOLD = 100 // px
+  const SWIPE_THRESHOLD = 140 // px (increased from 100 to reduce accidental completions while scrolling)
 
   const statusStyles = {
     default: 'bg-card border-border',

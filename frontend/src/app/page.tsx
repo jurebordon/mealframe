@@ -77,6 +77,14 @@ export default function TodayView() {
     }, 1000)
   }, [completeSlotMutation])
 
+  const handleClearStatus = useCallback(() => {
+    if (!selectedSlot) return
+    setShowCompletionSheet(false)
+    uncompleteSlotMutation.mutate(selectedSlot.id)
+    setToastMessage('Status cleared')
+    setShowToast(true)
+  }, [selectedSlot, uncompleteSlotMutation])
+
   const handleUndo = useCallback(() => {
     if (lastCompletedSlotId) {
       uncompleteSlotMutation.mutate(lastCompletedSlotId)
@@ -327,6 +335,7 @@ export default function TodayView() {
         open={showCompletionSheet}
         onOpenChange={setShowCompletionSheet}
         onSelect={handleCompletionSelect}
+        onClear={selectedSlot?.completion_status ? handleClearStatus : undefined}
         mealName={selectedSlot?.meal?.name ?? ''}
         currentStatus={selectedSlot?.completion_status}
       />
