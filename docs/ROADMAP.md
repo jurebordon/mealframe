@@ -7,22 +7,8 @@
 
 <!-- ONE task in progress at a time -->
 
-## Next (Queued)
+### Feature: Ad-Hoc Meal Addition — Session 2 (Frontend)
 
-<!-- Priority ordered - top item is next -->
-
-### Feature: Ad-Hoc Meal Addition
-
-Add meals to today that aren't in the template (e.g., a snack from the meal library).
-
-**Session 1 — Backend**
-1. Add `is_adhoc` boolean column to `weekly_plan_slot` (Alembic migration, default `false`)
-2. Add `is_adhoc` field to `WeeklyPlanSlotBase` / `WeeklyPlanSlotWithNext` Pydantic schemas
-3. New endpoint: `POST /api/v1/today/slots` — accepts `{ meal_id: UUID }`, creates a new `WeeklyPlanSlot` for today with `is_adhoc=true`, position = max(existing positions) + 1, meal_type_id copied from the meal's primary type (or null)
-4. New endpoint: `DELETE /api/v1/slots/{slot_id}` — only allows deleting ad-hoc slots (`is_adhoc=true`), returns 403 for template slots
-5. Update `get_today_response` in `services/today.py` to include ad-hoc slots in the response (they already come from `weekly_plan_slot` query, just need `is_adhoc` in output)
-
-**Session 2 — Frontend**
 1. Copy `MealPicker` component from `v0_design/components/mealframe/meal-picker.tsx`, adapt to use real meal library data via `useMeals` hook
 2. Add "Add meal" ghost button below meal list in Today View (`page.tsx`)
 3. Create `useAddAdhocSlot` and `useDeleteAdhocSlot` mutation hooks
@@ -31,6 +17,10 @@ Add meals to today that aren't in the template (e.g., a snack from the meal libr
 6. Wire up remove flow: completion sheet → `DELETE /slots/{id}` → invalidate today query
 
 **Design reference:** `v0_design/app/adhoc-demo/page.tsx`, `v0_design/components/mealframe/meal-picker.tsx`
+
+## Next (Queued)
+
+<!-- Priority ordered - top item is next -->
 
 ---
 
@@ -75,6 +65,7 @@ Optional max_calories_kcal and max_protein_g per day template. Tracked in Stats,
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Ad-hoc meals backend: is_adhoc column, POST /today/slots, DELETE /slots/{id} (2026-02-12)
 - [x] Fix: Swipe cascading bug, clear status, meal ordering, sheet cutoff (2026-02-09)
 - [x] Extended macro display + daily totals + avg daily stats (2026-02-08)
 - [x] CSV import: auto-create missing meal types (2026-02-07)

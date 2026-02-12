@@ -5,6 +5,42 @@
 
 ---
 
+## Session: 2026-02-12 (2)
+
+**Role**: backend
+**Task**: Ad-hoc meal addition — Session 1 (Backend)
+**Branch**: feat/adhoc-meals-backend
+
+### Summary
+- Added `is_adhoc` boolean column to `weekly_plan_slot` table with Alembic migration
+- Added `is_adhoc` field to all slot Pydantic schemas (`WeeklyPlanSlotBase`, inherited by `WeeklyPlanSlotResponse` and `WeeklyPlanSlotWithNext`)
+- Implemented `POST /api/v1/today/slots` endpoint to create ad-hoc meal slots for today
+- Implemented `DELETE /api/v1/slots/{slot_id}` endpoint that only allows deleting ad-hoc slots (403 for template slots)
+- Wired `is_adhoc` through `build_today_response` and week view's `build_slot_response`
+- All 105 existing tests pass (excluding pre-existing today/weekly test isolation issues)
+
+### Files Changed
+- [backend/app/models/weekly_plan.py](backend/app/models/weekly_plan.py) - Added `is_adhoc` column to `WeeklyPlanSlot`
+- [backend/alembic/versions/20260212_add_is_adhoc_to_weekly_plan_slot.py](backend/alembic/versions/20260212_add_is_adhoc_to_weekly_plan_slot.py) - New: migration for `is_adhoc` column
+- [backend/app/schemas/weekly_plan.py](backend/app/schemas/weekly_plan.py) - Added `is_adhoc` to `WeeklyPlanSlotBase`, new `AddAdhocSlotRequest` schema
+- [backend/app/services/today.py](backend/app/services/today.py) - Added `create_adhoc_slot()` and `delete_adhoc_slot()`, wired `is_adhoc` in response builder
+- [backend/app/api/today.py](backend/app/api/today.py) - New `POST /today/slots` and `DELETE /slots/{slot_id}` endpoints
+- [backend/app/api/weekly.py](backend/app/api/weekly.py) - Pass `is_adhoc` in week view slot responses
+
+### Decisions
+- Meals have many-to-many with meal types; ad-hoc slots use the meal's first associated type (or null if none)
+- Position for new ad-hoc slot = max(existing positions for that day) + 1
+- DELETE returns 204 for success, 403 for template slots, 404 for not found
+- `server_default="false"` on migration ensures existing rows get the default without backfill
+
+### Blockers
+- None
+
+### Next
+- Session 2: Frontend for ad-hoc meals (MealPicker component, Add Meal button, ad-hoc indicators, remove flow)
+
+---
+
 ## Session: 2026-02-12
 
 **Role**: docs / design
