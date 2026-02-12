@@ -22,6 +22,7 @@ class WeeklyPlanSlotBase(BaseSchema):
     meal: MealCompact | None = None
     completion_status: CompletionStatus | None = None
     completed_at: datetime | None = None
+    is_adhoc: bool = False
 
 
 class WeeklyPlanSlotResponse(WeeklyPlanSlotBase):
@@ -123,6 +124,12 @@ class OverrideResponse(BaseSchema):
     date: date
     is_override: bool
     override_reason: str | None = None
+
+
+class AddAdhocSlotRequest(BaseSchema):
+    """Request to add an ad-hoc meal to today."""
+
+    meal_id: UUID = Field(description="ID of the meal to add")
 
 
 class CompleteSlotRequest(BaseSchema):

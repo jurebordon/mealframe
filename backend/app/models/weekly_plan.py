@@ -84,6 +84,7 @@ class WeeklyPlanSlot(Base):
     position = Column(Integer, nullable=False)
     meal_type_id = Column(UUID(as_uuid=True), ForeignKey("meal_type.id", ondelete="SET NULL"))
     meal_id = Column(UUID(as_uuid=True), ForeignKey("meal.id", ondelete="SET NULL"))
+    is_adhoc = Column(Boolean, default=False, nullable=False, server_default="false")
     completion_status = Column(Text)  # NULL or one of: followed, adjusted, skipped, replaced, social
     completed_at = Column(DateTime(timezone=True))
 

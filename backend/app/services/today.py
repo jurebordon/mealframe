@@ -222,6 +222,7 @@ def build_today_response(
             completion_status=slot.completion_status,
             completed_at=slot.completed_at,
             is_next=is_next,
+            is_adhoc=slot.is_adhoc,
         ))
 
     return TodayResponse(
@@ -309,3 +310,97 @@ async def uncomplete_slot(
 
     await db.flush()
     return slot
+
+
+async def create_adhoc_slot(
+    db: AsyncSession,
+    target_date: date,
+    meal_id: UUID,
+) -> Optional[WeeklyPlanSlot]:
+    """
+    Create an ad-hoc meal slot for the given date.
+
+    Finds the weekly plan instance for the date, determines the next position,
+    and creates a new slot with is_adhoc=True. Copies the meal's first
+    associated meal type (if any).
+
+    Returns the created slot, or None if no weekly plan instance exists for the date.
+    """
+    # Find the weekly instance
+    week_start = await get_week_start_date(target_date)
+    stmt = select(WeeklyPlanInstance).where(
+        WeeklyPlanInstance.week_start_date == week_start
+    )
+    result = await db.execute(stmt)
+    instance = result.scalar_one_or_none()
+
+    if not instance:
+        return None
+
+    # Get the meal (with its types)
+    meal_stmt = (
+        select(Meal)
+        .where(Meal.id == meal_id)
+        .options(selectinload(Meal.meal_types))
+    )
+    meal_result = await db.execute(meal_stmt)
+    meal = meal_result.scalar_one_or_none()
+
+    if not meal:
+        return None
+
+    # Determine next position (max existing + 1)
+    max_pos_stmt = select(func.coalesce(func.max(WeeklyPlanSlot.position), -1)).where(
+        and_(
+            WeeklyPlanSlot.weekly_plan_instance_id == instance.id,
+            WeeklyPlanSlot.date == target_date,
+        )
+    )
+    max_pos_result = await db.execute(max_pos_stmt)
+    max_position = max_pos_result.scalar()
+    next_position = max_position + 1
+
+    # Get first meal type (if any)
+    first_meal_type_id = None
+    if meal.meal_types:
+        first_meal_type_id = meal.meal_types[0].id
+
+    # Create the ad-hoc slot
+    slot = WeeklyPlanSlot(
+        weekly_plan_instance_id=instance.id,
+        date=target_date,
+        position=next_position,
+        meal_type_id=first_meal_type_id,
+        meal_id=meal_id,
+        is_adhoc=True,
+    )
+    db.add(slot)
+    await db.flush()
+
+    # Eagerly load relationships for the response
+    await db.refresh(slot, attribute_names=["meal", "meal_type"])
+
+    return slot
+
+
+async def delete_adhoc_slot(
+    db: AsyncSession,
+    slot_id: UUID,
+) -> Optional[bool]:
+    """
+    Delete an ad-hoc slot.
+
+    Returns True if deleted, False if the slot exists but is not ad-hoc,
+    or None if the slot doesn't exist.
+    """
+    slot = await get_slot_by_id(db, slot_id)
+
+    if not slot:
+        return None
+
+    if not slot.is_adhoc:
+        return False
+
+    await db.delete(slot)
+    await db.flush()
+    return True

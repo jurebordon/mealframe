@@ -80,6 +80,7 @@ def build_slot_response(slot) -> WeeklyPlanSlotResponse:
         meal=meal_compact,
         completion_status=slot.completion_status,
         completed_at=slot.completed_at,
+        is_adhoc=slot.is_adhoc,
     )
 
 
