@@ -65,6 +65,7 @@ Optional max_calories_kcal and max_protein_g per day template. Tracked in Stats,
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Fix: Streak inconsistency between Today View and Stats page (2026-02-18)
 - [x] Ad-hoc meals backend: is_adhoc column, POST /today/slots, DELETE /slots/{id} (2026-02-12)
 - [x] Fix: Swipe cascading bug, clear status, meal ordering, sheet cutoff (2026-02-09)
 - [x] Extended macro display + daily totals + avg daily stats (2026-02-08)

@@ -282,10 +282,30 @@ async def test_stats_perfect_adherence(
 async def test_stats_current_streak(
     client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
 ):
-    """Current streak counts consecutive days with all slots marked."""
+    """Current streak counts consecutive completed days before today."""
     today = date.today()
     await _create_slots(db, meal_type, meal, [
-        {"date": today, "slots": ["followed"]},
+        {"date": today - timedelta(days=1), "slots": ["followed"]},
+        {"date": today - timedelta(days=2), "slots": ["followed"]},
+        {"date": today - timedelta(days=3), "slots": ["followed"]},
+    ])
+
+    response = await client.get("/api/v1/stats?days=7")
+    data = response.json()
+
+    # Streak counts backwards from yesterday, so should be >= 1
+    assert data["current_streak"] >= 1
+    assert isinstance(data["current_streak"], int)
+
+
+@pytest.mark.asyncio
+async def test_stats_streak_excludes_today(
+    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+):
+    """Current streak excludes today (today is still in progress)."""
+    today = date.today()
+    await _create_slots(db, meal_type, meal, [
+        {"date": today, "slots": [None]},  # Unmarked today — should NOT affect streak
         {"date": today - timedelta(days=1), "slots": ["followed"]},
         {"date": today - timedelta(days=2), "slots": ["followed"]},
     ])
@@ -293,26 +313,24 @@ async def test_stats_current_streak(
     response = await client.get("/api/v1/stats?days=7")
     data = response.json()
 
-    # If seed data has unmarked slots for these days, streak may be lower.
-    # But if our test-created slots are the only ones, streak should be >= 1.
-    assert data["current_streak"] >= 0
-    assert isinstance(data["current_streak"], int)
+    # Today is excluded from streak calc, so yesterday's completed slots count
+    assert data["current_streak"] >= 1
 
 
 @pytest.mark.asyncio
-async def test_stats_streak_breaks_on_unmarked(
+async def test_stats_streak_breaks_on_unmarked_past_day(
     client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
 ):
-    """Streak breaks when today has an unmarked slot."""
+    """Streak breaks when a past day has an unmarked slot."""
     today = date.today()
     await _create_slots(db, meal_type, meal, [
-        {"date": today, "slots": [None]},  # Unmarked -> should break streak
+        {"date": today - timedelta(days=1), "slots": [None]},  # Unmarked yesterday
     ])
 
     response = await client.get("/api/v1/stats?days=7")
     data = response.json()
 
-    # Today has at least one unmarked slot, so current streak = 0
+    # Yesterday has unmarked slot, streak should be 0
     assert data["current_streak"] == 0
 
 
@@ -323,7 +341,7 @@ async def test_stats_best_streak_gte_current(
     """Best streak is always >= current streak."""
     today = date.today()
     await _create_slots(db, meal_type, meal, [
-        {"date": today, "slots": ["followed"]},
+        {"date": today - timedelta(days=1), "slots": ["followed"]},
     ])
 
     response = await client.get("/api/v1/stats?days=30")

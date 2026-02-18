@@ -185,9 +185,9 @@ async def _calculate_streaks(db: AsyncSession, today: date) -> tuple[int, int]:
         else:
             current_run = 0
 
-    # Calculate current streak (backwards from today)
+    # Calculate current streak (backwards from yesterday — today is still in progress)
     current_streak = 0
-    d = today
+    d = today - timedelta(days=1)
     while d >= lookback_start:
         if d in day_map:
             total, unmarked_count = day_map[d]

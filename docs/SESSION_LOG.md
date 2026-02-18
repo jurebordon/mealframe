@@ -5,6 +5,39 @@
 
 ---
 
+## Session: 2026-02-18
+
+**Role**: backend
+**Task**: Fix streak inconsistency between Today View and Stats page
+**Branch**: fix/streak-inconsistency
+
+### Summary
+- Fixed streak inconsistency where Stats page showed "0 days" while Today View showed "6 days" for the same user
+- Root cause: two separate streak calculation functions with different logic
+  - `stats.py:_calculate_streaks()` counted backwards from today (inclusive) — if today had unmarked slots, streak = 0
+  - `today.py:calculate_streak()` counted backwards from yesterday — correctly showed completed past days
+- Unified behavior: both now count backwards from yesterday (today is still in progress)
+- Removed `is_override` streak break in Today View — override days now count toward streak if all slots are marked
+
+### Files Changed
+- [backend/app/services/stats.py](backend/app/services/stats.py) - Changed current streak to start from `today - 1` instead of `today`
+- [backend/app/services/today.py](backend/app/services/today.py) - Removed `is_override` break from streak calculation
+- [backend/tests/test_stats.py](backend/tests/test_stats.py) - Updated streak tests to match new behavior (excludes today, breaks on unmarked past day)
+- [docs/ROADMAP.md](docs/ROADMAP.md) - Added to Done
+- [docs/SESSION_LOG.md](docs/SESSION_LOG.md) - This entry
+
+### Decisions
+- Current streak excludes today — today is still in progress, only fully completed past days count
+- Override days do NOT break streak — plan changes are fine as long as you follow through
+
+### Blockers
+- None
+
+### Next
+- Ad-hoc meals frontend (Session 2)
+
+---
+
 ## Session: 2026-02-12 (2)
 
 **Role**: backend

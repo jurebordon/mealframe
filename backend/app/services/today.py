@@ -99,9 +99,10 @@ async def calculate_streak(db: AsyncSession, target_date: date) -> int:
     Calculate the current streak of consecutive days with all meals completed.
 
     A day counts toward the streak if:
-    - It has a plan (not an override day)
+    - It has slots with a plan
     - All slots have a completion_status (not NULL)
 
+    Override days count toward the streak (plan changes are fine).
     We count backwards from the day before target_date.
     """
     streak = 0
@@ -115,10 +116,6 @@ async def calculate_streak(db: AsyncSession, target_date: date) -> int:
             break
 
         instance_day, slots = day_plan
-
-        if instance_day.is_override:
-            # Override days don't count toward streak
-            break
 
         if not slots:
             # No meals - streak ends
