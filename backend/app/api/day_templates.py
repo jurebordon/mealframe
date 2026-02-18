@@ -50,6 +50,8 @@ async def get_day_templates(
             id=row["template"].id,
             name=row["template"].name,
             notes=row["template"].notes,
+            max_calories_kcal=row["template"].max_calories_kcal,
+            max_protein_g=row["template"].max_protein_g,
             slot_count=row["slot_count"],
             slot_preview=row["slot_preview"],
         )
@@ -120,6 +122,8 @@ def _template_to_response(template) -> DayTemplateResponse:
         id=template.id,
         name=template.name,
         notes=template.notes,
+        max_calories_kcal=template.max_calories_kcal,
+        max_protein_g=template.max_protein_g,
         created_at=template.created_at,
         updated_at=template.updated_at,
         slots=[

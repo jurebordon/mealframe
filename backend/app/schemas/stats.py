@@ -46,6 +46,15 @@ class DailyAdherence(BaseSchema):
     )
 
 
+class OverLimitBreakdown(BaseSchema):
+    """Over-limit breakdown for a single day template."""
+
+    template_name: str = Field(description="Day template name")
+    days_over: int = Field(description="Days where actual exceeded limit")
+    total_days: int = Field(description="Total days this template was used (with limits set)")
+    exceeded_metric: str = Field(description="Which metric was exceeded: 'calories', 'protein', or 'both'")
+
+
 class StatsResponse(BaseSchema):
     """Response for GET /stats.
 
@@ -80,6 +89,12 @@ class StatsResponse(BaseSchema):
     avg_daily_protein: Decimal | None = Field(
         default=None,
         description="Average daily protein (g) across days with meal data",
+    )
+    over_limit_days: int = Field(default=0, description="Days where actual macros exceeded template soft limits")
+    days_with_limits: int = Field(default=0, description="Days that had a template with soft limits set")
+    over_limit_breakdown: list[OverLimitBreakdown] = Field(
+        default_factory=list,
+        description="Per-template breakdown of over-limit days",
     )
 
 

@@ -23,7 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.models import MealType, Meal, WeeklyPlanInstance, WeeklyPlanInstanceDay, WeeklyPlanSlot
+from app.models import MealType, Meal, DayTemplate, WeeklyPlanInstance, WeeklyPlanInstanceDay, WeeklyPlanSlot
 from app.database import get_db
 
 
@@ -497,3 +497,297 @@ async def test_stats_invalid_days_too_large(client: AsyncClient):
     """GET /stats rejects days > 365."""
     response = await client.get("/api/v1/stats?days=400")
     assert response.status_code == 422
+
+
+# =============================================================================
+# GET /api/v1/stats - Over-limit stats
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_stats_over_limit_response_fields(client: AsyncClient):
+    """GET /stats response includes over-limit fields."""
+    response = await client.get("/api/v1/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert "over_limit_days" in data
+    assert "days_with_limits" in data
+    assert "over_limit_breakdown" in data
+
+
+@pytest.mark.asyncio
+async def test_stats_over_limit_no_templates_with_limits(
+    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+):
+    """Over-limit stats are zero when no templates have limits set."""
+    today = date.today()
+    await _create_slots(db, meal_type, meal, [
+        {"date": today, "slots": ["followed", "followed"]},
+    ])
+
+    response = await client.get("/api/v1/stats?days=1")
+    data = response.json()
+    assert data["over_limit_days"] == 0
+    assert data["days_with_limits"] == 0
+    assert data["over_limit_breakdown"] == []
+
+
+@pytest.mark.asyncio
+async def test_stats_over_limit_calories_exceeded(
+    client: AsyncClient, db: AsyncSession
+):
+    """Over-limit detects when daily calories exceed template limit."""
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+
+    # Create template with calorie limit
+    mt = MealType(id=uuid4(), name=f"Meal {uuid4().hex[:8]}")
+    db.add(mt)
+    template = DayTemplate(
+        id=uuid4(),
+        name=f"Low Cal {uuid4().hex[:8]}",
+        max_calories_kcal=1500,
+    )
+    db.add(template)
+    await db.flush()
+
+    # Create a meal with 800 calories
+    high_cal_meal = Meal(
+        id=uuid4(),
+        name=f"Big Meal {uuid4().hex[:8]}",
+        portion_description="Large portion",
+        calories_kcal=800,
+        protein_g=Decimal("30.0"),
+    )
+    db.add(high_cal_meal)
+    await db.flush()
+
+    # Create instance day with template
+    instance = await _get_or_create_instance(db, week_start)
+    instance_day = WeeklyPlanInstanceDay(
+        id=uuid4(),
+        weekly_plan_instance_id=instance.id,
+        date=today,
+        day_template_id=template.id,
+        is_override=False,
+    )
+    db.add(instance_day)
+    await db.flush()
+
+    # Create 2 slots = 1600 kcal total (exceeds 1500 limit)
+    for i in range(2):
+        db.add(WeeklyPlanSlot(
+            id=uuid4(),
+            weekly_plan_instance_id=instance.id,
+            date=today,
+            position=200 + i,
+            meal_type_id=mt.id,
+            meal_id=high_cal_meal.id,
+            completion_status="followed",
+        ))
+    await db.flush()
+
+    response = await client.get("/api/v1/stats?days=1")
+    data = response.json()
+
+    assert data["over_limit_days"] >= 1
+    assert data["days_with_limits"] >= 1
+    assert len(data["over_limit_breakdown"]) >= 1
+
+    # Find our template in the breakdown
+    breakdown_entry = next(
+        (b for b in data["over_limit_breakdown"] if b["template_name"] == template.name),
+        None,
+    )
+    assert breakdown_entry is not None
+    assert breakdown_entry["days_over"] >= 1
+    assert breakdown_entry["exceeded_metric"] == "calories"
+
+
+@pytest.mark.asyncio
+async def test_stats_over_limit_within_limits(
+    client: AsyncClient, db: AsyncSession
+):
+    """Over-limit is zero when daily totals are within template limits."""
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+
+    mt = MealType(id=uuid4(), name=f"Meal {uuid4().hex[:8]}")
+    db.add(mt)
+    template = DayTemplate(
+        id=uuid4(),
+        name=f"Generous {uuid4().hex[:8]}",
+        max_calories_kcal=3000,
+        max_protein_g=Decimal("200.0"),
+    )
+    db.add(template)
+    await db.flush()
+
+    small_meal = Meal(
+        id=uuid4(),
+        name=f"Small Meal {uuid4().hex[:8]}",
+        portion_description="Small portion",
+        calories_kcal=400,
+        protein_g=Decimal("20.0"),
+    )
+    db.add(small_meal)
+    await db.flush()
+
+    instance = await _get_or_create_instance(db, week_start)
+    instance_day = WeeklyPlanInstanceDay(
+        id=uuid4(),
+        weekly_plan_instance_id=instance.id,
+        date=today,
+        day_template_id=template.id,
+        is_override=False,
+    )
+    db.add(instance_day)
+    await db.flush()
+
+    # 2 small meals = 800 kcal, 40g protein — well within limits
+    for i in range(2):
+        db.add(WeeklyPlanSlot(
+            id=uuid4(),
+            weekly_plan_instance_id=instance.id,
+            date=today,
+            position=300 + i,
+            meal_type_id=mt.id,
+            meal_id=small_meal.id,
+            completion_status="followed",
+        ))
+    await db.flush()
+
+    response = await client.get("/api/v1/stats?days=1")
+    data = response.json()
+
+    # Our template has limits but they weren't exceeded
+    assert data["days_with_limits"] >= 1
+    # Find our template — it should NOT appear in breakdown (no over-limit)
+    breakdown_entry = next(
+        (b for b in data["over_limit_breakdown"] if b["template_name"] == template.name),
+        None,
+    )
+    assert breakdown_entry is None
+
+
+@pytest.mark.asyncio
+async def test_stats_over_limit_protein_exceeded(
+    client: AsyncClient, db: AsyncSession
+):
+    """Over-limit detects when daily protein exceeds template limit."""
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+
+    mt = MealType(id=uuid4(), name=f"Meal {uuid4().hex[:8]}")
+    db.add(mt)
+    template = DayTemplate(
+        id=uuid4(),
+        name=f"Low Protein {uuid4().hex[:8]}",
+        max_protein_g=Decimal("50.0"),
+    )
+    db.add(template)
+    await db.flush()
+
+    high_protein_meal = Meal(
+        id=uuid4(),
+        name=f"Protein Bomb {uuid4().hex[:8]}",
+        portion_description="300g chicken",
+        calories_kcal=500,
+        protein_g=Decimal("60.0"),
+    )
+    db.add(high_protein_meal)
+    await db.flush()
+
+    instance = await _get_or_create_instance(db, week_start)
+    instance_day = WeeklyPlanInstanceDay(
+        id=uuid4(),
+        weekly_plan_instance_id=instance.id,
+        date=today,
+        day_template_id=template.id,
+        is_override=False,
+    )
+    db.add(instance_day)
+    await db.flush()
+
+    # 1 slot = 60g protein (exceeds 50g limit)
+    db.add(WeeklyPlanSlot(
+        id=uuid4(),
+        weekly_plan_instance_id=instance.id,
+        date=today,
+        position=400,
+        meal_type_id=mt.id,
+        meal_id=high_protein_meal.id,
+        completion_status="followed",
+    ))
+    await db.flush()
+
+    response = await client.get("/api/v1/stats?days=1")
+    data = response.json()
+
+    breakdown_entry = next(
+        (b for b in data["over_limit_breakdown"] if b["template_name"] == template.name),
+        None,
+    )
+    assert breakdown_entry is not None
+    assert breakdown_entry["exceeded_metric"] == "protein"
+
+
+@pytest.mark.asyncio
+async def test_stats_over_limit_override_days_excluded(
+    client: AsyncClient, db: AsyncSession
+):
+    """Override days are excluded from over-limit calculations."""
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+
+    mt = MealType(id=uuid4(), name=f"Meal {uuid4().hex[:8]}")
+    db.add(mt)
+    template = DayTemplate(
+        id=uuid4(),
+        name=f"Override Test {uuid4().hex[:8]}",
+        max_calories_kcal=1000,
+    )
+    db.add(template)
+    await db.flush()
+
+    big_meal = Meal(
+        id=uuid4(),
+        name=f"Big {uuid4().hex[:8]}",
+        portion_description="huge",
+        calories_kcal=2000,
+    )
+    db.add(big_meal)
+    await db.flush()
+
+    instance = await _get_or_create_instance(db, week_start)
+    # Mark as override — should be excluded from over-limit
+    instance_day = WeeklyPlanInstanceDay(
+        id=uuid4(),
+        weekly_plan_instance_id=instance.id,
+        date=today,
+        day_template_id=template.id,
+        is_override=True,
+    )
+    db.add(instance_day)
+    await db.flush()
+
+    db.add(WeeklyPlanSlot(
+        id=uuid4(),
+        weekly_plan_instance_id=instance.id,
+        date=today,
+        position=500,
+        meal_type_id=mt.id,
+        meal_id=big_meal.id,
+        completion_status="followed",
+    ))
+    await db.flush()
+
+    response = await client.get("/api/v1/stats?days=1")
+    data = response.json()
+
+    # The override day template should NOT appear in breakdown
+    breakdown_entry = next(
+        (b for b in data["over_limit_breakdown"] if b["template_name"] == template.name),
+        None,
+    )
+    assert breakdown_entry is None

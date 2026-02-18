@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -21,6 +21,8 @@ class DayTemplate(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(Text, nullable=False, unique=True)
     notes = Column(Text)
+    max_calories_kcal = Column(Integer, nullable=True)
+    max_protein_g = Column(Numeric(6, 1), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

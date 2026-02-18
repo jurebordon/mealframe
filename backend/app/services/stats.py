@@ -16,6 +16,9 @@ from uuid import UUID
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy.orm import selectinload
+
+from app.models.day_template import DayTemplate
 from app.models.meal_type import MealType
 from app.models.weekly_plan import (
     WeeklyPlanInstance,
@@ -25,6 +28,7 @@ from app.models.weekly_plan import (
 from app.schemas.stats import (
     DailyAdherence,
     MealTypeAdherence,
+    OverLimitBreakdown,
     StatsResponse,
     StatusBreakdown,
 )
@@ -122,6 +126,11 @@ async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
     # Average daily macros
     avg_cal, avg_pro = await _calculate_avg_daily_macros(db, start_date, today)
 
+    # Over-limit stats
+    over_limit_days, days_with_limits, over_limit_breakdown = await _calculate_over_limit_stats(
+        db, start_date, today
+    )
+
     return StatsResponse(
         period_days=days,
         total_slots=total_slots,
@@ -135,6 +144,9 @@ async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
         daily_adherence=daily_adherence,
         avg_daily_calories=avg_cal,
         avg_daily_protein=avg_pro,
+        over_limit_days=over_limit_days,
+        days_with_limits=days_with_limits,
+        over_limit_breakdown=over_limit_breakdown,
     )
 
 
@@ -262,8 +274,6 @@ async def _calculate_avg_daily_macros(
     db: AsyncSession, start_date: date, end_date: date
 ) -> tuple[Decimal | None, Decimal | None]:
     """Calculate average daily calories and protein across days with data."""
-    from sqlalchemy.orm import selectinload
-
     slots_query = (
         select(WeeklyPlanSlot)
         .where(
@@ -345,3 +355,117 @@ def _calculate_daily_adherence(
         d += timedelta(days=1)
 
     return daily
+
+
+async def _calculate_over_limit_stats(
+    db: AsyncSession, start_date: date, end_date: date
+) -> tuple[int, int, list[OverLimitBreakdown]]:
+    """
+    Calculate over-limit statistics for days with template soft limits.
+
+    For each day that has a template with max_calories_kcal or max_protein_g set,
+    sum the actual meal macros and compare against the limits.
+
+    Returns:
+        (over_limit_days, days_with_limits, breakdown_list)
+    """
+    # Get instance days in range that have a template with limits
+    days_query = (
+        select(WeeklyPlanInstanceDay)
+        .join(DayTemplate, WeeklyPlanInstanceDay.day_template_id == DayTemplate.id)
+        .where(
+            and_(
+                WeeklyPlanInstanceDay.date >= start_date,
+                WeeklyPlanInstanceDay.date <= end_date,
+                WeeklyPlanInstanceDay.is_override.is_(False),
+                # At least one limit is set
+                (DayTemplate.max_calories_kcal.isnot(None))
+                | (DayTemplate.max_protein_g.isnot(None)),
+            )
+        )
+        .options(selectinload(WeeklyPlanInstanceDay.day_template))
+    )
+    result = await db.execute(days_query)
+    instance_days = result.scalars().all()
+
+    if not instance_days:
+        return 0, 0, []
+
+    # Get all slots for these dates with their meals
+    dates_with_limits = [d.date for d in instance_days]
+    slots_query = (
+        select(WeeklyPlanSlot)
+        .where(WeeklyPlanSlot.date.in_(dates_with_limits))
+        .options(selectinload(WeeklyPlanSlot.meal))
+    )
+    slots_result = await db.execute(slots_query)
+    all_slots = slots_result.scalars().all()
+
+    # Sum macros per date
+    daily_totals: dict[date, dict[str, Decimal]] = defaultdict(
+        lambda: {"calories": Decimal(0), "protein": Decimal(0)}
+    )
+    for slot in all_slots:
+        if slot.meal:
+            day = daily_totals[slot.date]
+            if slot.meal.calories_kcal is not None:
+                day["calories"] += Decimal(slot.meal.calories_kcal)
+            if slot.meal.protein_g is not None:
+                day["protein"] += slot.meal.protein_g
+
+    # Compare against limits, tracking per-template stats
+    # Key: template name -> {days_over, total_days, cal_over, pro_over}
+    template_stats: dict[str, dict] = defaultdict(
+        lambda: {"days_over": 0, "total_days": 0, "cal_over": False, "pro_over": False}
+    )
+    over_limit_days_set: set[date] = set()
+
+    for instance_day in instance_days:
+        template = instance_day.day_template
+        tname = template.name
+        template_stats[tname]["total_days"] += 1
+
+        totals = daily_totals.get(instance_day.date)
+        if not totals:
+            continue
+
+        cal_over = (
+            template.max_calories_kcal is not None
+            and totals["calories"] > Decimal(template.max_calories_kcal)
+        )
+        pro_over = (
+            template.max_protein_g is not None
+            and totals["protein"] > template.max_protein_g
+        )
+
+        if cal_over or pro_over:
+            over_limit_days_set.add(instance_day.date)
+            template_stats[tname]["days_over"] += 1
+            if cal_over:
+                template_stats[tname]["cal_over"] = True
+            if pro_over:
+                template_stats[tname]["pro_over"] = True
+
+    # Build breakdown list
+    breakdown: list[OverLimitBreakdown] = []
+    for tname, stats in template_stats.items():
+        if stats["days_over"] > 0:
+            if stats["cal_over"] and stats["pro_over"]:
+                exceeded = "both"
+            elif stats["cal_over"]:
+                exceeded = "calories"
+            else:
+                exceeded = "protein"
+            breakdown.append(
+                OverLimitBreakdown(
+                    template_name=tname,
+                    days_over=stats["days_over"],
+                    total_days=stats["total_days"],
+                    exceeded_metric=exceeded,
+                )
+            )
+
+    # Sort by most over-limit days first
+    breakdown.sort(key=lambda x: x.days_over, reverse=True)
+
+    return len(over_limit_days_set), len(instance_days), breakdown

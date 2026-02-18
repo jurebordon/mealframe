@@ -97,6 +97,7 @@ from .stats import (
     DailyAdherence,
     StatusBreakdown,
     MealTypeAdherence,
+    OverLimitBreakdown,
     StatsResponse,
     StatsQueryParams,
 )
@@ -177,6 +178,7 @@ __all__ = [
     "DailyAdherence",
     "StatusBreakdown",
     "MealTypeAdherence",
+    "OverLimitBreakdown",
     "StatsResponse",
     "StatsQueryParams",
 ]

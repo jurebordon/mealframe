@@ -64,6 +64,8 @@ async def create_day_template(db: AsyncSession, data: DayTemplateCreate) -> DayT
     template = DayTemplate(
         name=data.name,
         notes=data.notes,
+        max_calories_kcal=data.max_calories_kcal,
+        max_protein_g=data.max_protein_g,
     )
     db.add(template)
     await db.flush()
@@ -83,6 +85,10 @@ async def update_day_template(
         template.name = data.name
     if data.notes is not None:
         template.notes = data.notes
+    if "max_calories_kcal" in data.model_fields_set:
+        template.max_calories_kcal = data.max_calories_kcal
+    if "max_protein_g" in data.model_fields_set:
+        template.max_protein_g = data.max_protein_g
 
     # Replace slots if provided
     if data.slots is not None:

@@ -8,6 +8,7 @@ Tests cover:
 - PUT /api/v1/day-templates/{id} - Update template and slots
 - DELETE /api/v1/day-templates/{id} - Delete template
 """
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -259,3 +260,138 @@ async def test_delete_day_template_not_found(client: AsyncClient):
     """DELETE /day-templates/{id} returns 404 for non-existent template."""
     response = await client.delete(f"/api/v1/day-templates/{uuid4()}")
     assert response.status_code == 404
+
+
+# =============================================================================
+# Soft Limits (max_calories_kcal, max_protein_g)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_create_day_template_with_soft_limits(
+    client: AsyncClient, sample_meal_types: list[MealType]
+):
+    """POST /day-templates creates template with soft limit fields."""
+    payload = {
+        "name": f"Limited Template {uuid4().hex[:8]}",
+        "max_calories_kcal": 2200,
+        "max_protein_g": "180.0",
+        "slots": [
+            {"position": 1, "meal_type_id": str(sample_meal_types[0].id)},
+        ],
+    }
+    response = await client.post("/api/v1/day-templates", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["max_calories_kcal"] == 2200
+    assert data["max_protein_g"] == "180.0"
+
+
+@pytest.mark.asyncio
+async def test_create_day_template_without_soft_limits(
+    client: AsyncClient, sample_meal_types: list[MealType]
+):
+    """POST /day-templates without limits returns null for limit fields."""
+    payload = {
+        "name": f"No Limits {uuid4().hex[:8]}",
+        "slots": [
+            {"position": 1, "meal_type_id": str(sample_meal_types[0].id)},
+        ],
+    }
+    response = await client.post("/api/v1/day-templates", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["max_calories_kcal"] is None
+    assert data["max_protein_g"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_day_template_set_soft_limits(
+    client: AsyncClient, sample_template: DayTemplate
+):
+    """PUT /day-templates/{id} can set soft limits."""
+    response = await client.put(
+        f"/api/v1/day-templates/{sample_template.id}",
+        json={"max_calories_kcal": 1800, "max_protein_g": "150.5"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["max_calories_kcal"] == 1800
+    assert data["max_protein_g"] == "150.5"
+
+
+@pytest.mark.asyncio
+async def test_update_day_template_clear_soft_limits(
+    client: AsyncClient, db: AsyncSession, sample_meal_types: list[MealType]
+):
+    """PUT /day-templates/{id} can clear soft limits by sending null."""
+    # Create a template with limits
+    template = DayTemplate(
+        id=uuid4(),
+        name=f"Clearable Limits {uuid4().hex[:8]}",
+        max_calories_kcal=2000,
+        max_protein_g=160,
+    )
+    db.add(template)
+    await db.flush()
+
+    # Clear limits
+    response = await client.put(
+        f"/api/v1/day-templates/{template.id}",
+        json={"max_calories_kcal": None, "max_protein_g": None},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["max_calories_kcal"] is None
+    assert data["max_protein_g"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_day_template_omit_limits_preserves_them(
+    client: AsyncClient, db: AsyncSession
+):
+    """PUT /day-templates/{id} without limit fields leaves them unchanged."""
+    template = DayTemplate(
+        id=uuid4(),
+        name=f"Preserved Limits {uuid4().hex[:8]}",
+        max_calories_kcal=2500,
+        max_protein_g=200,
+    )
+    db.add(template)
+    await db.flush()
+
+    # Update only name — limits should remain
+    new_name = f"Renamed {uuid4().hex[:8]}"
+    response = await client.put(
+        f"/api/v1/day-templates/{template.id}",
+        json={"name": new_name},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == new_name
+    assert data["max_calories_kcal"] == 2500
+    assert data["max_protein_g"] == "200.0"
+
+
+@pytest.mark.asyncio
+async def test_list_day_templates_includes_soft_limits(
+    client: AsyncClient, db: AsyncSession
+):
+    """GET /day-templates list includes soft limit fields."""
+    template = DayTemplate(
+        id=uuid4(),
+        name=f"Listed Limits {uuid4().hex[:8]}",
+        max_calories_kcal=1900,
+        max_protein_g=170,
+    )
+    db.add(template)
+    await db.flush()
+
+    response = await client.get("/api/v1/day-templates")
+    assert response.status_code == 200
+    data = response.json()
+
+    tmpl = next((t for t in data if t["id"] == str(template.id)), None)
+    assert tmpl is not None
+    assert tmpl["max_calories_kcal"] == 1900
+    assert Decimal(tmpl["max_protein_g"]) == Decimal("170")

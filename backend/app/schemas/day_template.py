@@ -1,5 +1,6 @@
 """Pydantic schemas for DayTemplate and DayTemplateSlot entities."""
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import Field
@@ -34,6 +35,8 @@ class DayTemplateBase(BaseSchema):
 
     name: str = Field(min_length=1, max_length=255, description="Display name")
     notes: str | None = Field(default=None, description="Usage context")
+    max_calories_kcal: int | None = Field(default=None, ge=1, description="Optional daily calorie soft limit")
+    max_protein_g: Decimal | None = Field(default=None, ge=0, description="Optional daily protein soft limit (grams)")
 
 
 class DayTemplateCreate(DayTemplateBase):
@@ -50,6 +53,8 @@ class DayTemplateUpdate(BaseSchema):
 
     name: str | None = Field(default=None, min_length=1, max_length=255)
     notes: str | None = None
+    max_calories_kcal: int | None = None
+    max_protein_g: Decimal | None = None
     slots: list[DayTemplateSlotCreate] | None = Field(
         default=None,
         description="Replace all slots with this list (deletes existing slots)",
@@ -80,6 +85,8 @@ class DayTemplateListItem(BaseSchema):
     id: UUID
     name: str
     notes: str | None = None
+    max_calories_kcal: int | None = None
+    max_protein_g: Decimal | None = None
     slot_count: int = Field(description="Number of meal slots in this template")
     slot_preview: str | None = Field(
         default=None,
