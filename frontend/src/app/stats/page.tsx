@@ -16,7 +16,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { TrendingUp, Flame, Award, CalendarOff, Loader2, Zap } from 'lucide-react'
+import { TrendingUp, Flame, Award, CalendarOff, Loader2, Zap, AlertTriangle } from 'lucide-react'
 import { useStats } from '@/hooks/use-stats'
 
 type TimePeriod = 7 | 30 | 90
@@ -111,7 +111,7 @@ export default function StatsPage() {
         {stats && (
           <>
             {/* Overview Cards */}
-            <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={`mb-8 grid gap-4 sm:grid-cols-2 ${stats.days_with_limits > 0 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
               <Card>
                 <CardContent className="p-6">
                   <div className="mb-2 flex items-center justify-between">
@@ -171,6 +171,23 @@ export default function StatsPage() {
                   </p>
                 </CardContent>
               </Card>
+
+              {stats.days_with_limits > 0 && (
+                <Card className="border-warning/30">
+                  <CardContent className="p-6">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Over Limit Days</p>
+                      <AlertTriangle className="h-4 w-4 text-warning" />
+                    </div>
+                    <p className="text-3xl font-bold text-foreground">
+                      {stats.over_limit_days}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      of {stats.days_with_limits} days with limits
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Average Daily Macros */}
@@ -209,6 +226,43 @@ export default function StatsPage() {
                   </Card>
                 )}
               </div>
+            )}
+
+            {/* Over Limit Breakdown */}
+            {stats.over_limit_breakdown.length > 0 && (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>Over Limit Breakdown</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Templates where daily totals exceeded soft limits
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {stats.over_limit_breakdown.map((item) => {
+                      const pct = item.total_days > 0
+                        ? Math.round((item.days_over / item.total_days) * 100)
+                        : 0
+                      return (
+                        <div
+                          key={item.template_name}
+                          className="flex items-center justify-between rounded-lg border border-warning/20 bg-warning/5 p-3"
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">{item.template_name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.days_over} of {item.total_days} days over ({item.exceeded_metric})
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-warning">{pct}%</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Adherence Chart */}

@@ -19,6 +19,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
+from sqlalchemy import update
+
 from app.models import (
     DayTemplate,
     DayTemplateSlot,
@@ -162,6 +164,13 @@ async def test_week_plan(
     db: AsyncSession, test_day_templates: list[DayTemplate]
 ) -> WeekPlan:
     """Create a default week plan with templates assigned to days."""
+    # Clear any existing default week plans (e.g. from seed data) to avoid
+    # MultipleResultsFound in get_default_week_plan()
+    await db.execute(
+        update(WeekPlan).where(WeekPlan.is_default == True).values(is_default=False)
+    )
+    await db.flush()
+
     week_plan = WeekPlan(
         id=uuid4(),
         name=f"Test Week Plan {uuid4().hex[:8]}",
@@ -443,9 +452,15 @@ class TestGenerateWeek:
 
     @pytest.mark.asyncio
     async def test_generate_week_fails_without_default_plan(
-        self, client: AsyncClient
+        self, db: AsyncSession, client: AsyncClient
     ):
         """Returns 400 when no default week plan exists."""
+        # Clear any existing default week plans (e.g. from seed data)
+        await db.execute(
+            update(WeekPlan).where(WeekPlan.is_default == True).values(is_default=False)
+        )
+        await db.flush()
+
         # Pick a Monday far in the future to avoid conflicts
         target_monday = date(2098, 1, 6)  # A Monday
 

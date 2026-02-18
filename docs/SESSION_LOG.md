@@ -5,6 +5,41 @@
 
 ---
 
+## Session: 2026-02-18 (4)
+
+**Role**: frontend
+**Task**: Day Template Calorie/Macro Soft Limits — Session 4 (Frontend) + test fix
+**Branch**: feat/soft-limits-frontend
+
+### Summary
+- Added `max_calories_kcal` and `max_protein_g` to all DayTemplate TypeScript types and `OverLimitBreakdown` + 3 new fields to `StatsResponse`
+- Added "Daily Limits (optional)" section to Day Template editor with max calories (kcal) and max protein (g) inputs, populated from template on edit, included in save payload
+- Template list items now show "Max: 2,200 kcal / 180g protein" preview line when limits are set
+- Stats page shows conditionally-rendered "Over Limit Days" card (warning amber) as 5th card in overview grid when any templates have limits
+- Stats page shows "Over Limit Breakdown" section with per-template exceeded counts and percentages
+- Fixed pre-existing `test_weekly_api.py` `MultipleResultsFound` failure: root cause was seed data creating a default week plan that conflicted with test fixtures. Fixed by clearing existing defaults within the test savepoint before creating test data.
+- All 156 backend tests pass, Next.js build clean
+
+### Files Changed
+- [frontend/src/lib/types.ts](frontend/src/lib/types.ts) - Added soft limit fields to DayTemplate types, new `OverLimitBreakdown` type, updated `StatsResponse`
+- [frontend/src/components/mealframe/day-template-editor.tsx](frontend/src/components/mealframe/day-template-editor.tsx) - Added maxCalories/maxProtein state, resetForm population, save payload, soft limits UI section
+- [frontend/src/app/setup/page.tsx](frontend/src/app/setup/page.tsx) - Limit preview line in template list items
+- [frontend/src/app/stats/page.tsx](frontend/src/app/stats/page.tsx) - Over Limit Days card, Over Limit Breakdown section, AlertTriangle import
+- [backend/tests/test_weekly_api.py](backend/tests/test_weekly_api.py) - Fixed seed data isolation: clear existing default week plans in fixtures
+
+### Decisions
+- Over Limit Days card uses dynamic grid (`lg:grid-cols-5` when visible, `lg:grid-cols-4` when hidden) to avoid empty space
+- Over Limit Breakdown placed between Average Daily Macros and Adherence Chart for visual flow
+- Test fix uses `UPDATE ... SET is_default=False` inside savepoint — rolls back automatically, no permanent side effects
+
+### Blockers
+- None
+
+### Next
+- Phase 2 planning: User management/auth (ADR-009) or Grocery list generation (ADR-008)
+
+---
+
 ## Session: 2026-02-18 (3)
 
 **Role**: backend

@@ -55,6 +55,8 @@ export function DayTemplateEditor({
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
   const [slots, setSlots] = useState<EditableSlot[]>([])
+  const [maxCalories, setMaxCalories] = useState('')
+  const [maxProtein, setMaxProtein] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Reset form when dialog opens or the template prop changes
@@ -63,10 +65,14 @@ export function DayTemplateEditor({
       setName(template.name)
       setNotes(template.notes ?? '')
       setSlots(createEditableSlotsFromTemplate(template))
+      setMaxCalories(template.max_calories_kcal != null ? String(template.max_calories_kcal) : '')
+      setMaxProtein(template.max_protein_g != null ? String(Number(template.max_protein_g)) : '')
     } else {
       setName('')
       setNotes('')
       setSlots([])
+      setMaxCalories('')
+      setMaxProtein('')
     }
     setShowDeleteConfirm(false)
   }, [template])
@@ -128,9 +134,14 @@ export function DayTemplateEditor({
   const handleSave = () => {
     if (!name.trim() || slots.length === 0) return
 
+    const parsedMaxCalories = maxCalories ? parseInt(maxCalories) : null
+    const parsedMaxProtein = maxProtein ? parseFloat(maxProtein) : null
+
     const payload: DayTemplateCreate = {
       name: name.trim(),
       notes: notes.trim() || null,
+      max_calories_kcal: parsedMaxCalories,
+      max_protein_g: parsedMaxProtein,
       slots: slots.map(({ position, meal_type_id }) => ({
         position,
         meal_type_id,
@@ -285,6 +296,59 @@ export function DayTemplateEditor({
               </div>
             </div>
           )}
+
+          {/* Soft Limits */}
+          <div className="space-y-3 border-t border-border pt-6">
+            <div>
+              <Label className="text-base">Daily Limits (optional)</Label>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Soft limits for tracking. Days exceeding these will appear in your stats.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="max-calories" className="text-sm font-normal">
+                  Max Calories
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="max-calories"
+                    type="number"
+                    value={maxCalories}
+                    onChange={(e) => setMaxCalories(e.target.value)}
+                    placeholder="e.g. 2200"
+                    className="pr-12"
+                    disabled={isSaving}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    kcal
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="max-protein" className="text-sm font-normal">
+                  Max Protein
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="max-protein"
+                    type="number"
+                    step="0.1"
+                    value={maxProtein}
+                    onChange={(e) => setMaxProtein(e.target.value)}
+                    placeholder="e.g. 180"
+                    className="pr-8"
+                    disabled={isSaving}
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    g
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-3">

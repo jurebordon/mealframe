@@ -13,25 +13,6 @@
 
 <!-- Priority ordered - top item is next -->
 
----
-
-### Feature: Day Template Calorie/Macro Soft Limits
-
-Optional max_calories_kcal and max_protein_g per day template. Tracked in Stats, not shown in Today/Week views.
-
-**~~Session 3 — Backend~~ (Done 2026-02-18)**
-
-**Session 4 — Frontend**
-1. Update Day Template editor in Setup to add "Daily Limits (optional)" section with max calories and max protein inputs (reference: `v0_design/components/mealframe/day-template-editor.tsx`)
-2. Update Day Template list items to show limit preview line ("Max: 2,200 kcal / 180g protein") when limits are set
-3. Add "Over Limit Days" card to Stats page overview grid (conditionally rendered)
-4. Add "Over Limit Breakdown" section below overview cards (list of templates with exceeded counts)
-5. Update `useStats` hook types and Stats page to consume new response fields
-
-**Design reference:** `v0_design/app/soft-limits-demo/page.tsx`, `v0_design/components/mealframe/day-template-editor.tsx`
-
----
-
 **Phase 2:**
 - User management and authentication (ADR-009) - Required to expose app to other users
 - Grocery list generation (ADR-008) - Most requested feature for personal use
@@ -51,6 +32,8 @@ Optional max_calories_kcal and max_protein_g per day template. Tracked in Stats,
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Soft limits frontend: template editor limits, list previews, Stats over-limit card + breakdown (2026-02-18)
+- [x] Fix: test_weekly_api.py MultipleResultsFound due to seed data conflict (2026-02-18)
 - [x] Soft limits backend: migration, CRUD, over-limit stats calculation (2026-02-18)
 - [x] Fix: Streak inconsistency between Today View and Stats page (2026-02-18)
 - [x] Ad-hoc meals frontend: MealPicker, Add Meal button, ad-hoc indicators, remove flow (2026-02-18)

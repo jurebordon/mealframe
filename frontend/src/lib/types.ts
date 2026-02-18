@@ -150,6 +150,8 @@ export interface DayTemplateResponse {
   id: string
   name: string
   notes: string | null
+  max_calories_kcal: number | null
+  max_protein_g: number | null
   created_at: string
   updated_at: string
   slots: DayTemplateSlotResponse[]
@@ -159,6 +161,8 @@ export interface DayTemplateListItem {
   id: string
   name: string
   notes: string | null
+  max_calories_kcal: number | null
+  max_protein_g: number | null
   slot_count: number
   slot_preview: string | null
 }
@@ -171,12 +175,16 @@ export interface DayTemplateSlotCreate {
 export interface DayTemplateCreate {
   name: string
   notes?: string | null
+  max_calories_kcal?: number | null
+  max_protein_g?: number | null
   slots?: DayTemplateSlotCreate[]
 }
 
 export interface DayTemplateUpdate {
   name?: string
   notes?: string | null
+  max_calories_kcal?: number | null
+  max_protein_g?: number | null
   slots?: DayTemplateSlotCreate[]
 }
 
@@ -388,6 +396,13 @@ export interface DailyAdherence {
   adherence_rate: string // Decimal as string from backend
 }
 
+export interface OverLimitBreakdown {
+  template_name: string
+  days_over: number
+  total_days: number
+  exceeded_metric: string // 'calories' | 'protein' | 'both'
+}
+
 export interface StatsResponse {
   period_days: number
   total_slots: number
@@ -401,6 +416,9 @@ export interface StatsResponse {
   daily_adherence: DailyAdherence[]
   avg_daily_calories: string | null
   avg_daily_protein: string | null
+  over_limit_days: number
+  days_with_limits: number
+  over_limit_breakdown: OverLimitBreakdown[]
 }
 
 // ============================================================================

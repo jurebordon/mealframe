@@ -282,6 +282,15 @@ function DayTemplatesTab() {
                 {t.notes && (
                   <div className="mt-0.5 text-xs text-muted-foreground italic">{t.notes}</div>
                 )}
+                {(t.max_calories_kcal != null || t.max_protein_g != null) && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Max:{' '}
+                    {[
+                      t.max_calories_kcal != null && `${t.max_calories_kcal.toLocaleString()} kcal`,
+                      t.max_protein_g != null && `${Number(t.max_protein_g)}g protein`,
+                    ].filter(Boolean).join(' / ')}
+                  </div>
+                )}
               </div>
               <span className="ml-4 shrink-0 text-sm text-muted-foreground">
                 {t.slot_count} {t.slot_count === 1 ? 'slot' : 'slots'}
