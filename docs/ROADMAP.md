@@ -1,22 +1,13 @@
 # Roadmap
 
-**Last Updated**: 2026-02-12
+**Last Updated**: 2026-02-18
 **Current Phase**: MVP Complete - Evaluating Phase 2
 
 ## Now (Current Work)
 
 <!-- ONE task in progress at a time -->
 
-### Feature: Ad-Hoc Meal Addition — Session 2 (Frontend)
-
-1. Copy `MealPicker` component from `v0_design/components/mealframe/meal-picker.tsx`, adapt to use real meal library data via `useMeals` hook
-2. Add "Add meal" ghost button below meal list in Today View (`page.tsx`)
-3. Create `useAddAdhocSlot` and `useDeleteAdhocSlot` mutation hooks
-4. Show ad-hoc indicator (colored left border + "Added" label) on cards where `slot.is_adhoc === true`
-5. Update `CompletionSheetAnimated` to accept `isAdHoc` + `onRemove` props, show "Remove meal" button for ad-hoc slots
-6. Wire up remove flow: completion sheet → `DELETE /slots/{id}` → invalidate today query
-
-**Design reference:** `v0_design/app/adhoc-demo/page.tsx`, `v0_design/components/mealframe/meal-picker.tsx`
+(empty — pick from Next)
 
 ## Next (Queued)
 
@@ -66,6 +57,7 @@ Optional max_calories_kcal and max_protein_g per day template. Tracked in Stats,
 
 <!-- Recently completed, for context -->
 - [x] Fix: Streak inconsistency between Today View and Stats page (2026-02-18)
+- [x] Ad-hoc meals frontend: MealPicker, Add Meal button, ad-hoc indicators, remove flow (2026-02-18)
 - [x] Ad-hoc meals backend: is_adhoc column, POST /today/slots, DELETE /slots/{id} (2026-02-12)
 - [x] Fix: Swipe cascading bug, clear status, meal ordering, sheet cutoff (2026-02-09)
 - [x] Extended macro display + daily totals + avg daily stats (2026-02-08)

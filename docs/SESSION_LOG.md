@@ -5,6 +5,45 @@
 
 ---
 
+## Session: 2026-02-18 (2)
+
+**Role**: frontend
+**Task**: Ad-hoc meal addition — Session 2 (Frontend)
+**Branch**: main (direct commit)
+
+### Summary
+- Created MealPicker bottom sheet component adapted from v0 design, using real meal library data via `useMeals` hook with search filtering
+- Added "Add meal" ghost button below meal list in Today View
+- Added `is_adhoc` field to `WeeklyPlanSlotBase` TypeScript type
+- Created `addAdhocSlot` and `deleteAdhocSlot` API functions (`POST /today/slots`, `DELETE /slots/{id}`)
+- Created `useAddAdhocSlot` and `useDeleteAdhocSlot` mutation hooks with optimistic updates
+- Ad-hoc slots display with colored left border indicator and "Added" label
+- Updated `CompletionSheetAnimated` with `isAdHoc` + `onRemove` props, showing "Remove meal" button (destructive style) for ad-hoc slots
+- Full add/remove flow wired with toast notifications
+- TypeScript clean, Next.js build passes
+
+### Files Changed
+- [frontend/src/lib/types.ts](frontend/src/lib/types.ts) - Added `is_adhoc` to `WeeklyPlanSlotBase`, new `AddAdhocSlotRequest` interface
+- [frontend/src/lib/api.ts](frontend/src/lib/api.ts) - Added `addAdhocSlot()` and `deleteAdhocSlot()` API functions
+- [frontend/src/hooks/use-today.ts](frontend/src/hooks/use-today.ts) - Added `useAddAdhocSlot` and `useDeleteAdhocSlot` mutation hooks
+- [frontend/src/components/mealframe/meal-picker.tsx](frontend/src/components/mealframe/meal-picker.tsx) - New: MealPicker bottom sheet with search, loading state, meal library browsing
+- [frontend/src/components/mealframe/completion-sheet-animated.tsx](frontend/src/components/mealframe/completion-sheet-animated.tsx) - Added `isAdHoc` + `onRemove` props, "Remove meal" button
+- [frontend/src/app/page.tsx](frontend/src/app/page.tsx) - Added MealPicker, Add Meal button, ad-hoc indicators, remove flow wiring
+
+### Decisions
+- MealPicker fetches all meals (pageSize=200) from existing `useMeals` hook — simple, works for current library size
+- Ad-hoc indicator uses `bg-primary/40` left border to be visible but not distracting
+- "Remove meal" button in completion sheet uses destructive styling (red dashed border) to distinguish from status options
+- `useDeleteAdhocSlot` has optimistic updates (removes slot immediately from UI), `useAddAdhocSlot` invalidates and refetches (needs server data for new slot)
+
+### Blockers
+- None
+
+### Next
+- Session 3: Backend for soft limits (migration, schema updates, over-limit stats calculation)
+
+---
+
 ## Session: 2026-02-18
 
 **Role**: backend
