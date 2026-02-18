@@ -7,18 +7,21 @@ import { StreakBadge } from '@/components/mealframe/streak-badge'
 import { CompletionSheetAnimated } from '@/components/mealframe/completion-sheet-animated'
 import { CompletionAnimation } from '@/components/mealframe/completion-animation'
 import { YesterdayReviewModal } from '@/components/mealframe/yesterday-review-modal'
+import { MealPicker } from '@/components/mealframe/meal-picker'
 import { Toast } from '@/components/mealframe/toast'
 import { Button } from '@/components/ui/button'
-import { Loader2, RefreshCw, Calendar } from 'lucide-react'
-import { useToday, useCompleteSlot, useUncompleteSlot, useOfflineSync } from '@/hooks/use-today'
+import { Loader2, RefreshCw, Calendar, Plus } from 'lucide-react'
+import { useToday, useCompleteSlot, useUncompleteSlot, useOfflineSync, useAddAdhocSlot, useDeleteAdhocSlot } from '@/hooks/use-today'
 import { useYesterdayReview, useCompleteYesterdaySlot } from '@/hooks/use-yesterday-review'
-import type { CompletionStatus, WeeklyPlanSlotWithNext } from '@/lib/types'
+import type { CompletionStatus, WeeklyPlanSlotWithNext, MealListItem } from '@/lib/types'
 import Link from 'next/link'
 
 export default function TodayView() {
   const { data, isLoading, isError, error, refetch } = useToday()
   const completeSlotMutation = useCompleteSlot()
   const uncompleteSlotMutation = useUncompleteSlot()
+  const addAdhocSlotMutation = useAddAdhocSlot()
+  const deleteAdhocSlotMutation = useDeleteAdhocSlot()
   useOfflineSync()
 
   // Yesterday review
@@ -38,6 +41,7 @@ export default function TodayView() {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [lastCompletedSlotId, setLastCompletedSlotId] = useState<string | null>(null)
+  const [showMealPicker, setShowMealPicker] = useState(false)
 
   const handleMarkComplete = useCallback((slot: WeeklyPlanSlotWithNext) => {
     setSelectedSlot(slot)
@@ -91,6 +95,26 @@ export default function TodayView() {
       setLastCompletedSlotId(null)
     }
   }, [lastCompletedSlotId, uncompleteSlotMutation])
+
+  const handleAddAdhocMeal = useCallback((meal: MealListItem) => {
+    addAdhocSlotMutation.mutate(meal.id, {
+      onSuccess: () => {
+        setToastMessage(`Added ${meal.name}`)
+        setShowToast(true)
+      },
+    })
+  }, [addAdhocSlotMutation])
+
+  const handleRemoveAdhocSlot = useCallback(() => {
+    if (!selectedSlot) return
+    setShowCompletionSheet(false)
+    deleteAdhocSlotMutation.mutate(selectedSlot.id, {
+      onSuccess: () => {
+        setToastMessage('Meal removed')
+        setShowToast(true)
+      },
+    })
+  }, [selectedSlot, deleteAdhocSlotMutation])
 
   // Loading state
   if (isLoading) {
@@ -244,25 +268,36 @@ export default function TodayView() {
               {nextSlot.meal_type && (
                 <span className="text-xs text-muted-foreground">{nextSlot.meal_type.name}</span>
               )}
+              {nextSlot.is_adhoc && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Plus className="h-3 w-3" />
+                  Added
+                </span>
+              )}
             </div>
 
-            <MealCardGesture
-              mealName={nextSlot.meal?.name ?? 'Unassigned'}
-              portionDescription={nextSlot.meal?.portion_description ?? ''}
-              mealType={nextSlot.meal_type?.name ?? ''}
-              calories={nextSlot.meal?.calories_kcal != null ? Number(nextSlot.meal.calories_kcal) : undefined}
-              protein={nextSlot.meal?.protein_g != null ? Number(nextSlot.meal.protein_g) : undefined}
-              carbs={nextSlot.meal?.carbs_g != null ? Number(nextSlot.meal.carbs_g) : undefined}
-              sugar={nextSlot.meal?.sugar_g != null ? Number(nextSlot.meal.sugar_g) : undefined}
-              fat={nextSlot.meal?.fat_g != null ? Number(nextSlot.meal.fat_g) : undefined}
-              saturatedFat={nextSlot.meal?.saturated_fat_g != null ? Number(nextSlot.meal.saturated_fat_g) : undefined}
-              fiber={nextSlot.meal?.fiber_g != null ? Number(nextSlot.meal.fiber_g) : undefined}
-              status="next"
-              onClick={() => handleMarkComplete(nextSlot)}
-              onQuickComplete={() => handleQuickComplete(nextSlot)}
-              enableGestures={true}
-              className="shadow-lg shadow-primary/5"
-            />
+            <div className="relative">
+              {nextSlot.is_adhoc && (
+                <div className="absolute -left-2 top-0 bottom-0 w-1 rounded-full bg-primary/40" />
+              )}
+              <MealCardGesture
+                mealName={nextSlot.meal?.name ?? 'Unassigned'}
+                portionDescription={nextSlot.meal?.portion_description ?? ''}
+                mealType={nextSlot.meal_type?.name ?? ''}
+                calories={nextSlot.meal?.calories_kcal != null ? Number(nextSlot.meal.calories_kcal) : undefined}
+                protein={nextSlot.meal?.protein_g != null ? Number(nextSlot.meal.protein_g) : undefined}
+                carbs={nextSlot.meal?.carbs_g != null ? Number(nextSlot.meal.carbs_g) : undefined}
+                sugar={nextSlot.meal?.sugar_g != null ? Number(nextSlot.meal.sugar_g) : undefined}
+                fat={nextSlot.meal?.fat_g != null ? Number(nextSlot.meal.fat_g) : undefined}
+                saturatedFat={nextSlot.meal?.saturated_fat_g != null ? Number(nextSlot.meal.saturated_fat_g) : undefined}
+                fiber={nextSlot.meal?.fiber_g != null ? Number(nextSlot.meal.fiber_g) : undefined}
+                status="next"
+                onClick={() => handleMarkComplete(nextSlot)}
+                onQuickComplete={() => handleQuickComplete(nextSlot)}
+                enableGestures={true}
+                className="shadow-lg shadow-primary/5"
+              />
+            </div>
 
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Tap to choose status &bull; Long-press or swipe to mark followed
@@ -303,27 +338,47 @@ export default function TodayView() {
                 const isCompleted = slot.completion_status !== null
 
                 return (
-                  <MealCardGesture
-                    key={slot.id}
-                    mealName={slot.meal?.name ?? 'Unassigned'}
-                    portionDescription={slot.meal?.portion_description ?? ''}
-                    mealType={slot.meal_type?.name ?? ''}
-                    calories={slot.meal?.calories_kcal != null ? Number(slot.meal.calories_kcal) : undefined}
-                    protein={slot.meal?.protein_g != null ? Number(slot.meal.protein_g) : undefined}
-                    carbs={slot.meal?.carbs_g != null ? Number(slot.meal.carbs_g) : undefined}
-                    sugar={slot.meal?.sugar_g != null ? Number(slot.meal.sugar_g) : undefined}
-                    fat={slot.meal?.fat_g != null ? Number(slot.meal.fat_g) : undefined}
-                    saturatedFat={slot.meal?.saturated_fat_g != null ? Number(slot.meal.saturated_fat_g) : undefined}
-                    fiber={slot.meal?.fiber_g != null ? Number(slot.meal.fiber_g) : undefined}
-                    status={isCompleted ? 'completed' : 'default'}
-                    completionStatus={slot.completion_status ?? undefined}
-                    onClick={() => handleMarkComplete(slot)}
-                    onQuickComplete={!isCompleted ? () => handleQuickComplete(slot) : undefined}
-                    enableGestures={!isCompleted}
-                  />
+                  <div key={slot.id} className="relative">
+                    {slot.is_adhoc && (
+                      <div className="absolute -left-2 top-0 bottom-0 w-1 rounded-full bg-primary/40" />
+                    )}
+                    <MealCardGesture
+                      mealName={slot.meal?.name ?? 'Unassigned'}
+                      portionDescription={slot.meal?.portion_description ?? ''}
+                      mealType={slot.meal_type?.name ?? ''}
+                      calories={slot.meal?.calories_kcal != null ? Number(slot.meal.calories_kcal) : undefined}
+                      protein={slot.meal?.protein_g != null ? Number(slot.meal.protein_g) : undefined}
+                      carbs={slot.meal?.carbs_g != null ? Number(slot.meal.carbs_g) : undefined}
+                      sugar={slot.meal?.sugar_g != null ? Number(slot.meal.sugar_g) : undefined}
+                      fat={slot.meal?.fat_g != null ? Number(slot.meal.fat_g) : undefined}
+                      saturatedFat={slot.meal?.saturated_fat_g != null ? Number(slot.meal.saturated_fat_g) : undefined}
+                      fiber={slot.meal?.fiber_g != null ? Number(slot.meal.fiber_g) : undefined}
+                      status={isCompleted ? 'completed' : 'default'}
+                      completionStatus={slot.completion_status ?? undefined}
+                      onClick={() => handleMarkComplete(slot)}
+                      onQuickComplete={!isCompleted ? () => handleQuickComplete(slot) : undefined}
+                      enableGestures={!isCompleted}
+                    />
+                    {slot.is_adhoc && (
+                      <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <Plus className="h-3 w-3" />
+                        Added
+                      </span>
+                    )}
+                  </div>
                 )
               })}
             </div>
+
+            {/* Add Meal Button */}
+            <Button
+              variant="ghost"
+              onClick={() => setShowMealPicker(true)}
+              className="mt-4 w-full gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="h-4 w-4" />
+              Add meal
+            </Button>
           </section>
         )}
 
@@ -344,6 +399,15 @@ export default function TodayView() {
         onClear={selectedSlot?.completion_status ? handleClearStatus : undefined}
         mealName={selectedSlot?.meal?.name ?? ''}
         currentStatus={selectedSlot?.completion_status}
+        isAdHoc={selectedSlot?.is_adhoc}
+        onRemove={selectedSlot?.is_adhoc ? handleRemoveAdhocSlot : undefined}
+      />
+
+      {/* Meal Picker Sheet */}
+      <MealPicker
+        open={showMealPicker}
+        onOpenChange={setShowMealPicker}
+        onSelectMeal={handleAddAdhocMeal}
       />
 
       {/* Completion Animation */}

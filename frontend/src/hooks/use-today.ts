@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getToday, completeSlot, uncompleteSlot } from '@/lib/api'
+import { getToday, completeSlot, uncompleteSlot, addAdhocSlot, deleteAdhocSlot } from '@/lib/api'
 import { enqueueComplete, enqueueUncomplete, flushQueue } from '@/lib/offline-queue'
 import { useOnlineStatus } from '@/hooks/use-online-status'
 import type { TodayResponse, CompletionStatus } from '@/lib/types'
@@ -160,6 +160,63 @@ export function useUncompleteSlot() {
       if (navigator.onLine) {
         queryClient.invalidateQueries({ queryKey: ['today'] })
       }
+    },
+  })
+}
+
+export function useAddAdhocSlot() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (mealId: string) => addAdhocSlot({ meal_id: mealId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['today'] })
+    },
+  })
+}
+
+export function useDeleteAdhocSlot() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (slotId: string) => deleteAdhocSlot(slotId),
+    onMutate: async (slotId) => {
+      await queryClient.cancelQueries({ queryKey: ['today'] })
+
+      const previous = queryClient.getQueryData<TodayResponse>(['today'])
+
+      if (previous) {
+        const updatedSlots = previous.slots.filter((slot) => slot.id !== slotId)
+
+        // Recompute is_next
+        const nextSlotIndex = updatedSlots.findIndex((s) => s.completion_status === null)
+        const finalSlots = updatedSlots.map((slot, i) => ({
+          ...slot,
+          is_next: i === nextSlotIndex,
+        }))
+
+        const completed = finalSlots.filter((s) => s.completion_status !== null).length
+
+        queryClient.setQueryData<TodayResponse>(['today'], {
+          ...previous,
+          slots: finalSlots,
+          stats: {
+            ...previous.stats,
+            completed,
+            total: finalSlots.length,
+          },
+        })
+      }
+
+      return { previous }
+    },
+    onError: (_err, _slotId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['today'], context.previous)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['today'] })
     },
   })
 }

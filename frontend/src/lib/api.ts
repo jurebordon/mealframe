@@ -8,6 +8,8 @@
 import type {
   TodayResponse,
   YesterdayReviewResponse,
+  AddAdhocSlotRequest,
+  WeeklyPlanSlotWithNext,
   CompleteSlotRequest,
   CompleteSlotResponse,
   WeeklyPlanInstanceResponse,
@@ -132,6 +134,25 @@ export async function completeSlot(
  */
 export async function uncompleteSlot(slotId: string): Promise<CompleteSlotResponse> {
   return fetchApi<CompleteSlotResponse>(`/slots/${slotId}/complete`, {
+    method: 'DELETE',
+  })
+}
+
+/**
+ * Add an ad-hoc meal to today's plan.
+ */
+export async function addAdhocSlot(request: AddAdhocSlotRequest): Promise<WeeklyPlanSlotWithNext> {
+  return fetchApi<WeeklyPlanSlotWithNext>('/today/slots', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+/**
+ * Delete an ad-hoc meal slot. Only ad-hoc slots can be deleted.
+ */
+export async function deleteAdhocSlot(slotId: string): Promise<void> {
+  return fetchApi<void>(`/slots/${slotId}`, {
     method: 'DELETE',
   })
 }
@@ -482,6 +503,8 @@ export const api = {
   getYesterday,
   completeSlot,
   uncompleteSlot,
+  addAdhocSlot,
+  deleteAdhocSlot,
 
   // Weekly
   getWeek,

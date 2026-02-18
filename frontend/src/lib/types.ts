@@ -240,10 +240,15 @@ export interface WeeklyPlanSlotBase {
   meal: MealCompact | null
   completion_status: CompletionStatus | null
   completed_at: string | null
+  is_adhoc: boolean
 }
 
 export interface WeeklyPlanSlotWithNext extends WeeklyPlanSlotBase {
   is_next: boolean
+}
+
+export interface AddAdhocSlotRequest {
+  meal_id: string
 }
 
 export interface CompletionSummary {
