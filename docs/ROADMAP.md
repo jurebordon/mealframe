@@ -19,12 +19,7 @@
 
 Optional max_calories_kcal and max_protein_g per day template. Tracked in Stats, not shown in Today/Week views.
 
-**Session 3 — Backend**
-1. Add `max_calories_kcal` (nullable Integer) and `max_protein_g` (nullable Numeric(6,1)) columns to `day_template` (Alembic migration)
-2. Update `DayTemplateBase`, `DayTemplateCreate`, `DayTemplateUpdate`, `DayTemplateResponse`, `DayTemplateListItem` schemas to include both fields (optional)
-3. Update day template CRUD service to persist the new fields
-4. Add to `StatsResponse` schema: `over_limit_days: int`, `days_with_limits: int`, `over_limit_breakdown: list[OverLimitBreakdown]` (new schema: template name, days over, total days, exceeded metric)
-5. Implement `_calculate_over_limit_stats` in `services/stats.py`: for each day with a template that has limits, compare actual daily totals (sum of slot meal macros) against the template's limits
+**~~Session 3 — Backend~~ (Done 2026-02-18)**
 
 **Session 4 — Frontend**
 1. Update Day Template editor in Setup to add "Daily Limits (optional)" section with max calories and max protein inputs (reference: `v0_design/components/mealframe/day-template-editor.tsx`)
@@ -56,6 +51,7 @@ Optional max_calories_kcal and max_protein_g per day template. Tracked in Stats,
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Soft limits backend: migration, CRUD, over-limit stats calculation (2026-02-18)
 - [x] Fix: Streak inconsistency between Today View and Stats page (2026-02-18)
 - [x] Ad-hoc meals frontend: MealPicker, Add Meal button, ad-hoc indicators, remove flow (2026-02-18)
 - [x] Ad-hoc meals backend: is_adhoc column, POST /today/slots, DELETE /slots/{id} (2026-02-12)

@@ -5,6 +5,47 @@
 
 ---
 
+## Session: 2026-02-18 (3)
+
+**Role**: backend
+**Task**: Day Template Calorie/Macro Soft Limits — Session 3 (Backend)
+**Branch**: feat/soft-limits-backend
+
+### Summary
+- Added `max_calories_kcal` (nullable Integer) and `max_protein_g` (nullable Numeric(6,1)) columns to `day_template` table via Alembic migration
+- Updated all Pydantic schemas (`DayTemplateBase`, `DayTemplateCreate`, `DayTemplateUpdate`, `DayTemplateResponse`, `DayTemplateListItem`) with optional limit fields
+- Updated CRUD service: create persists new fields, update uses `model_fields_set` to support clearing limits via `null` while preserving on omission
+- Added `OverLimitBreakdown` schema and three new fields to `StatsResponse`: `over_limit_days`, `days_with_limits`, `over_limit_breakdown`
+- Implemented `_calculate_over_limit_stats()` in stats service: joins instance days with templates that have limits, sums actual meal macros per day, compares against limits, aggregates per-template breakdown
+- Added 7 new day template CRUD tests (create with/without limits, update set/clear/preserve limits, list includes limits)
+- Added 6 new stats tests (response fields, no limits, calories exceeded, within limits, protein exceeded, override exclusion)
+- All 118 backend tests pass, Next.js build clean
+
+### Files Changed
+- [backend/alembic/versions/20260218_add_soft_limits_to_day_template.py](backend/alembic/versions/20260218_add_soft_limits_to_day_template.py) - New: migration for soft limit columns
+- [backend/app/models/day_template.py](backend/app/models/day_template.py) - Added `max_calories_kcal` and `max_protein_g` columns
+- [backend/app/schemas/day_template.py](backend/app/schemas/day_template.py) - Added limit fields to Base, Update, and ListItem schemas
+- [backend/app/schemas/stats.py](backend/app/schemas/stats.py) - New `OverLimitBreakdown` schema, 3 new fields on `StatsResponse`
+- [backend/app/schemas/__init__.py](backend/app/schemas/__init__.py) - Export `OverLimitBreakdown`
+- [backend/app/api/day_templates.py](backend/app/api/day_templates.py) - Pass limit fields through list and detail responses
+- [backend/app/services/day_templates.py](backend/app/services/day_templates.py) - Persist limits on create/update
+- [backend/app/services/stats.py](backend/app/services/stats.py) - New `_calculate_over_limit_stats()`, wired into `get_stats()`
+- [backend/tests/test_day_template_crud.py](backend/tests/test_day_template_crud.py) - 7 new soft limit CRUD tests
+- [backend/tests/test_stats.py](backend/tests/test_stats.py) - 6 new over-limit stats tests
+
+### Decisions
+- Update uses `model_fields_set` to distinguish "field omitted" (no change) from "field sent as null" (clear limit) — allows clearing limits without always having to resend them
+- Override days are excluded from over-limit calculations — if you marked a day as "no plan", the template limits don't apply
+- `exceeded_metric` field tracks which limit(s) were exceeded per template: "calories", "protein", or "both"
+
+### Blockers
+- None
+
+### Next
+- Session 4: Frontend for soft limits (template editor UI, list previews, Stats page over-limit cards)
+
+---
+
 ## Session: 2026-02-18 (2)
 
 **Role**: frontend
