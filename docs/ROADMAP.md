@@ -1,7 +1,7 @@
 # Roadmap
 
-**Last Updated**: 2026-02-18
-**Current Phase**: MVP Complete - Evaluating Phase 2
+**Last Updated**: 2026-02-20
+**Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
 
@@ -13,25 +13,51 @@
 
 <!-- Priority ordered - top item is next -->
 
-**Phase 2:**
-- User management and authentication (ADR-009) - Required to expose app to other users
-- Grocery list generation (ADR-008) - Most requested feature for personal use
+**Phase 2 — Wave 1 (parallel tracks):**
+
+> ADR-011 and ADR-012 have zero overlap — different columns, endpoints, and UI components.
+> Use separate git worktrees to implement simultaneously.
+
+| Track | Feature | ADR | Branch | Worktree | Sessions |
+|-------|---------|-----|--------|----------|----------|
+| A | Revised completion statuses (enum change, actual_meal_id, quick-add, stats) | ADR-012 | `feat/completion-statuses` | `worktree-a/` | ~3 (be+fe+stats) |
+| B | Per-slot meal reassignment (Week View + Today View) | ADR-011 | `feat/meal-reassignment` | `worktree-b/` | ~2 (be+fe) |
+| C | Waitlist landing page (Next.js route in this repo) | — | `feat/landing-page` | — | ~1 evening |
+
+Merge order: A, B, and C merge independently to main (no file overlap).
+Landing page: new route at `/landing` (or `/`) in the existing Next.js app. Served at `www.mealframe.io`, app at `app.mealframe.io`. PRD: `docs/frozen/features/Mealframe_LandingPage_PRD.md`.
+
+**Phase 2 — Wave 2 (after Wave 1 merges):**
+
+| Feature | ADR | Branch | Sessions | Depends on |
+|---------|-----|--------|----------|------------|
+| Authentication & multi-user | ADR-014 | `feat/auth` | ~5 (self-managed, Argon2id + JWT + Google OAuth) | Nothing, but touches every file — do after Wave 1 to avoid merge hell |
+
+**Phase 2 — Wave 3 (after auth):**
+
+| Feature | ADR | Branch | Sessions | Depends on |
+|---------|-----|--------|----------|------------|
+| AI ad hoc meal capture (image MVP) | ADR-013 | `feat/ai-capture` | ~4 (pipeline+be+fe+storage) | ADR-012 (`deviated` entry point), ADR-014 (usage metering) |
+
+**Phase 2 — Wave 4:**
+
+- Grocery list generation (ADR-008) — Most requested feature for personal use
 
 ## Later (Backlog)
 
 <!-- Ideas and future work, not prioritized -->
+- AI meal capture Phase 2: voice dictation via Whisper (ADR-013 Phase 2)
 - Push notification reminders (requires native app consideration)
-- Grocery list generation from weekly plan
-- Ingredient-based meal builder with macro calculation
 - Adherence-weighted round-robin (deprioritize skipped meals)
 - Watch complications for "next meal"
 - Template export/import for sharing
-- Multi-user support with authentication
 - Public template library
 
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] ADR-011 through ADR-014 written — Phase 2 feature planning (2026-02-20)
+- [x] Fix: Card text selection on tap — added select-none to Card component (2026-02-20)
 - [x] Soft limits frontend: template editor limits, list previews, Stats over-limit card + breakdown (2026-02-18)
 - [x] Fix: test_weekly_api.py MultipleResultsFound due to seed data conflict (2026-02-18)
 - [x] Soft limits backend: migration, CRUD, over-limit stats calculation (2026-02-18)
@@ -73,9 +99,33 @@
 ## Blockers
 
 <!-- Anything preventing progress -->
-- None
+(none)
 
 ---
+
+## Dependency Graph
+
+```
+Wave 1 (parallel):
+  ┌─ Track A: ADR-012 (Completion Statuses) ─────┐
+  │    backend → frontend → stats                 │
+  │                                               ├─→ merge to main
+  ├─ Track B: ADR-011 (Meal Reassignment) ────────┤
+  │    backend → frontend (Week + Today)          │
+  │                                               │
+  ├─ Landing Page (Next.js route) ────────────────┘
+  │    ships independently
+  │
+Wave 2 (after Wave 1):
+  └─→ ADR-014 (Auth) ──────────────────────────────┐
+       users table → middleware → data migration    │
+       → frontend auth → settings page             │
+                                                    │
+Wave 3 (after auth):                                │
+       ADR-013 (AI Capture) ◄───────────────────────┘
+       needs: ADR-012 (deviated status)
+       needs: ADR-014 (usage metering)
+```
 
 ## Notes
 
@@ -84,7 +134,7 @@
 - Add blockers immediately when encountered
 - Reference tasks by ID in SESSION_LOG entries
 - MVP scope defined in docs/frozen/PRD_v0.md
-- Out-of-scope features deferred to "Later" section
+- PRDs for Phase 2 features in docs/frozen/features/
 
 ---
 

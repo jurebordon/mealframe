@@ -5,6 +5,50 @@
 
 ---
 
+## Session: 2026-02-20
+
+**Role**: architecture
+**Task**: Phase 2 feature planning — ADR-011 through ADR-014 + ROADMAP restructure
+**Branch**: main (docs only)
+
+### Summary
+- Wrote 4 new ADRs for Phase 2 features after discussing requirements and reviewing uploaded PRDs
+- ADR-011: Per-Slot Meal Reassignment — relaxes ADR-003, adds `PUT /slots/{id}/reassign`, `is_manual_override` column, reuses MealPicker in Week/Today views
+- ADR-012: Revised Completion Statuses — replaces `adjusted`/`replaced` with `equivalent` (neutral) and `deviated` (negative, triggers AI capture). Adds `actual_meal_id` FK, quick-add flow for unknown meals
+- ADR-013: AI-Powered Ad Hoc Meal Capture — image MVP (Phase 1), voice via Whisper (Phase 2). Two entry points: standalone + deviated completion flow. Background async processing via task queue. GPT-4o recommended
+- ADR-014: Authentication & Multi-User — self-managed auth with Argon2id password hashing, JWT access tokens (15 min), refresh token rotation (7 days), Google OAuth via `authlib`, Resend for transactional email. Full data model, API endpoints, migration strategy documented
+- Marked ADR-009 as superseded by ADR-014
+- Restructured ROADMAP.md with Wave-based parallel execution plan and dependency graph
+- Reviewed 3 uploaded PRDs (Auth, Ad Hoc Meal, Landing Page) and mapped them to ADRs
+- Decided landing page will be a Next.js route in this repo (www.mealframe.io for landing, app.mealframe.io for app)
+- Fixed card text selection UX (select-none on Card component) — committed separately
+- Resolved auth provider blocker: self-managed (Option C) with email/password + Google OAuth
+
+### Files Changed
+- [docs/ADR.md](docs/ADR.md) - Added ADR-011 through ADR-014, marked ADR-009 as superseded
+- [docs/ROADMAP.md](docs/ROADMAP.md) - Complete restructure: Wave 1 (parallel: completion statuses + meal reassignment + landing page), Wave 2 (auth), Wave 3 (AI capture), Wave 4 (grocery list). Dependency graph, blocker cleared
+- [docs/frozen/features/Mealframe_Auth_MultiUser_PRD.md](docs/frozen/features/Mealframe_Auth_MultiUser_PRD.md) - New PRD (user-uploaded)
+- [docs/frozen/features/Mealframe_AdHoc_Meal_PRD.md](docs/frozen/features/Mealframe_AdHoc_Meal_PRD.md) - New PRD (user-uploaded)
+- [docs/frozen/features/Mealframe_LandingPage_PRD.md](docs/frozen/features/Mealframe_LandingPage_PRD.md) - New PRD (user-uploaded)
+- [frontend/src/components/ui/card.tsx](frontend/src/components/ui/card.tsx) - Added select-none (committed earlier)
+
+### Decisions
+- Wave 1 uses separate git worktrees for ADR-011 and ADR-012 (zero file overlap)
+- Completion statuses: `followed`, `skipped`, `equivalent`, `deviated`, `social` (replaces `adjusted` + `replaced`)
+- Social meals count as non-adherent (own category in stats)
+- Auth: self-managed over Clerk/Auth0/Supabase — aligns with self-hosted philosophy, small user base, cost-sensitive
+- New users get empty accounts (no onboarding wizard or template clone)
+- Landing page as Next.js route in existing app (not separate repo)
+- ADR-008 (Grocery List) left open for Wave 4 — AI infra from ADR-013 may inform approach
+
+### Blockers
+- None
+
+### Next
+- Begin Wave 1 implementation: pick Track A (ADR-012), Track B (ADR-011), or Track C (landing page)
+
+---
+
 ## Session: 2026-02-18 (4)
 
 **Role**: frontend
