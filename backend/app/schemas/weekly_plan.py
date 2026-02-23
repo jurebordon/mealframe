@@ -23,6 +23,7 @@ class WeeklyPlanSlotBase(BaseSchema):
     completion_status: CompletionStatus | None = None
     completed_at: datetime | None = None
     is_adhoc: bool = False
+    is_manual_override: bool = False
 
 
 class WeeklyPlanSlotResponse(WeeklyPlanSlotBase):
@@ -144,3 +145,13 @@ class CompleteSlotResponse(BaseSchema):
     id: UUID
     completion_status: CompletionStatus | None = None
     completed_at: datetime | None = None
+
+
+class ReassignSlotRequest(BaseSchema):
+    """Request to reassign a slot's meal."""
+
+    meal_id: UUID = Field(description="ID of the new meal to assign")
+    meal_type_id: UUID | None = Field(
+        default=None,
+        description="Optional: change the slot's meal type as well",
+    )

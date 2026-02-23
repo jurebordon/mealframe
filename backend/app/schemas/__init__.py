@@ -83,6 +83,7 @@ from .weekly_plan import (
     OverrideResponse,
     CompleteSlotRequest,
     CompleteSlotResponse,
+    ReassignSlotRequest,
 )
 
 # Today/Yesterday schemas
@@ -170,6 +171,7 @@ __all__ = [
     "OverrideResponse",
     "CompleteSlotRequest",
     "CompleteSlotResponse",
+    "ReassignSlotRequest",
     # Today
     "TodayStats",
     "TodayResponse",
