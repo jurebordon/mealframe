@@ -34,7 +34,7 @@ class Meal(Base):
 
     # Relationships
     meal_types = relationship("MealType", secondary="meal_to_meal_type", back_populates="meals")
-    weekly_plan_slots = relationship("WeeklyPlanSlot", back_populates="meal")
+    weekly_plan_slots = relationship("WeeklyPlanSlot", foreign_keys="[WeeklyPlanSlot.meal_id]", back_populates="meal")
 
     def __repr__(self):
         return f"<Meal(id={self.id}, name='{self.name}', portion='{self.portion_description}')>"

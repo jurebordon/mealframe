@@ -19,7 +19,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # 1. Rename existing status values in data
+    # 1. Drop old CHECK constraint first (so UPDATEs can use new values)
+    op.drop_constraint("ck_weekly_plan_slot_status", "weekly_plan_slot", type_="check")
+
+    # 2. Rename existing status values in data
     op.execute(
         "UPDATE weekly_plan_slot SET completion_status = 'equivalent' WHERE completion_status = 'adjusted'"
     )
@@ -27,8 +30,7 @@ def upgrade() -> None:
         "UPDATE weekly_plan_slot SET completion_status = 'deviated' WHERE completion_status = 'replaced'"
     )
 
-    # 2. Drop old CHECK constraint and add new one
-    op.drop_constraint("ck_weekly_plan_slot_status", "weekly_plan_slot", type_="check")
+    # 3. Add new CHECK constraint with updated values
     op.create_check_constraint(
         "ck_weekly_plan_slot_status",
         "weekly_plan_slot",
