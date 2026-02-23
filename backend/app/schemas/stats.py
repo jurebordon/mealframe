@@ -9,12 +9,12 @@ from .base import BaseSchema
 
 
 class StatusBreakdown(BaseSchema):
-    """Breakdown of completion statuses."""
+    """Breakdown of completion statuses (ADR-012)."""
 
     followed: int = Field(default=0, description="Meals eaten as planned")
-    adjusted: int = Field(default=0, description="Meals with portion adjustments")
+    equivalent: int = Field(default=0, description="Meals changed for an equivalent option")
     skipped: int = Field(default=0, description="Meals skipped entirely")
-    replaced: int = Field(default=0, description="Meals replaced with something else")
+    deviated: int = Field(default=0, description="Meals changed for something off-plan")
     social: int = Field(default=0, description="Meals skipped for social events")
     unmarked: int = Field(default=0, description="Meals not yet marked")
 
@@ -58,8 +58,10 @@ class OverLimitBreakdown(BaseSchema):
 class StatsResponse(BaseSchema):
     """Response for GET /stats.
 
-    Per Tech Spec section 4.3, provides adherence statistics for reflection.
-    Adherence calculation: (followed + adjusted) / (total - social - unmarked)
+    Per ADR-012, adherence calculation:
+    followed / (total - equivalent - social - unmarked)
+
+    'equivalent' is neutral and excluded from both numerator and denominator.
     """
 
     period_days: int = Field(description="Number of days analyzed")

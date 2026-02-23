@@ -249,6 +249,7 @@ async def get_slots_for_instance_day(
         .options(
             selectinload(WeeklyPlanSlot.meal),
             selectinload(WeeklyPlanSlot.meal_type),
+            selectinload(WeeklyPlanSlot.actual_meal),
         )
         .order_by(WeeklyPlanSlot.position)
     )

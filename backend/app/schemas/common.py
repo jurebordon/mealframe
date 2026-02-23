@@ -8,16 +8,21 @@ from .base import BaseSchema
 
 
 class CompletionStatus(str, Enum):
-    """Valid completion statuses for meal slots.
+    """Valid completion statuses for meal slots (ADR-012).
 
-    Per Tech Spec section 2.2.10, these are the valid values for completion_status.
+    Per ADR-012, the revised statuses are:
+    - followed: Ate the planned meal as-is
+    - equivalent: Changed for an equivalent meal (neutral adherence)
+    - skipped: Did not eat this meal
+    - deviated: Changed for something off-plan (negative adherence)
+    - social: Social event prevented following (own category)
     NULL is also valid (unmarked) but represented as None in Python.
     """
 
     FOLLOWED = "followed"
-    ADJUSTED = "adjusted"
+    EQUIVALENT = "equivalent"
     SKIPPED = "skipped"
-    REPLACED = "replaced"
+    DEVIATED = "deviated"
     SOCIAL = "social"
 
 

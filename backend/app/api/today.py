@@ -143,18 +143,19 @@ async def complete_meal_slot(
     db: AsyncSession = Depends(get_db),
 ) -> CompleteSlotResponse:
     """
-    Mark a meal slot as complete with a status.
+    Mark a meal slot as complete with a status (ADR-012).
 
     Valid statuses:
-    - followed: Ate the meal as planned
-    - adjusted: Ate something similar or modified
+    - followed: Ate the planned meal as-is
+    - equivalent: Changed for an equivalent meal (neutral adherence)
     - skipped: Did not eat this meal
-    - replaced: Ate something completely different
-    - social: Social occasion (eating out, etc.)
+    - deviated: Changed for something off-plan (negative adherence)
+    - social: Social event prevented following
 
-    Returns the updated slot with completion_status and completed_at timestamp.
+    For equivalent/deviated, optionally pass actual_meal_id to record what was eaten.
+    Returns the updated slot with completion_status, completed_at, and actual_meal.
     """
-    slot = await complete_slot(db, slot_id, request.status.value)
+    slot = await complete_slot(db, slot_id, request.status.value, request.actual_meal_id)
 
     if not slot:
         raise HTTPException(
@@ -167,10 +168,27 @@ async def complete_meal_slot(
             },
         )
 
+    # Build actual_meal compact for response
+    actual_meal_compact = None
+    if slot.actual_meal:
+        actual_meal_compact = MealCompact(
+            id=slot.actual_meal.id,
+            name=slot.actual_meal.name,
+            portion_description=slot.actual_meal.portion_description,
+            calories_kcal=slot.actual_meal.calories_kcal,
+            protein_g=slot.actual_meal.protein_g,
+            carbs_g=slot.actual_meal.carbs_g,
+            sugar_g=slot.actual_meal.sugar_g,
+            fat_g=slot.actual_meal.fat_g,
+            saturated_fat_g=slot.actual_meal.saturated_fat_g,
+            fiber_g=slot.actual_meal.fiber_g,
+        )
+
     return CompleteSlotResponse(
         id=slot.id,
         completion_status=slot.completion_status,
         completed_at=slot.completed_at,
+        actual_meal=actual_meal_compact,
     )
 
 

@@ -457,42 +457,42 @@ class TestCompleteSlot:
         assert data["completion_status"] == "skipped"
 
     @pytest.mark.asyncio
-    async def test_complete_slot_adjusted(
+    async def test_complete_slot_equivalent(
         self,
         client: AsyncClient,
         weekly_plan_with_today: tuple[WeeklyPlanInstance, WeeklyPlanSlot],
     ):
-        """Successfully marks a slot as adjusted."""
+        """Successfully marks a slot as equivalent."""
         instance, slot = weekly_plan_with_today
 
         response = await client.post(
             f"/api/v1/slots/{slot.id}/complete",
-            json={"status": "adjusted"}
+            json={"status": "equivalent"}
         )
 
         assert response.status_code == 200
         data = response.json()
 
-        assert data["completion_status"] == "adjusted"
+        assert data["completion_status"] == "equivalent"
 
     @pytest.mark.asyncio
-    async def test_complete_slot_replaced(
+    async def test_complete_slot_deviated(
         self,
         client: AsyncClient,
         weekly_plan_with_today: tuple[WeeklyPlanInstance, WeeklyPlanSlot],
     ):
-        """Successfully marks a slot as replaced."""
+        """Successfully marks a slot as deviated."""
         instance, slot = weekly_plan_with_today
 
         response = await client.post(
             f"/api/v1/slots/{slot.id}/complete",
-            json={"status": "replaced"}
+            json={"status": "deviated"}
         )
 
         assert response.status_code == 200
         data = response.json()
 
-        assert data["completion_status"] == "replaced"
+        assert data["completion_status"] == "deviated"
 
     @pytest.mark.asyncio
     async def test_complete_slot_social(

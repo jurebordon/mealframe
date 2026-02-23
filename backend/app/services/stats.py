@@ -4,8 +4,10 @@ Service layer for adherence statistics.
 Calculates adherence rates, streaks, per-meal-type breakdowns,
 and daily data points for the Stats view.
 
-Adherence formula (from Tech Spec section 4.3):
-    (followed + adjusted) / (total - social - unmarked)
+Adherence formula (ADR-012):
+    followed / (total - equivalent - social - unmarked)
+
+'equivalent' is neutral — excluded from both numerator and denominator.
 """
 import logging
 from collections import defaultdict
@@ -36,12 +38,16 @@ from app.schemas.stats import (
 logger = logging.getLogger(__name__)
 
 
-def _adherence_rate(followed: int, adjusted: int, total: int, social: int, unmarked: int) -> Decimal:
-    """Calculate adherence rate. Returns 0 if denominator is zero."""
-    denominator = total - social - unmarked
+def _adherence_rate(followed: int, total: int, equivalent: int, social: int, unmarked: int) -> Decimal:
+    """Calculate adherence rate per ADR-012. Returns 0 if denominator is zero.
+
+    Formula: followed / (total - equivalent - social - unmarked)
+    'equivalent' is neutral and excluded from both numerator and denominator.
+    """
+    denominator = total - equivalent - social - unmarked
     if denominator <= 0:
         return Decimal("0")
-    rate = Decimal(followed + adjusted) / Decimal(denominator)
+    rate = Decimal(followed) / Decimal(denominator)
     return rate.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
 
 
@@ -94,9 +100,9 @@ async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
         status_counts[slot.completion_status] += 1
 
     followed = status_counts.get("followed", 0)
-    adjusted = status_counts.get("adjusted", 0)
+    equivalent = status_counts.get("equivalent", 0)
     skipped = status_counts.get("skipped", 0)
-    replaced = status_counts.get("replaced", 0)
+    deviated = status_counts.get("deviated", 0)
     social = status_counts.get("social", 0)
     unmarked = status_counts.get(None, 0)
 
@@ -105,14 +111,14 @@ async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
 
     by_status = StatusBreakdown(
         followed=followed,
-        adjusted=adjusted,
+        equivalent=equivalent,
         skipped=skipped,
-        replaced=replaced,
+        deviated=deviated,
         social=social,
         unmarked=unmarked,
     )
 
-    adherence_rate = _adherence_rate(followed, adjusted, total_slots, social, unmarked)
+    adherence_rate = _adherence_rate(followed, total_slots, equivalent, social, unmarked)
 
     # Calculate streaks
     current_streak, best_streak = await _calculate_streaks(db, today)
@@ -232,7 +238,7 @@ async def _calculate_meal_type_adherence(
             WeeklyPlanSlot.meal_type_id,
             func.count().label("total"),
             func.count().filter(WeeklyPlanSlot.completion_status == "followed").label("followed_count"),
-            func.count().filter(WeeklyPlanSlot.completion_status == "adjusted").label("adjusted_count"),
+            func.count().filter(WeeklyPlanSlot.completion_status == "equivalent").label("equivalent_count"),
             func.count().filter(WeeklyPlanSlot.completion_status == "social").label("social_count"),
             func.count().filter(WeeklyPlanSlot.completion_status.is_(None)).label("unmarked_count"),
         )
@@ -253,7 +259,7 @@ async def _calculate_meal_type_adherence(
         mt_id = row.meal_type_id
         name = meal_type_names.get(mt_id, "Unknown")
         rate = _adherence_rate(
-            row.followed_count, row.adjusted_count, row.total, row.social_count, row.unmarked_count
+            row.followed_count, row.total, row.equivalent_count, row.social_count, row.unmarked_count
         )
         adherence_list.append(
             MealTypeAdherence(
@@ -335,7 +341,10 @@ def _calculate_daily_adherence(
         if day_slots:
             total = len(day_slots)
             followed_count = sum(
-                1 for s in day_slots if s.completion_status in ("followed", "adjusted")
+                1 for s in day_slots if s.completion_status == "followed"
+            )
+            equivalent_count = sum(
+                1 for s in day_slots if s.completion_status == "equivalent"
             )
             social_count = sum(
                 1 for s in day_slots if s.completion_status == "social"
@@ -343,7 +352,7 @@ def _calculate_daily_adherence(
             unmarked_count = sum(
                 1 for s in day_slots if s.completion_status is None
             )
-            rate = _adherence_rate(followed_count, 0, total, social_count, unmarked_count)
+            rate = _adherence_rate(followed_count, total, equivalent_count, social_count, unmarked_count)
             daily.append(
                 DailyAdherence(
                     date=d,

@@ -24,6 +24,7 @@ class WeeklyPlanSlotBase(BaseSchema):
     completed_at: datetime | None = None
     is_adhoc: bool = False
     is_manual_override: bool = False
+    actual_meal: MealCompact | None = None
 
 
 class WeeklyPlanSlotResponse(WeeklyPlanSlotBase):
@@ -134,9 +135,17 @@ class AddAdhocSlotRequest(BaseSchema):
 
 
 class CompleteSlotRequest(BaseSchema):
-    """Request to mark a slot as complete."""
+    """Request to mark a slot as complete.
+
+    Per ADR-012, equivalent/deviated statuses can include an actual_meal_id
+    to record what was actually eaten.
+    """
 
     status: CompletionStatus = Field(description="Completion status")
+    actual_meal_id: UUID | None = Field(
+        default=None,
+        description="ID of the meal actually eaten (for equivalent/deviated statuses)",
+    )
 
 
 class CompleteSlotResponse(BaseSchema):
@@ -145,6 +154,7 @@ class CompleteSlotResponse(BaseSchema):
     id: UUID
     completion_status: CompletionStatus | None = None
     completed_at: datetime | None = None
+    actual_meal: MealCompact | None = None
 
 
 class ReassignSlotRequest(BaseSchema):

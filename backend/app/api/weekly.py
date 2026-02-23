@@ -73,6 +73,21 @@ def build_slot_response(slot) -> WeeklyPlanSlotResponse:
             name=slot.meal_type.name,
         )
 
+    actual_meal_compact = None
+    if hasattr(slot, 'actual_meal') and slot.actual_meal:
+        actual_meal_compact = MealCompact(
+            id=slot.actual_meal.id,
+            name=slot.actual_meal.name,
+            portion_description=slot.actual_meal.portion_description,
+            calories_kcal=slot.actual_meal.calories_kcal,
+            protein_g=slot.actual_meal.protein_g,
+            carbs_g=slot.actual_meal.carbs_g,
+            sugar_g=slot.actual_meal.sugar_g,
+            fat_g=slot.actual_meal.fat_g,
+            saturated_fat_g=slot.actual_meal.saturated_fat_g,
+            fiber_g=slot.actual_meal.fiber_g,
+        )
+
     return WeeklyPlanSlotResponse(
         id=slot.id,
         position=slot.position,
@@ -82,6 +97,7 @@ def build_slot_response(slot) -> WeeklyPlanSlotResponse:
         completed_at=slot.completed_at,
         is_adhoc=slot.is_adhoc,
         is_manual_override=slot.is_manual_override,
+        actual_meal=actual_meal_compact,
     )
 
 

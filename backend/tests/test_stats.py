@@ -193,7 +193,7 @@ async def test_stats_response_structure(client: AsyncClient):
     assert "by_status" in data
 
     by_status = data["by_status"]
-    for key in ["followed", "adjusted", "skipped", "replaced", "social", "unmarked"]:
+    for key in ["followed", "equivalent", "skipped", "deviated", "social", "unmarked"]:
         assert key in by_status
 
 
@@ -211,7 +211,7 @@ async def test_stats_status_breakdown(
     await _create_slots(db, meal_type, meal, [
         {
             "date": today,
-            "slots": ["followed", "adjusted", "skipped", "replaced", "social", None],
+            "slots": ["followed", "equivalent", "skipped", "deviated", "social", None],
         },
     ])
 
@@ -225,9 +225,9 @@ async def test_stats_status_breakdown(
 
     by_status = data["by_status"]
     assert by_status["followed"] >= 1
-    assert by_status["adjusted"] >= 1
+    assert by_status["equivalent"] >= 1
     assert by_status["skipped"] >= 1
-    assert by_status["replaced"] >= 1
+    assert by_status["deviated"] >= 1
     assert by_status["social"] >= 1
     assert by_status["unmarked"] >= 1
 
@@ -236,14 +236,14 @@ async def test_stats_status_breakdown(
 async def test_stats_adherence_rate_calculation(
     client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
 ):
-    """Adherence = (followed + adjusted) / (total - social - unmarked)."""
+    """Adherence = followed / (total - equivalent - social - unmarked) per ADR-012."""
     today = date.today()
-    # 3 followed, 1 adjusted, 1 skipped, 1 social, 1 unmarked = 7 total
-    # Adherence = (3 + 1) / (7 - 1 - 1) = 4/5 = 0.8
+    # 3 followed, 1 equivalent, 1 skipped, 1 social, 1 unmarked = 7 total
+    # Adherence = 3 / (7 - 1 - 1 - 1) = 3/4 = 0.75
     await _create_slots(db, meal_type, meal, [
         {
             "date": today,
-            "slots": ["followed", "followed", "followed", "adjusted", "skipped", "social", None],
+            "slots": ["followed", "followed", "followed", "equivalent", "skipped", "social", None],
         },
     ])
 

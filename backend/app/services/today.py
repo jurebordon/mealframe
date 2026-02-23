@@ -85,6 +85,7 @@ async def get_day_plan(
         .options(
             selectinload(WeeklyPlanSlot.meal),
             selectinload(WeeklyPlanSlot.meal_type),
+            selectinload(WeeklyPlanSlot.actual_meal),
         )
         .order_by(WeeklyPlanSlot.position)
     )
@@ -212,6 +213,22 @@ def build_today_response(
                 name=slot.meal_type.name,
             )
 
+        # Build actual meal compact (for equivalent/deviated statuses)
+        actual_meal_compact = None
+        if slot.actual_meal:
+            actual_meal_compact = MealCompact(
+                id=slot.actual_meal.id,
+                name=slot.actual_meal.name,
+                portion_description=slot.actual_meal.portion_description,
+                calories_kcal=slot.actual_meal.calories_kcal,
+                protein_g=slot.actual_meal.protein_g,
+                carbs_g=slot.actual_meal.carbs_g,
+                sugar_g=slot.actual_meal.sugar_g,
+                fat_g=slot.actual_meal.fat_g,
+                saturated_fat_g=slot.actual_meal.saturated_fat_g,
+                fiber_g=slot.actual_meal.fiber_g,
+            )
+
         slot_responses.append(WeeklyPlanSlotWithNext(
             id=slot.id,
             position=slot.position,
@@ -222,6 +239,7 @@ def build_today_response(
             is_next=is_next,
             is_adhoc=slot.is_adhoc,
             is_manual_override=slot.is_manual_override,
+            actual_meal=actual_meal_compact,
         ))
 
     return TodayResponse(
@@ -272,9 +290,13 @@ async def complete_slot(
     db: AsyncSession,
     slot_id: UUID,
     status: str,
+    actual_meal_id: UUID | None = None,
 ) -> Optional[WeeklyPlanSlot]:
     """
     Mark a slot as complete with the given status.
+
+    Per ADR-012, equivalent/deviated statuses can include an actual_meal_id
+    to record what was actually eaten.
 
     Returns the updated slot, or None if slot not found.
     """
@@ -285,8 +307,12 @@ async def complete_slot(
 
     slot.completion_status = status
     slot.completed_at = datetime.now(timezone.utc)
+    slot.actual_meal_id = actual_meal_id
 
     await db.flush()
+    # Eagerly load actual_meal for the response
+    if actual_meal_id:
+        await db.refresh(slot, attribute_names=["actual_meal"])
     return slot
 
 
@@ -306,6 +332,7 @@ async def uncomplete_slot(
 
     slot.completion_status = None
     slot.completed_at = None
+    slot.actual_meal_id = None
 
     await db.flush()
     return slot

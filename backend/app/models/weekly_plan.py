@@ -72,7 +72,7 @@ class WeeklyPlanSlot(Base):
     __tablename__ = "weekly_plan_slot"
     __table_args__ = (
         CheckConstraint(
-            "completion_status IS NULL OR completion_status IN ('followed', 'adjusted', 'skipped', 'replaced', 'social')",
+            "completion_status IS NULL OR completion_status IN ('followed', 'equivalent', 'skipped', 'deviated', 'social')",
             name="ck_weekly_plan_slot_status"
         ),
         UniqueConstraint("weekly_plan_instance_id", "date", "position", name="uq_weekly_plan_slot_position"),
@@ -86,13 +86,15 @@ class WeeklyPlanSlot(Base):
     meal_id = Column(UUID(as_uuid=True), ForeignKey("meal.id", ondelete="SET NULL"))
     is_adhoc = Column(Boolean, default=False, nullable=False, server_default="false")
     is_manual_override = Column(Boolean, default=False, nullable=False, server_default="false")
-    completion_status = Column(Text)  # NULL or one of: followed, adjusted, skipped, replaced, social
+    completion_status = Column(Text)  # NULL or one of: followed, equivalent, skipped, deviated, social
     completed_at = Column(DateTime(timezone=True))
+    actual_meal_id = Column(UUID(as_uuid=True), ForeignKey("meal.id", ondelete="SET NULL"))
 
     # Relationships
     weekly_plan_instance = relationship("WeeklyPlanInstance", back_populates="slots")
     meal_type = relationship("MealType")
-    meal = relationship("Meal", back_populates="weekly_plan_slots")
+    meal = relationship("Meal", foreign_keys=[meal_id], back_populates="weekly_plan_slots")
+    actual_meal = relationship("Meal", foreign_keys=[actual_meal_id])
 
     # Create composite index for efficient querying by instance and date
     __table_args__ = (
