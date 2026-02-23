@@ -5,6 +5,69 @@
 
 ---
 
+## Session: 2026-02-23
+
+**Role**: full-stack
+**Task**: Phase 2 Wave 1 — ADR-011 (Meal Reassignment) + ADR-012 (Completion Statuses)
+**Branches**: feat/meal-reassignment, feat/completion-statuses (via worktrees, merged to main)
+
+### Summary
+- Implemented both Track A (ADR-012) and Track B (ADR-011) in parallel using git worktrees
+- **Track B (ADR-011) — Per-Slot Meal Reassignment:**
+  - Backend: Added `is_manual_override` column + migration, `PUT /slots/{id}/reassign` endpoint with meal type validation, past-date guard, round-robin preservation. 445-line test suite (9 tests)
+  - Frontend: Wired "Change meal" button in CompletionSheet, added MealPicker in reassign mode with meal type filtering, "Changed" indicator badges for manually overridden slots
+- **Track A (ADR-012) — Revised Completion Statuses:**
+  - Backend: Migration renames adjusted→equivalent, replaced→deviated. Added `actual_meal_id` FK column and `actual_meal` relationship. Updated CHECK constraint, schemas, stats service (new adherence formula: `followed / (total - equivalent - social - unmarked)`), today service, and all tests
+  - Frontend: Updated all status references across 11 component files. Deviated now uses destructive color scheme. StatusBadge, CompletionSheet, CompletionAnimation, YesterdayReview, Stats page all updated
+- Fixed migration ordering (must drop CHECK before renaming data values)
+- Fixed `Meal.weekly_plan_slots` ambiguous FK (two paths to meal table via `meal_id` and `actual_meal_id`)
+- Fixed `RoundRobinState` test using invalid `id` kwarg (model uses `meal_type_id` as PK)
+- All 165 backend tests pass, frontend builds clean
+
+### Files Changed
+**Track B (ADR-011):**
+- [backend/alembic/versions/20260223_add_is_manual_override_to_weekly_plan_slot.py](backend/alembic/versions/20260223_add_is_manual_override_to_weekly_plan_slot.py) — New migration
+- [backend/app/models/weekly_plan.py](backend/app/models/weekly_plan.py) — Added `is_manual_override` column
+- [backend/app/schemas/weekly_plan.py](backend/app/schemas/weekly_plan.py) — Added `ReassignSlotRequest`, `is_manual_override` field
+- [backend/app/services/today.py](backend/app/services/today.py) — Added `reassign_slot()` service
+- [backend/app/api/today.py](backend/app/api/today.py) — Added `PUT /slots/{id}/reassign` endpoint
+- [backend/tests/test_reassign_api.py](backend/tests/test_reassign_api.py) — New 9-test suite
+- [frontend/src/lib/types.ts](frontend/src/lib/types.ts) — Added `is_manual_override`, `ReassignSlotRequest`
+- [frontend/src/lib/api.ts](frontend/src/lib/api.ts) — Added `reassignSlot()`
+- [frontend/src/hooks/use-today.ts](frontend/src/hooks/use-today.ts) — Added `useReassignSlot()`
+- [frontend/src/components/mealframe/completion-sheet-animated.tsx](frontend/src/components/mealframe/completion-sheet-animated.tsx) — Added "Change meal" button
+- [frontend/src/components/mealframe/meal-picker.tsx](frontend/src/components/mealframe/meal-picker.tsx) — Added `mode` and `mealTypeId` props
+- [frontend/src/app/page.tsx](frontend/src/app/page.tsx) — Reassign flow + "Changed" indicators
+
+**Track A (ADR-012):**
+- [backend/alembic/versions/20260223_revise_completion_statuses.py](backend/alembic/versions/20260223_revise_completion_statuses.py) — New migration (status rename + actual_meal_id)
+- [backend/app/models/meal.py](backend/app/models/meal.py) — Added `foreign_keys` to `weekly_plan_slots` relationship
+- [backend/app/schemas/common.py](backend/app/schemas/common.py) — Updated CompletionStatus enum
+- [backend/app/schemas/stats.py](backend/app/schemas/stats.py) — Updated StatusBreakdown fields
+- [backend/app/services/stats.py](backend/app/services/stats.py) — Updated adherence formula
+- [backend/tests/test_today_api.py](backend/tests/test_today_api.py), [backend/tests/test_stats.py](backend/tests/test_stats.py) — Updated status names
+- [frontend/src/components/mealframe/status-badge.tsx](frontend/src/components/mealframe/status-badge.tsx) — New status labels/colors
+- [frontend/src/components/mealframe/completion-animation.tsx](frontend/src/components/mealframe/completion-animation.tsx) — Updated status types
+- [frontend/src/components/mealframe/yesterday-review-modal.tsx](frontend/src/components/mealframe/yesterday-review-modal.tsx) — Updated labels
+- [frontend/src/app/stats/page.tsx](frontend/src/app/stats/page.tsx) — Updated status colors/labels
+- Plus 5 more frontend components with status string updates
+
+### Decisions
+- Used git worktrees for parallel development (worktree-a, worktree-b)
+- Merged Track B first (simpler), then rebased Track A on top (fixed migration chain)
+- Skipped Week View reassignment integration for now — primary entry point is Today View completion sheet per ADR-011
+- Migration must drop CHECK constraint before UPDATEing data (learned during deployment)
+- `equivalent` status is neutral: excluded from both numerator and denominator in adherence
+
+### Blockers
+- None
+
+### Next
+- Track C: Landing page (waiting for design)
+- Wave 2: Authentication (ADR-014)
+
+---
+
 ## Session: 2026-02-20
 
 **Role**: architecture

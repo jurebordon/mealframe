@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-02-20
+**Last Updated**: 2026-02-23
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -13,18 +13,12 @@
 
 <!-- Priority ordered - top item is next -->
 
-**Phase 2 — Wave 1 (parallel tracks):**
+**Phase 2 — Wave 1 (remaining):**
 
-> ADR-011 and ADR-012 have zero overlap — different columns, endpoints, and UI components.
-> Use separate git worktrees to implement simultaneously.
+| Track | Feature | ADR | Branch | Sessions |
+|-------|---------|-----|--------|----------|
+| C | Waitlist landing page (Next.js route in this repo) | — | `feat/landing-page` | ~1 evening |
 
-| Track | Feature | ADR | Branch | Worktree | Sessions |
-|-------|---------|-----|--------|----------|----------|
-| A | Revised completion statuses (enum change, actual_meal_id, quick-add, stats) | ADR-012 | `feat/completion-statuses` | `worktree-a/` | ~3 (be+fe+stats) |
-| B | Per-slot meal reassignment (Week View + Today View) | ADR-011 | `feat/meal-reassignment` | `worktree-b/` | ~2 (be+fe) |
-| C | Waitlist landing page (Next.js route in this repo) | — | `feat/landing-page` | — | ~1 evening |
-
-Merge order: A, B, and C merge independently to main (no file overlap).
 Landing page: new route at `/landing` (or `/`) in the existing Next.js app. Served at `www.mealframe.io`, app at `app.mealframe.io`. PRD: `docs/frozen/features/Mealframe_LandingPage_PRD.md`.
 
 **Phase 2 — Wave 2 (after Wave 1 merges):**
@@ -56,6 +50,8 @@ Landing page: new route at `/landing` (or `/`) in the existing Next.js app. Serv
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Track A: Revised completion statuses — ADR-012 (backend + frontend + stats) (2026-02-23)
+- [x] Track B: Per-slot meal reassignment — ADR-011 (backend + frontend) (2026-02-23)
 - [x] ADR-011 through ADR-014 written — Phase 2 feature planning (2026-02-20)
 - [x] Fix: Card text selection on tap — added select-none to Card component (2026-02-20)
 - [x] Soft limits frontend: template editor limits, list previews, Stats over-limit card + breakdown (2026-02-18)
@@ -106,16 +102,11 @@ Landing page: new route at `/landing` (or `/`) in the existing Next.js app. Serv
 ## Dependency Graph
 
 ```
-Wave 1 (parallel):
-  ┌─ Track A: ADR-012 (Completion Statuses) ─────┐
-  │    backend → frontend → stats                 │
-  │                                               ├─→ merge to main
-  ├─ Track B: ADR-011 (Meal Reassignment) ────────┤
-  │    backend → frontend (Week + Today)          │
-  │                                               │
-  ├─ Landing Page (Next.js route) ────────────────┘
-  │    ships independently
-  │
+Wave 1:
+  ✅ Track A: ADR-012 (Completion Statuses) ── merged
+  ✅ Track B: ADR-011 (Meal Reassignment) ──── merged
+  ○  Landing Page (Next.js route) ──────────── pending
+
 Wave 2 (after Wave 1):
   └─→ ADR-014 (Auth) ──────────────────────────────┐
        users table → middleware → data migration    │
@@ -123,7 +114,7 @@ Wave 2 (after Wave 1):
                                                     │
 Wave 3 (after auth):                                │
        ADR-013 (AI Capture) ◄───────────────────────┘
-       needs: ADR-012 (deviated status)
+       needs: ADR-012 (deviated status) ✅
        needs: ADR-014 (usage metering)
 ```
 
