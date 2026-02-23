@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,6 +23,7 @@ from ..models import (
     MealType,
     Meal,
 )
+from ..models.meal_to_meal_type import meal_to_meal_type
 from ..schemas.common import WEEKDAY_NAMES
 from ..schemas.today import TodayResponse, TodayStats
 from ..schemas.weekly_plan import WeeklyPlanSlotWithNext
@@ -220,6 +221,7 @@ def build_today_response(
             completed_at=slot.completed_at,
             is_next=is_next,
             is_adhoc=slot.is_adhoc,
+            is_manual_override=slot.is_manual_override,
         ))
 
     return TodayResponse(
@@ -401,3 +403,78 @@ async def delete_adhoc_slot(
     await db.delete(slot)
     await db.flush()
     return True
+
+
+async def reassign_slot(
+    db: AsyncSession,
+    slot_id: UUID,
+    meal_id: UUID,
+    meal_type_id: UUID | None = None,
+) -> tuple[str | None, Optional[WeeklyPlanSlot]]:
+    """
+    Reassign a slot to a different meal.
+
+    Returns (error_message, slot). If error_message is not None, slot is None.
+    Does NOT advance round-robin pointer.
+    Clears completion status if slot was already completed.
+    """
+    # Get the slot with relationships loaded
+    stmt = (
+        select(WeeklyPlanSlot)
+        .where(WeeklyPlanSlot.id == slot_id)
+        .options(
+            selectinload(WeeklyPlanSlot.meal),
+            selectinload(WeeklyPlanSlot.meal_type),
+        )
+    )
+    result = await db.execute(stmt)
+    slot = result.scalar_one_or_none()
+
+    if not slot:
+        return ("NOT_FOUND", None)
+
+    # Don't allow reassigning past-date slots
+    today = date.today()
+    if slot.date < today:
+        return ("PAST_DATE", None)
+
+    # Verify meal exists
+    meal_stmt = select(Meal).where(Meal.id == meal_id)
+    meal_result = await db.execute(meal_stmt)
+    meal = meal_result.scalar_one_or_none()
+
+    if not meal:
+        return ("MEAL_NOT_FOUND", None)
+
+    # Determine target meal type
+    target_meal_type_id = meal_type_id if meal_type_id is not None else slot.meal_type_id
+
+    # Verify meal belongs to target meal type (if a meal type is set)
+    if target_meal_type_id is not None:
+        assoc_stmt = select(meal_to_meal_type).where(
+            and_(
+                meal_to_meal_type.c.meal_id == meal_id,
+                meal_to_meal_type.c.meal_type_id == target_meal_type_id,
+            )
+        )
+        assoc_result = await db.execute(assoc_stmt)
+        if not assoc_result.first():
+            return ("MEAL_TYPE_MISMATCH", None)
+
+    # Apply the reassignment
+    slot.meal_id = meal_id
+    if meal_type_id is not None:
+        slot.meal_type_id = meal_type_id
+    slot.is_manual_override = True
+
+    # Clear completion if already completed (new meal = fresh tracking)
+    if slot.completion_status is not None:
+        slot.completion_status = None
+        slot.completed_at = None
+
+    await db.flush()
+
+    # Refresh relationships for response
+    await db.refresh(slot, attribute_names=["meal", "meal_type"])
+
+    return (None, slot)

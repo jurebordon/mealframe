@@ -8,6 +8,7 @@ These are the primary endpoints for the Today View:
 - POST /slots/{slot_id}/complete - Mark slot complete with status
 - DELETE /slots/{slot_id}/complete - Undo completion
 - DELETE /slots/{slot_id} - Remove an ad-hoc slot
+- PUT /slots/{slot_id}/reassign - Reassign a slot's meal (ADR-011)
 
 See Tech Spec section 4.3 for full specification.
 """
@@ -22,7 +23,7 @@ from ..schemas.common import ErrorCode
 from ..schemas.meal import MealCompact
 from ..schemas.meal_type import MealTypeCompact
 from ..schemas.today import TodayResponse
-from ..schemas.weekly_plan import AddAdhocSlotRequest, CompleteSlotRequest, CompleteSlotResponse, WeeklyPlanSlotWithNext
+from ..schemas.weekly_plan import AddAdhocSlotRequest, CompleteSlotRequest, CompleteSlotResponse, ReassignSlotRequest, WeeklyPlanSlotWithNext
 from ..services.today import (
     get_today_response,
     complete_slot,
@@ -30,6 +31,7 @@ from ..services.today import (
     get_slot_by_id,
     create_adhoc_slot,
     delete_adhoc_slot,
+    reassign_slot,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["Daily Use"])
@@ -126,6 +128,7 @@ async def add_adhoc_slot(
         completed_at=slot.completed_at,
         is_next=False,
         is_adhoc=slot.is_adhoc,
+        is_manual_override=slot.is_manual_override,
     )
 
 
@@ -242,3 +245,106 @@ async def delete_meal_slot(
                 }
             },
         )
+
+
+@router.put(
+    "/slots/{slot_id}/reassign",
+    response_model=WeeklyPlanSlotWithNext,
+    status_code=status.HTTP_200_OK,
+)
+async def reassign_meal_slot(
+    slot_id: UUID,
+    request: ReassignSlotRequest,
+    db: AsyncSession = Depends(get_db),
+) -> WeeklyPlanSlotWithNext:
+    """
+    Reassign a slot to a different meal (ADR-011).
+
+    Allows per-slot meal changes without switching the entire day template.
+    Does NOT advance the round-robin pointer.
+    Clears completion status if the slot was already completed.
+
+    Optionally change the slot's meal type by providing meal_type_id.
+    """
+    error, slot = await reassign_slot(
+        db, slot_id, request.meal_id, request.meal_type_id
+    )
+
+    if error == "NOT_FOUND":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": {
+                    "code": ErrorCode.NOT_FOUND,
+                    "message": f"Slot with id {slot_id} not found",
+                }
+            },
+        )
+
+    if error == "PAST_DATE":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": ErrorCode.VALIDATION_ERROR,
+                    "message": "Cannot reassign slots from past dates",
+                }
+            },
+        )
+
+    if error == "MEAL_NOT_FOUND":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": {
+                    "code": ErrorCode.NOT_FOUND,
+                    "message": f"Meal with id {request.meal_id} not found",
+                }
+            },
+        )
+
+    if error == "MEAL_TYPE_MISMATCH":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": ErrorCode.VALIDATION_ERROR,
+                    "message": "Meal does not belong to the specified meal type",
+                }
+            },
+        )
+
+    # Build response
+    meal_compact = None
+    if slot.meal:
+        meal_compact = MealCompact(
+            id=slot.meal.id,
+            name=slot.meal.name,
+            portion_description=slot.meal.portion_description,
+            calories_kcal=slot.meal.calories_kcal,
+            protein_g=slot.meal.protein_g,
+            carbs_g=slot.meal.carbs_g,
+            sugar_g=slot.meal.sugar_g,
+            fat_g=slot.meal.fat_g,
+            saturated_fat_g=slot.meal.saturated_fat_g,
+            fiber_g=slot.meal.fiber_g,
+        )
+
+    meal_type_compact = None
+    if slot.meal_type:
+        meal_type_compact = MealTypeCompact(
+            id=slot.meal_type.id,
+            name=slot.meal_type.name,
+        )
+
+    return WeeklyPlanSlotWithNext(
+        id=slot.id,
+        position=slot.position,
+        meal_type=meal_type_compact,
+        meal=meal_compact,
+        completion_status=slot.completion_status,
+        completed_at=slot.completed_at,
+        is_next=False,
+        is_adhoc=slot.is_adhoc,
+        is_manual_override=slot.is_manual_override,
+    )

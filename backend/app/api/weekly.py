@@ -81,6 +81,7 @@ def build_slot_response(slot) -> WeeklyPlanSlotResponse:
         completion_status=slot.completion_status,
         completed_at=slot.completed_at,
         is_adhoc=slot.is_adhoc,
+        is_manual_override=slot.is_manual_override,
     )
 
 
