@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getToday, completeSlot, uncompleteSlot, addAdhocSlot, deleteAdhocSlot } from '@/lib/api'
+import { getToday, completeSlot, uncompleteSlot, addAdhocSlot, deleteAdhocSlot, reassignSlot } from '@/lib/api'
 import { enqueueComplete, enqueueUncomplete, flushQueue } from '@/lib/offline-queue'
 import { useOnlineStatus } from '@/hooks/use-online-status'
 import type { TodayResponse, CompletionStatus } from '@/lib/types'
@@ -217,6 +217,19 @@ export function useDeleteAdhocSlot() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['today'] })
+    },
+  })
+}
+
+export function useReassignSlot() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ slotId, mealId, mealTypeId }: { slotId: string; mealId: string; mealTypeId?: string }) =>
+      reassignSlot(slotId, { meal_id: mealId, meal_type_id: mealTypeId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['today'] })
+      queryClient.invalidateQueries({ queryKey: ['week'] })
     },
   })
 }

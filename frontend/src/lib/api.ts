@@ -9,6 +9,7 @@ import type {
   TodayResponse,
   YesterdayReviewResponse,
   AddAdhocSlotRequest,
+  ReassignSlotRequest,
   WeeklyPlanSlotWithNext,
   CompleteSlotRequest,
   CompleteSlotResponse,
@@ -154,6 +155,20 @@ export async function addAdhocSlot(request: AddAdhocSlotRequest): Promise<Weekly
 export async function deleteAdhocSlot(slotId: string): Promise<void> {
   return fetchApi<void>(`/slots/${slotId}`, {
     method: 'DELETE',
+  })
+}
+
+/**
+ * Reassign a slot to a different meal (ADR-011).
+ * Does not advance round-robin. Clears completion if already completed.
+ */
+export async function reassignSlot(
+  slotId: string,
+  request: ReassignSlotRequest
+): Promise<WeeklyPlanSlotWithNext> {
+  return fetchApi<WeeklyPlanSlotWithNext>(`/slots/${slotId}/reassign`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
   })
 }
 
@@ -505,6 +520,7 @@ export const api = {
   uncompleteSlot,
   addAdhocSlot,
   deleteAdhocSlot,
+  reassignSlot,
 
   // Weekly
   getWeek,

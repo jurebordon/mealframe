@@ -249,6 +249,7 @@ export interface WeeklyPlanSlotBase {
   completion_status: CompletionStatus | null
   completed_at: string | null
   is_adhoc: boolean
+  is_manual_override: boolean
 }
 
 export interface WeeklyPlanSlotWithNext extends WeeklyPlanSlotBase {
@@ -332,6 +333,11 @@ export interface SwitchTemplateRequest {
 
 export interface SetOverrideRequest {
   reason?: string | null
+}
+
+export interface ReassignSlotRequest {
+  meal_id: string
+  meal_type_id?: string | null
 }
 
 export interface OverrideResponse {

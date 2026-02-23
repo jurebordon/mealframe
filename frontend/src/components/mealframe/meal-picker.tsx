@@ -11,11 +11,15 @@ interface MealPickerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelectMeal: (meal: MealListItem) => void
+  /** "add-adhoc" (default) for adding meals, "reassign" for swapping a slot's meal */
+  mode?: 'add-adhoc' | 'reassign'
+  /** When in reassign mode, filter meals to this meal type */
+  mealTypeId?: string | null
 }
 
-export function MealPicker({ open, onOpenChange, onSelectMeal }: MealPickerProps) {
+export function MealPicker({ open, onOpenChange, onSelectMeal, mode = 'add-adhoc', mealTypeId }: MealPickerProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const { data, isLoading } = useMeals({ pageSize: 200 })
+  const { data, isLoading } = useMeals({ pageSize: 200, mealTypeId: mealTypeId ?? undefined })
 
   const meals = data?.items ?? []
 
@@ -36,6 +40,8 @@ export function MealPicker({ open, onOpenChange, onSelectMeal }: MealPickerProps
     setSearchQuery('')
     onOpenChange(false)
   }
+
+  const title = mode === 'reassign' ? 'Change meal' : 'Add a meal'
 
   return (
     <AnimatePresence>
@@ -70,7 +76,7 @@ export function MealPicker({ open, onOpenChange, onSelectMeal }: MealPickerProps
             <div className="border-b border-border px-6 py-4">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <h2 id="meal-picker-title" className="text-balance text-lg font-semibold text-foreground">
-                  Add a meal
+                  {title}
                 </h2>
                 <button
                   onClick={() => onOpenChange(false)}

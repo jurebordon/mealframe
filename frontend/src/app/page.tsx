@@ -10,8 +10,8 @@ import { YesterdayReviewModal } from '@/components/mealframe/yesterday-review-mo
 import { MealPicker } from '@/components/mealframe/meal-picker'
 import { Toast } from '@/components/mealframe/toast'
 import { Button } from '@/components/ui/button'
-import { Loader2, RefreshCw, Calendar, Plus } from 'lucide-react'
-import { useToday, useCompleteSlot, useUncompleteSlot, useOfflineSync, useAddAdhocSlot, useDeleteAdhocSlot } from '@/hooks/use-today'
+import { Loader2, RefreshCw, Calendar, Plus, ArrowLeftRight } from 'lucide-react'
+import { useToday, useCompleteSlot, useUncompleteSlot, useOfflineSync, useAddAdhocSlot, useDeleteAdhocSlot, useReassignSlot } from '@/hooks/use-today'
 import { useYesterdayReview, useCompleteYesterdaySlot } from '@/hooks/use-yesterday-review'
 import type { CompletionStatus, WeeklyPlanSlotWithNext, MealListItem } from '@/lib/types'
 import Link from 'next/link'
@@ -22,6 +22,7 @@ export default function TodayView() {
   const uncompleteSlotMutation = useUncompleteSlot()
   const addAdhocSlotMutation = useAddAdhocSlot()
   const deleteAdhocSlotMutation = useDeleteAdhocSlot()
+  const reassignSlotMutation = useReassignSlot()
   useOfflineSync()
 
   // Yesterday review
@@ -42,6 +43,8 @@ export default function TodayView() {
   const [toastMessage, setToastMessage] = useState('')
   const [lastCompletedSlotId, setLastCompletedSlotId] = useState<string | null>(null)
   const [showMealPicker, setShowMealPicker] = useState(false)
+  const [showReassignPicker, setShowReassignPicker] = useState(false)
+  const [reassignSlot, setReassignSlot] = useState<WeeklyPlanSlotWithNext | null>(null)
 
   const handleMarkComplete = useCallback((slot: WeeklyPlanSlotWithNext) => {
     setSelectedSlot(slot)
@@ -115,6 +118,26 @@ export default function TodayView() {
       },
     })
   }, [selectedSlot, deleteAdhocSlotMutation])
+
+  const handleReassignStart = useCallback((slot: WeeklyPlanSlotWithNext) => {
+    setShowCompletionSheet(false)
+    setReassignSlot(slot)
+    setShowReassignPicker(true)
+  }, [])
+
+  const handleReassignMeal = useCallback((meal: MealListItem) => {
+    if (!reassignSlot) return
+    reassignSlotMutation.mutate(
+      { slotId: reassignSlot.id, mealId: meal.id },
+      {
+        onSuccess: () => {
+          setToastMessage(`Changed to ${meal.name}`)
+          setShowToast(true)
+        },
+      }
+    )
+    setReassignSlot(null)
+  }, [reassignSlot, reassignSlotMutation])
 
   // Loading state
   if (isLoading) {
@@ -274,6 +297,12 @@ export default function TodayView() {
                   Added
                 </span>
               )}
+              {nextSlot.is_manual_override && !nextSlot.is_adhoc && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <ArrowLeftRight className="h-3 w-3" />
+                  Changed
+                </span>
+              )}
             </div>
 
             <div className="relative">
@@ -365,6 +394,12 @@ export default function TodayView() {
                         Added
                       </span>
                     )}
+                    {slot.is_manual_override && !slot.is_adhoc && (
+                      <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <ArrowLeftRight className="h-3 w-3" />
+                        Changed
+                      </span>
+                    )}
                   </div>
                 )
               })}
@@ -401,13 +436,23 @@ export default function TodayView() {
         currentStatus={selectedSlot?.completion_status}
         isAdHoc={selectedSlot?.is_adhoc}
         onRemove={selectedSlot?.is_adhoc ? handleRemoveAdhocSlot : undefined}
+        onReassign={selectedSlot?.meal ? () => handleReassignStart(selectedSlot) : undefined}
       />
 
-      {/* Meal Picker Sheet */}
+      {/* Meal Picker Sheet (Add Adhoc) */}
       <MealPicker
         open={showMealPicker}
         onOpenChange={setShowMealPicker}
         onSelectMeal={handleAddAdhocMeal}
+      />
+
+      {/* Meal Picker Sheet (Reassign) */}
+      <MealPicker
+        open={showReassignPicker}
+        onOpenChange={setShowReassignPicker}
+        onSelectMeal={handleReassignMeal}
+        mode="reassign"
+        mealTypeId={reassignSlot?.meal_type?.id}
       />
 
       {/* Completion Animation */}

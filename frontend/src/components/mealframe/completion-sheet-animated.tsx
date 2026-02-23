@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X, ArrowLeftRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CompletionStatus } from './status-badge'
 
@@ -22,6 +22,8 @@ interface CompletionSheetAnimatedProps {
   isAdHoc?: boolean
   /** Called when user removes an ad-hoc meal */
   onRemove?: () => void
+  /** Called when user wants to change the assigned meal */
+  onReassign?: () => void
 }
 
 const statusOptions: Array<{
@@ -140,6 +142,7 @@ export function CompletionSheetAnimated({
   currentStatus,
   isAdHoc,
   onRemove,
+  onReassign,
 }: CompletionSheetAnimatedProps) {
   const [selectedStatus, setSelectedStatus] = useState<SelectableCompletionStatus | null>(null)
   const isEditing = currentStatus != null
@@ -287,6 +290,28 @@ export function CompletionSheetAnimated({
                   )
                 })}
               </div>
+
+              {/* Change Meal Button */}
+              {onReassign && (
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: statusOptions.length * 0.05 }}
+                  onClick={() => {
+                    onReassign()
+                  }}
+                  disabled={selectedStatus !== null}
+                  aria-label="Change the assigned meal"
+                  className={cn(
+                    'mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 p-3 text-sm font-medium text-primary transition-all hover:bg-primary/10 active:scale-95',
+                    selectedStatus && 'opacity-40'
+                  )}
+                  type="button"
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                  Change meal
+                </motion.button>
+              )}
 
               {/* Clear Status Button — only when editing */}
               {isEditing && onClear && (
