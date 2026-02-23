@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-export type CompletionStatus = 'followed' | 'adjusted' | 'skipped' | 'replaced' | 'social' | 'pending'
+export type CompletionStatus = 'followed' | 'equivalent' | 'skipped' | 'deviated' | 'social' | 'pending'
 
 interface StatusBadgeProps {
   status: CompletionStatus
@@ -26,8 +26,8 @@ const statusConfig = {
       </svg>
     ),
   },
-  adjusted: {
-    label: 'Adjusted',
+  equivalent: {
+    label: 'Equivalent',
     className: 'bg-warning/10 text-warning border-warning/20',
     icon: (
       <svg
@@ -55,9 +55,9 @@ const statusConfig = {
       </svg>
     ),
   },
-  replaced: {
-    label: 'Replaced',
-    className: 'bg-muted text-muted-foreground border-border',
+  deviated: {
+    label: 'Deviated',
+    className: 'bg-destructive/10 text-destructive border-destructive/20',
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"

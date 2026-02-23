@@ -48,8 +48,8 @@ const statusOptions: Array<{
     ),
   },
   {
-    status: 'adjusted',
-    label: 'Adjusted',
+    status: 'equivalent',
+    label: 'Equivalent',
     description: 'Similar but different portion',
     color: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
     icon: (
@@ -80,8 +80,8 @@ const statusOptions: Array<{
     ),
   },
   {
-    status: 'replaced',
-    label: 'Replaced',
+    status: 'deviated',
+    label: 'Deviated',
     description: 'Ate something completely different',
     color: 'bg-muted text-muted-foreground border-border hover:bg-muted/80',
     icon: (

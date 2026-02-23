@@ -56,9 +56,9 @@ const statusOptions: Array<{
     ),
   },
   {
-    status: 'adjusted',
-    label: 'Adjusted',
-    description: 'Similar but different portion',
+    status: 'equivalent',
+    label: 'Equivalent',
+    description: 'Changed for something comparable',
     color: 'bg-warning/10 text-warning border-warning/30 hover:bg-warning/20',
     icon: (
       <svg
@@ -96,10 +96,10 @@ const statusOptions: Array<{
     ),
   },
   {
-    status: 'replaced',
-    label: 'Replaced',
-    description: 'Ate something else',
-    color: 'bg-muted text-muted-foreground border-border hover:bg-muted/80',
+    status: 'deviated',
+    label: 'Deviated',
+    description: 'Ate something off-plan',
+    color: 'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20',
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"

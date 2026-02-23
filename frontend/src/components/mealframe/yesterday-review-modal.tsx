@@ -31,9 +31,9 @@ const statusOptions: Array<{
     color: 'bg-success/10 text-success border-success/30 hover:bg-success/20',
   },
   {
-    status: 'adjusted',
-    label: 'Adjusted',
-    shortLabel: 'Adjusted',
+    status: 'equivalent',
+    label: 'Equivalent',
+    shortLabel: 'Equiv.',
     color: 'bg-warning/10 text-warning border-warning/30 hover:bg-warning/20',
   },
   {
@@ -43,10 +43,10 @@ const statusOptions: Array<{
     color: 'bg-muted text-muted-foreground border-border hover:bg-muted/80',
   },
   {
-    status: 'replaced',
-    label: 'Replaced',
-    shortLabel: 'Replaced',
-    color: 'bg-muted text-muted-foreground border-border hover:bg-muted/80',
+    status: 'deviated',
+    label: 'Deviated',
+    shortLabel: 'Deviated',
+    color: 'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20',
   },
   {
     status: 'social',

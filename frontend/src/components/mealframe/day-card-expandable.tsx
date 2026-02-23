@@ -12,7 +12,7 @@ export interface Meal {
   time: string
   portion: string
   status: 'pending' | 'completed'
-  completionType?: 'followed' | 'adjusted' | 'skipped' | 'replaced' | 'social'
+  completionType?: 'followed' | 'equivalent' | 'skipped' | 'deviated' | 'social'
   macros: {
     calories: number
     protein: number

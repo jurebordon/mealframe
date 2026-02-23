@@ -18,7 +18,7 @@ interface YesterdayReviewProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   unmarkedMeals: UnmarkedMeal[]
-  onMealComplete: (mealId: string, status: 'followed' | 'skipped' | 'adjusted' | 'replaced' | 'social') => void
+  onMealComplete: (mealId: string, status: 'followed' | 'skipped' | 'equivalent' | 'deviated' | 'social') => void
   onDismiss: () => void
 }
 
@@ -68,7 +68,7 @@ export function YesterdayReview({
     setShowCompletionSheet(true)
   }
 
-  const handleCompletionSelect = (status: 'followed' | 'adjusted' | 'skipped' | 'replaced' | 'social') => {
+  const handleCompletionSelect = (status: 'followed' | 'equivalent' | 'skipped' | 'deviated' | 'social') => {
     if (selectedMealId) {
       setCompletingMealId(selectedMealId)
       setShowCompletionSheet(false)

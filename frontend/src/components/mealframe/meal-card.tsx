@@ -18,7 +18,7 @@ interface MealCardProps {
   saturatedFat?: number
   fiber?: number
   status?: MealCardStatus
-  completionStatus?: 'followed' | 'adjusted' | 'skipped' | 'replaced' | 'social'
+  completionStatus?: 'followed' | 'equivalent' | 'skipped' | 'deviated' | 'social'
   className?: string
   onClick?: () => void
 }
@@ -106,7 +106,7 @@ export function MealCard({
                 </svg>
               </div>
             )}
-            {completionStatus === 'adjusted' && (
+            {completionStatus === 'equivalent' && (
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-warning text-warning-foreground">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -118,7 +118,7 @@ export function MealCard({
                 </svg>
               </div>
             )}
-            {(completionStatus === 'skipped' || completionStatus === 'replaced') && (
+            {(completionStatus === 'skipped' || completionStatus === 'deviated') && (
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

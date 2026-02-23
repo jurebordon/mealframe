@@ -23,9 +23,9 @@ type TimePeriod = 7 | 30 | 90
 
 const STATUS_COLORS: Record<string, string> = {
   Followed: 'oklch(0.68 0.13 150)',
-  Adjusted: 'oklch(0.68 0.14 55)',
+  Equivalent: 'oklch(0.68 0.14 55)',
   Skipped: 'oklch(0.28 0.02 45)',
-  Replaced: 'oklch(0.62 0.01 60)',
+  Deviated: 'oklch(0.55 0.15 25)',
   Social: 'oklch(0.72 0.16 70)',
 }
 
@@ -59,9 +59,9 @@ export default function StatsPage() {
   const completionData = stats
     ? [
         { name: 'Followed', value: stats.by_status.followed, color: STATUS_COLORS.Followed },
-        { name: 'Adjusted', value: stats.by_status.adjusted, color: STATUS_COLORS.Adjusted },
+        { name: 'Equivalent', value: stats.by_status.equivalent, color: STATUS_COLORS.Equivalent },
         { name: 'Skipped', value: stats.by_status.skipped, color: STATUS_COLORS.Skipped },
-        { name: 'Replaced', value: stats.by_status.replaced, color: STATUS_COLORS.Replaced },
+        { name: 'Deviated', value: stats.by_status.deviated, color: STATUS_COLORS.Deviated },
         { name: 'Social', value: stats.by_status.social, color: STATUS_COLORS.Social },
       ].filter((d) => d.value > 0)
     : []

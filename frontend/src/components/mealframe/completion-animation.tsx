@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 interface CompletionAnimationProps {
   show: boolean
-  type: 'followed' | 'adjusted' | 'skipped' | 'replaced' | 'social'
+  type: 'followed' | 'equivalent' | 'skipped' | 'deviated' | 'social'
 }
 
 export function CompletionAnimation({ show, type }: CompletionAnimationProps) {
@@ -43,7 +43,7 @@ export function CompletionAnimation({ show, type }: CompletionAnimationProps) {
             className={`flex h-24 w-24 items-center justify-center rounded-full ${
               isCelebration
                 ? 'bg-success/20 text-success'
-                : type === 'adjusted'
+                : type === 'equivalent'
                   ? 'bg-warning/20 text-warning'
                   : 'bg-muted text-muted-foreground'
             }`}
@@ -66,7 +66,7 @@ export function CompletionAnimation({ show, type }: CompletionAnimationProps) {
               </motion.svg>
             )}
 
-            {type === 'adjusted' && (
+            {type === 'equivalent' && (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
@@ -96,7 +96,7 @@ export function CompletionAnimation({ show, type }: CompletionAnimationProps) {
               </svg>
             )}
 
-            {type === 'replaced' && (
+            {type === 'deviated' && (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"

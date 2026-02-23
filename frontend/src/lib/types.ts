@@ -7,7 +7,7 @@
 // Common Types
 // ============================================================================
 
-export type CompletionStatus = 'followed' | 'adjusted' | 'skipped' | 'replaced' | 'social'
+export type CompletionStatus = 'followed' | 'equivalent' | 'skipped' | 'deviated' | 'social'
 
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
@@ -250,6 +250,7 @@ export interface WeeklyPlanSlotBase {
   completed_at: string | null
   is_adhoc: boolean
   is_manual_override: boolean
+  actual_meal: MealCompact | null
 }
 
 export interface WeeklyPlanSlotWithNext extends WeeklyPlanSlotBase {
@@ -315,12 +316,14 @@ export interface YesterdayReviewResponse {
 
 export interface CompleteSlotRequest {
   status: CompletionStatus
+  actual_meal_id?: string | null
 }
 
 export interface CompleteSlotResponse {
   id: string
   completion_status: CompletionStatus | null
   completed_at: string | null
+  actual_meal: MealCompact | null
 }
 
 export interface WeeklyPlanGenerateRequest {
@@ -380,9 +383,9 @@ export interface MealImportResult {
 
 export interface StatusBreakdown {
   followed: number
-  adjusted: number
+  equivalent: number
   skipped: number
-  replaced: number
+  deviated: number
   social: number
   unmarked: number
 }
