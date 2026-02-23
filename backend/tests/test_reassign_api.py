@@ -401,7 +401,6 @@ class TestReassignSlot:
         """Round-robin state should NOT be advanced by reassignment."""
         # Set up round-robin state
         rr_state = RoundRobinState(
-            id=uuid4(),
             meal_type_id=meal_type_a.id,
             last_meal_id=today_slot.meal_id,
         )
