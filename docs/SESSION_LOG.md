@@ -5,6 +5,39 @@
 
 ---
 
+## Session: 2026-02-24
+
+**Role**: frontend
+**Task**: Fix MealPicker bugs — empty state, iOS keyboard, sheet resizing
+**Branch**: fix/meal-picker-bugs
+
+### Summary
+- Fixed MealPicker showing "No meals available" in both add-adhoc and reassign modes
+- Root cause: `pageSize: 200` exceeded backend's `page_size` max of 100, causing a silent 422 validation error. TanStack Query entered error state, `data` was `undefined`, rendered as empty list
+- Fixed iOS keyboard pushing the bottom sheet off-screen by replacing `autoFocus` with delayed focus (400ms post-animation) and using `dvh` units
+- Fixed sheet resizing as search results reduced — changed from `max-h` to fixed `h-[85dvh]`
+- Added `enabled: open` to `useMeals` so query only fires when picker is visible
+- Added `isFetching` check alongside `isLoading` to show spinner during query key transitions
+
+### Files Changed
+- [frontend/src/components/mealframe/meal-picker.tsx](frontend/src/components/mealframe/meal-picker.tsx) — pageSize fix, delayed focus, dvh units, flexbox layout, fixed height
+- [frontend/src/hooks/use-meals.ts](frontend/src/hooks/use-meals.ts) — Added `enabled` parameter
+
+### Decisions
+- Used `h-[85dvh]` (fixed) instead of `max-h` so the sheet doesn't shrink when filtering reduces results
+- Deferred search input focus by 400ms to let the sheet animation complete before triggering keyboard
+- Kept `pageSize: 100` (backend max) — sufficient since library has ~31 meals
+
+### Blockers
+- None
+
+### Next
+- Track C: Landing page (Next.js route)
+- Wave 2: Authentication (ADR-014)
+- iOS testing of keyboard behavior on real device (verified on desktop only this session)
+
+---
+
 ## Session: 2026-02-23
 
 **Role**: full-stack

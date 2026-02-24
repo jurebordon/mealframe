@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-02-23
+**Last Updated**: 2026-02-24
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -50,6 +50,7 @@ Landing page: new route at `/landing` (or `/`) in the existing Next.js app. Serv
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Fix: MealPicker empty state (page_size 422), iOS keyboard overlap, sheet resizing (2026-02-24)
 - [x] Track A: Revised completion statuses — ADR-012 (backend + frontend + stats) (2026-02-23)
 - [x] Track B: Per-slot meal reassignment — ADR-011 (backend + frontend) (2026-02-23)
 - [x] ADR-011 through ADR-014 written — Phase 2 feature planning (2026-02-20)
