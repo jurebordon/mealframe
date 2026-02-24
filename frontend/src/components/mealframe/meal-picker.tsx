@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,9 +19,25 @@ interface MealPickerProps {
 
 export function MealPicker({ open, onOpenChange, onSelectMeal, mode = 'add-adhoc', mealTypeId }: MealPickerProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const { data, isLoading } = useMeals({ pageSize: 200, mealTypeId: mealTypeId ?? undefined })
+  const searchRef = useRef<HTMLInputElement>(null)
+  const { data, isLoading, isFetching } = useMeals({
+    pageSize: 100,
+    mealTypeId: mealTypeId ?? undefined,
+    enabled: open,
+  })
 
   const meals = data?.items ?? []
+
+  // Focus search input after sheet animation completes (avoids iOS keyboard
+  // pushing the sheet off-screen when it opens simultaneously with animation)
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        searchRef.current?.focus()
+      }, 400)
+      return () => clearTimeout(timer)
+    }
+  }, [open])
 
   const filteredMeals = useMemo(() => {
     if (!searchQuery.trim()) return meals
@@ -42,6 +58,7 @@ export function MealPicker({ open, onOpenChange, onSelectMeal, mode = 'add-adhoc
   }
 
   const title = mode === 'reassign' ? 'Change meal' : 'Add a meal'
+  const showLoading = isLoading || isFetching
 
   return (
     <AnimatePresence>
@@ -56,24 +73,24 @@ export function MealPicker({ open, onOpenChange, onSelectMeal, mode = 'add-adhoc
             onClick={() => onOpenChange(false)}
           />
 
-          {/* Sheet */}
+          {/* Sheet — use dvh for dynamic viewport (accounts for iOS keyboard) */}
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[480px] rounded-t-3xl border-t border-border bg-card pb-safe shadow-2xl"
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto flex h-[85dvh] max-w-[480px] flex-col rounded-t-3xl border-t border-border bg-card pb-safe shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-labelledby="meal-picker-title"
           >
             {/* Drag Handle */}
-            <div className="flex justify-center pt-3 pb-2">
+            <div className="flex shrink-0 justify-center pt-3 pb-2">
               <div className="h-1 w-12 rounded-full bg-muted" aria-hidden="true" />
             </div>
 
             {/* Header */}
-            <div className="border-b border-border px-6 py-4">
+            <div className="shrink-0 border-b border-border px-6 py-4">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <h2 id="meal-picker-title" className="text-balance text-lg font-semibold text-foreground">
                   {title}
@@ -92,19 +109,19 @@ export function MealPicker({ open, onOpenChange, onSelectMeal, mode = 'add-adhoc
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  ref={searchRef}
                   type="text"
                   placeholder="Search meals..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  autoFocus
                 />
               </div>
             </div>
 
             {/* Meal List */}
-            <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
-              {isLoading ? (
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              {showLoading ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   <p className="mt-3 text-sm text-muted-foreground">Loading meals...</p>
