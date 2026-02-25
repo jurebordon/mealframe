@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 type FormState = 'idle' | 'loading' | 'success' | 'error'
 
 const LS_KEY = 'mf_waitlist_submitted'
+const SYNC_EVENT = 'mf_waitlist_success'
 
 interface WaitlistFormProps {
   size?: 'default' | 'large'
@@ -19,7 +20,8 @@ export function WaitlistForm({ size = 'default', id }: WaitlistFormProps) {
   const inputId = `${id}-email`
   const isLarge = size === 'large'
 
-  // Hydrate success state from localStorage on mount
+  // Hydrate success state from localStorage on mount,
+  // and listen for success from other form instances on the same page
   useEffect(() => {
     try {
       if (localStorage.getItem(LS_KEY) === 'true') {
@@ -28,6 +30,10 @@ export function WaitlistForm({ size = 'default', id }: WaitlistFormProps) {
     } catch {
       // localStorage unavailable (SSR / private browsing) — ignore
     }
+
+    const onSync = () => setState('success')
+    window.addEventListener(SYNC_EVENT, onSync)
+    return () => window.removeEventListener(SYNC_EVENT, onSync)
   }, [])
 
   const isValidEmail = (value: string) =>
@@ -58,6 +64,7 @@ export function WaitlistForm({ size = 'default', id }: WaitlistFormProps) {
       try { localStorage.setItem(LS_KEY, 'true') } catch { /* ignore */ }
       setState('success')
       setEmail('')
+      window.dispatchEvent(new Event(SYNC_EVENT))
     } catch {
       setErrorMessage(
         'Submission failed. Try again or email hello@mealframe.app'
