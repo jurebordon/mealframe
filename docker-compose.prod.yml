@@ -25,6 +25,8 @@ services:
       target: prod
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+        NEXT_PUBLIC_GOOGLE_SCRIPT_URL: ${NEXT_PUBLIC_GOOGLE_SCRIPT_URL:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://www.mealframe.io}
     restart: unless-stopped
     ports: !reset []
     volumes: !reset []
