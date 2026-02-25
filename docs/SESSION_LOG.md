@@ -5,6 +5,34 @@
 
 ---
 
+## Session: 2026-02-25 (b)
+
+**Role**: frontend
+**Task**: Privacy policy page for waitlist landing
+**Branch**: feat/privacy-policy
+
+### Summary
+- Created standard privacy policy page at `/privacy` covering: email collection (waitlist), self-hosted pageview analytics, localStorage usage, cookies (none), third parties (Google Sheets), data retention, user rights, contact info
+- Added "Privacy" link to waitlist page footer with amber hover state
+- Page uses same dark design tokens as waitlist page, inherits Geist font from `(landing)` layout
+
+### Files Changed
+- [frontend/src/app/(landing)/privacy/page.tsx](frontend/src/app/(landing)/privacy/page.tsx) — New: privacy policy page
+- [frontend/src/app/(landing)/waitlist/page.tsx](frontend/src/app/(landing)/waitlist/page.tsx) — Added Privacy link to footer
+
+### Decisions
+- Used `hello@mealframe.io` as the contact email for data requests
+- Set 12-month retention for pageview data
+- Page is a static client component (no API calls needed)
+
+### Blockers
+- None
+
+### Next
+- Phase 2 Wave 2: Authentication & multi-user (ADR-014)
+
+---
+
 ## Session: 2026-02-25
 
 **Role**: full-stack

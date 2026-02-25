@@ -389,9 +389,17 @@ export default function WaitlistPage() {
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: c.textMuted }}>
           MealFrame
         </span>
-        <p style={{ fontSize: 12, color: c.textMuted }}>
-          &copy; {new Date().getFullYear()}
-        </p>
+        <div className="flex items-center gap-4" style={{ fontSize: 12, color: c.textMuted }}>
+          <a
+            href="/privacy"
+            style={{ textDecoration: 'underline', textUnderlineOffset: '3px' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = c.amber }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = c.textMuted }}
+          >
+            Privacy
+          </a>
+          <span>&copy; {new Date().getFullYear()}</span>
+        </div>
       </footer>
     </div>
   )

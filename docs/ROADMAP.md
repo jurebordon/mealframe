@@ -42,6 +42,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Privacy policy page for waitlist landing (2026-02-25)
 - [x] Track C: Waitlist landing page + self-hosted pageview analytics (2026-02-25)
 - [x] Fix: MealPicker empty state (page_size 422), iOS keyboard overlap, sheet resizing (2026-02-24)
 - [x] Track A: Revised completion statuses — ADR-012 (backend + frontend + stats) (2026-02-23)
