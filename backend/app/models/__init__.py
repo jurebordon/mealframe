@@ -9,6 +9,7 @@ from .week_plan import WeekPlan, WeekPlanDay
 from .weekly_plan import WeeklyPlanInstance, WeeklyPlanInstanceDay, WeeklyPlanSlot
 from .round_robin import RoundRobinState
 from .app_config import AppConfig
+from .landing_pageview import LandingPageview
 
 __all__ = [
     "MealType",
@@ -23,4 +24,5 @@ __all__ = [
     "WeeklyPlanSlot",
     "RoundRobinState",
     "AppConfig",
+    "LandingPageview",
 ]

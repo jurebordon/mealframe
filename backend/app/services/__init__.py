@@ -60,6 +60,8 @@ from .week_plans import (
 
 from .stats import get_stats
 
+from .analytics import record_pageview
+
 __all__ = [
     # Meals
     "create_meal",
@@ -109,4 +111,6 @@ __all__ = [
     "update_week_plan",
     # Stats
     "get_stats",
+    # Analytics
+    "record_pageview",
 ]

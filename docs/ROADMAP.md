@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-02-24
+**Last Updated**: 2026-02-25
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -12,14 +12,6 @@
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-
-**Phase 2 — Wave 1 (remaining):**
-
-| Track | Feature | ADR | Branch | Sessions |
-|-------|---------|-----|--------|----------|
-| C | Waitlist landing page (Next.js route in this repo) | — | `feat/landing-page` | ~1 evening |
-
-Landing page: new route at `/landing` (or `/`) in the existing Next.js app. Served at `www.mealframe.io`, app at `app.mealframe.io`. PRD: `docs/frozen/features/Mealframe_LandingPage_PRD.md`.
 
 **Phase 2 — Wave 2 (after Wave 1 merges):**
 
@@ -50,6 +42,7 @@ Landing page: new route at `/landing` (or `/`) in the existing Next.js app. Serv
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Track C: Waitlist landing page + self-hosted pageview analytics (2026-02-25)
 - [x] Fix: MealPicker empty state (page_size 422), iOS keyboard overlap, sheet resizing (2026-02-24)
 - [x] Track A: Revised completion statuses — ADR-012 (backend + frontend + stats) (2026-02-23)
 - [x] Track B: Per-slot meal reassignment — ADR-011 (backend + frontend) (2026-02-23)
@@ -106,7 +99,7 @@ Landing page: new route at `/landing` (or `/`) in the existing Next.js app. Serv
 Wave 1:
   ✅ Track A: ADR-012 (Completion Statuses) ── merged
   ✅ Track B: ADR-011 (Meal Reassignment) ──── merged
-  ○  Landing Page (Next.js route) ──────────── pending
+  ✅ Track C: Waitlist Page + Analytics ──────── merged
 
 Wave 2 (after Wave 1):
   └─→ ADR-014 (Auth) ──────────────────────────────┐
@@ -142,7 +135,8 @@ Pre-built v0 design system in `v0_design/` folder:
 | MealFrame components | `v0_design/components/mealframe/` | Domain-specific: MealCard, CompletionSheet, etc. |
 | UI primitives | `v0_design/components/ui/` | Button, Card, Sheet, Dialog, etc. |
 | Navigation | `v0_design/components/navigation/` | AppShell, BottomNav, Sidebar |
-| Pages | `v0_design/app/` | Today, Week, Library, Stats, Settings |
+| Landing page | `v0_design/app/(landing)/` | Waitlist page + form component |
+| Pages | `v0_design/app/(app)/` | Today, Week, Library, Stats, Settings |
 | Global styles | `v0_design/app/globals.css` | Tailwind config with design tokens |
 
 **Usage**: Copy components and styles from `v0_design/` into `frontend/` when implementing UI features. Adapt imports and connect to real API data.

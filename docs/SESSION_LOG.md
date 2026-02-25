@@ -5,6 +5,70 @@
 
 ---
 
+## Session: 2026-02-25
+
+**Role**: full-stack
+**Task**: Track C — Waitlist landing page + self-hosted pageview analytics
+**Branch**: feat/landing-page
+
+### Summary
+- Restructured frontend into Next.js route groups: `(app)` for existing pages (with AppShell/Providers) and `(landing)` for the standalone waitlist page (no app chrome)
+- Built waitlist landing page at `/waitlist` with all 6 sections from the PRD: hero, problem, solution, early results, about, final CTA
+- Page uses Geist font (via `geist` npm package), inline dark design tokens (bg `#0d0c0b`, amber accent `#c47a30`), scroll-fade animations (Intersection Observer), and sticky header
+- Implemented reusable `WaitlistForm` component with 4 states (idle/loading/success/error), localStorage persistence (`mf_waitlist_submitted`), and Google Apps Script integration via `NEXT_PUBLIC_GOOGLE_SCRIPT_URL` env var
+- Built lightweight self-hosted pageview analytics: `POST /api/v1/analytics/pageview` endpoint, `landing_pageview` Postgres table with privacy-friendly IP hashing (SHA-256 with daily salt)
+- Frontend analytics client (`lib/analytics.ts`) fires pageview on mount via `fetch` with `keepalive: true` — fire-and-forget, never breaks the page
+- Merged `v0_design_new/` into `v0_design/` (single design folder with route group structure)
+- Geist font from `next/font/google` doesn't exist in Next.js 14 — used the `geist` npm package instead, applied via `GeistSans.className` on the landing layout to avoid CSS variable collision with Inter's `--font-geist-sans`
+
+### Files Changed
+**Frontend — route group restructure:**
+- [frontend/src/app/layout.tsx](frontend/src/app/layout.tsx) — Stripped to minimal root layout (no Providers/AppShell)
+- [frontend/src/app/(app)/layout.tsx](frontend/src/app/(app)/layout.tsx) — New: Providers + OfflineBanner + AppShell wrapper
+- [frontend/src/app/(app)/page.tsx](frontend/src/app/(app)/page.tsx) — Moved from `app/page.tsx`
+- `(app)/week/`, `(app)/meals/`, `(app)/setup/`, `(app)/stats/` — Moved from `app/`
+
+**Frontend — landing page:**
+- [frontend/src/app/(landing)/layout.tsx](frontend/src/app/(landing)/layout.tsx) — SEO metadata, OG/Twitter tags, Geist font
+- [frontend/src/app/(landing)/waitlist/page.tsx](frontend/src/app/(landing)/waitlist/page.tsx) — Full landing page
+- [frontend/src/components/landing/waitlist-form.tsx](frontend/src/components/landing/waitlist-form.tsx) — Email form component
+- [frontend/src/lib/analytics.ts](frontend/src/lib/analytics.ts) — Pageview tracker
+- [frontend/public/og-image.jpg](frontend/public/og-image.jpg) — OG image for social sharing
+- [frontend/.env.local](frontend/.env.local) — New env vars (gitignored)
+- [frontend/package.json](frontend/package.json) — Added `geist` font package
+
+**Backend — analytics:**
+- [backend/app/models/landing_pageview.py](backend/app/models/landing_pageview.py) — New model
+- [backend/app/schemas/analytics.py](backend/app/schemas/analytics.py) — Request/response schemas
+- [backend/app/services/analytics.py](backend/app/services/analytics.py) — Service with IP hashing
+- [backend/app/api/analytics.py](backend/app/api/analytics.py) — POST endpoint (202 Accepted)
+- [backend/app/api/__init__.py](backend/app/api/__init__.py) — Registered analytics_router
+- [backend/app/main.py](backend/app/main.py) — Included analytics_router
+- [backend/app/models/__init__.py](backend/app/models/__init__.py) — Registered LandingPageview
+- [backend/app/services/__init__.py](backend/app/services/__init__.py) — Exported record_pageview
+- [backend/alembic/versions/20260225_add_landing_pageview.py](backend/alembic/versions/20260225_add_landing_pageview.py) — Migration
+
+**Design assets:**
+- `v0_design/` — Merged from `v0_design_new/` (now includes route groups + landing page)
+
+### Decisions
+- Used `geist` npm package instead of `next/font/google` (Geist not available in Next.js 14, only 15+)
+- Applied Geist via `GeistSans.className` on landing layout div to avoid CSS variable collision with Inter's `--font-geist-sans`
+- Analytics uses `fetch` with `keepalive: true` instead of `navigator.sendBeacon` — sendBeacon with `application/json` triggers CORS preflight which it can't handle
+- IP hashing uses SHA-256 with daily salt for privacy — no raw IPs stored
+- Landing page uses inline styles with own design tokens, independent of Tailwind theme variables
+- Domain routing (www vs app) deferred to deployment phase — currently path-based only
+
+### Blockers
+- None
+
+### Next
+- DNS + Nginx Proxy Manager config for `www.mealframe.io` → `/waitlist`, `app.mealframe.io` → `/`
+- Google Apps Script setup for waitlist form submission
+- Wave 2: Authentication (ADR-014)
+
+---
+
 ## Session: 2026-02-24
 
 **Role**: frontend
