@@ -5,6 +5,39 @@
 
 ---
 
+## Session: 2026-02-26
+
+**Role**: devops / frontend
+**Task**: Production deployment of landing page + privacy policy
+**Branch**: main (direct commits)
+
+### Summary
+- Added `NEXT_PUBLIC_GOOGLE_SCRIPT_URL` and `NEXT_PUBLIC_SITE_URL` as Docker build args in Dockerfile and docker-compose.prod.yml so env vars are baked into the production client bundle
+- Deployed landing page, privacy policy, and waitlist form to production at `mealframe.io`
+- Configured Nginx Proxy Manager: both `mealframe.io` and `www.mealframe.io` proxy to stack nginx on port 80, SSL via Let's Encrypt covering both domains
+- Added `location = / { return 302 /waitlist; }` in NPM advanced config to redirect root to waitlist
+- Removed old NPM advanced API proxy config (port 8003 direct) — stack nginx now handles `/api/` routing internally
+- Set up DNS: A record for `@` and CNAME for `www` pointing to server
+- Verified Google Sheets integration working end-to-end in production
+
+### Files Changed
+- [frontend/Dockerfile](frontend/Dockerfile) — Added `NEXT_PUBLIC_GOOGLE_SCRIPT_URL` and `NEXT_PUBLIC_SITE_URL` build args
+- [docker-compose.prod.yml](docker-compose.prod.yml) — Added corresponding build args with defaults
+
+### Decisions
+- NPM points to stack nginx (port 80) instead of web container directly (port 3000) — cleaner architecture, stack nginx handles API routing
+- Canonical domain is `mealframe.io` (both bare and www served, no redirect between them)
+- Root `/` redirects to `/waitlist` via NPM config until auth is implemented
+
+### Blockers
+- None
+
+### Next
+- Set up email forwarding for `hello@mealframe.io` (Namecheap or Cloudflare)
+- Phase 2 Wave 2: Authentication & multi-user (ADR-014)
+
+---
+
 ## Session: 2026-02-25 (b)
 
 **Role**: frontend
