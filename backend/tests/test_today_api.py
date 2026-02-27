@@ -19,6 +19,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
+from sqlalchemy import delete
+
 from app.models import (
     DayTemplate,
     DayTemplateSlot,
@@ -142,6 +144,12 @@ async def weekly_plan_with_today(
     today = date.today()
     week_start = get_week_start(today)
 
+    # Clear any seed data instance for this week to avoid unique constraint violation
+    await db.execute(
+        delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+    )
+    await db.flush()
+
     # Create week plan
     week_plan = WeekPlan(
         id=uuid4(),
@@ -203,6 +211,12 @@ async def weekly_plan_with_yesterday(
     yesterday = date.today() - timedelta(days=1)
     week_start = get_week_start(yesterday)
 
+    # Clear any seed data instance for this week to avoid unique constraint violation
+    await db.execute(
+        delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+    )
+    await db.flush()
+
     # Create week plan
     week_plan = WeekPlan(
         id=uuid4(),
@@ -253,8 +267,16 @@ class TestGetToday:
     """Tests for GET /api/v1/today endpoint."""
 
     @pytest.mark.asyncio
-    async def test_returns_empty_when_no_plan(self, client: AsyncClient):
+    async def test_returns_empty_when_no_plan(self, client: AsyncClient, db: AsyncSession):
         """When no plan exists for today, returns empty slots list."""
+        # Clear seed data instance for this week so no plan exists
+        today = date.today()
+        week_start = get_week_start(today)
+        await db.execute(
+            delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+        )
+        await db.flush()
+
         response = await client.get("/api/v1/today")
 
         assert response.status_code == 200
@@ -317,6 +339,12 @@ class TestGetToday:
         """is_next should be True only for the first incomplete slot."""
         today = date.today()
         week_start = get_week_start(today)
+
+        # Clear seed data instance for this week
+        await db.execute(
+            delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+        )
+        await db.flush()
 
         # Create week plan and instance
         week_plan = WeekPlan(id=uuid4(), name=f"Test {uuid4().hex[:8]}", is_default=True)
@@ -601,6 +629,13 @@ class TestStreakCalculation:
         week_start_yesterday = get_week_start(yesterday)
         week_start_day_before = get_week_start(day_before)
 
+        # Clear seed data instances for relevant weeks
+        for ws in set([week_start_yesterday, week_start_day_before]):
+            await db.execute(
+                delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == ws)
+            )
+        await db.flush()
+
         # Create week plan
         week_plan = WeekPlan(id=uuid4(), name=f"Test {uuid4().hex[:8]}", is_default=True)
         db.add(week_plan)
@@ -670,6 +705,13 @@ class TestStreakCalculation:
 
         week_start = get_week_start(yesterday)
         week_start_day_before = get_week_start(day_before)
+
+        # Clear seed data instances for relevant weeks
+        for ws in set([week_start, week_start_day_before]):
+            await db.execute(
+                delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == ws)
+            )
+        await db.flush()
 
         # Create week plan
         week_plan = WeekPlan(id=uuid4(), name=f"Test {uuid4().hex[:8]}", is_default=True)

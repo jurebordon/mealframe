@@ -21,6 +21,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import delete
+
 from app.main import app
 from app.models import (
     DayTemplate,
@@ -161,6 +163,12 @@ async def today_slot(
     """Create a weekly plan with a slot for today."""
     today = date.today()
     week_start = get_week_start(today)
+
+    # Clear any seed data instance for this week to avoid unique constraint violation
+    await db.execute(
+        delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+    )
+    await db.flush()
 
     week_plan = WeekPlan(
         id=uuid4(),
@@ -335,6 +343,12 @@ class TestReassignSlot:
         """Returns 400 when trying to reassign a past-date slot."""
         yesterday = date.today() - timedelta(days=1)
         week_start = get_week_start(yesterday)
+
+        # Clear seed data instance for this week
+        await db.execute(
+            delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+        )
+        await db.flush()
 
         week_plan = WeekPlan(
             id=uuid4(),

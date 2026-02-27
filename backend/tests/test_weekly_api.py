@@ -21,6 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.main import app
 from sqlalchemy import update
 
+from sqlalchemy import delete
+
 from app.models import (
     DayTemplate,
     DayTemplateSlot,
@@ -208,6 +210,12 @@ async def current_week_instance(
     today = date.today()
     week_start = get_week_start_date(today)
 
+    # Clear any seed data instance for this week to avoid unique constraint violation
+    await db.execute(
+        delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+    )
+    await db.flush()
+
     instance = WeeklyPlanInstance(
         id=uuid4(),
         week_plan_id=test_week_plan.id,
@@ -272,8 +280,16 @@ class TestGetCurrentWeek:
     """Tests for GET /api/v1/weekly-plans/current endpoint."""
 
     @pytest.mark.asyncio
-    async def test_returns_404_when_no_plan(self, client: AsyncClient):
+    async def test_returns_404_when_no_plan(self, client: AsyncClient, db: AsyncSession):
         """When no plan exists for current week, returns 404."""
+        # Clear seed data instance for this week
+        today = date.today()
+        week_start = get_week_start_date(today)
+        await db.execute(
+            delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+        )
+        await db.flush()
+
         response = await client.get("/api/v1/weekly-plans/current")
 
         assert response.status_code == 404
@@ -549,10 +565,15 @@ class TestSwitchDayTemplate:
 
     @pytest.mark.asyncio
     async def test_switch_template_no_current_week(
-        self, client: AsyncClient, test_day_templates: list[DayTemplate]
+        self, client: AsyncClient, db: AsyncSession, test_day_templates: list[DayTemplate]
     ):
         """Returns 404 when no current week plan exists."""
         today = date.today()
+        week_start = get_week_start_date(today)
+        await db.execute(
+            delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+        )
+        await db.flush()
 
         response = await client.put(
             f"/api/v1/weekly-plans/current/days/{today.isoformat()}/template",
@@ -651,9 +672,14 @@ class TestSetDayOverride:
         assert data["override_reason"] is None
 
     @pytest.mark.asyncio
-    async def test_set_override_no_current_week(self, client: AsyncClient):
+    async def test_set_override_no_current_week(self, client: AsyncClient, db: AsyncSession):
         """Returns 404 when no current week plan exists."""
         today = date.today()
+        week_start = get_week_start_date(today)
+        await db.execute(
+            delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+        )
+        await db.flush()
 
         response = await client.put(
             f"/api/v1/weekly-plans/current/days/{today.isoformat()}/override",
@@ -715,9 +741,14 @@ class TestClearDayOverride:
         assert len(data["slots"]) > 0
 
     @pytest.mark.asyncio
-    async def test_clear_override_no_current_week(self, client: AsyncClient):
+    async def test_clear_override_no_current_week(self, client: AsyncClient, db: AsyncSession):
         """Returns 404 when no current week plan exists."""
         today = date.today()
+        week_start = get_week_start_date(today)
+        await db.execute(
+            delete(WeeklyPlanInstance).where(WeeklyPlanInstance.week_start_date == week_start)
+        )
+        await db.flush()
 
         response = await client.delete(
             f"/api/v1/weekly-plans/current/days/{today.isoformat()}/override"

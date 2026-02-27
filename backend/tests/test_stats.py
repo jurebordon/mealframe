@@ -19,7 +19,7 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
@@ -128,12 +128,18 @@ async def _create_slots(
 
         await _get_or_create_instance_day(db, instance, d, is_override)
 
+        # Delete any existing seed data slots for this date to avoid
+        # interference with test assertions (e.g., streak calculation)
+        await db.execute(
+            delete(WeeklyPlanSlot).where(WeeklyPlanSlot.date == d)
+        )
+
         for position, status in enumerate(day_data.get("slots", [])):
             slot = WeeklyPlanSlot(
                 id=uuid4(),
                 weekly_plan_instance_id=instance.id,
                 date=d,
-                position=100 + position,  # High position to avoid conflicts with seed data
+                position=100 + position,
                 meal_type_id=meal_type.id,
                 meal_id=meal.id,
                 completion_status=status,
@@ -564,14 +570,8 @@ async def test_stats_over_limit_calories_exceeded(
 
     # Create instance day with template
     instance = await _get_or_create_instance(db, week_start)
-    instance_day = WeeklyPlanInstanceDay(
-        id=uuid4(),
-        weekly_plan_instance_id=instance.id,
-        date=today,
-        day_template_id=template.id,
-        is_override=False,
-    )
-    db.add(instance_day)
+    instance_day = await _get_or_create_instance_day(db, instance, today)
+    instance_day.day_template_id = template.id
     await db.flush()
 
     # Create 2 slots = 1600 kcal total (exceeds 1500 limit)
@@ -634,14 +634,8 @@ async def test_stats_over_limit_within_limits(
     await db.flush()
 
     instance = await _get_or_create_instance(db, week_start)
-    instance_day = WeeklyPlanInstanceDay(
-        id=uuid4(),
-        weekly_plan_instance_id=instance.id,
-        date=today,
-        day_template_id=template.id,
-        is_override=False,
-    )
-    db.add(instance_day)
+    instance_day = await _get_or_create_instance_day(db, instance, today)
+    instance_day.day_template_id = template.id
     await db.flush()
 
     # 2 small meals = 800 kcal, 40g protein — well within limits
@@ -699,14 +693,8 @@ async def test_stats_over_limit_protein_exceeded(
     await db.flush()
 
     instance = await _get_or_create_instance(db, week_start)
-    instance_day = WeeklyPlanInstanceDay(
-        id=uuid4(),
-        weekly_plan_instance_id=instance.id,
-        date=today,
-        day_template_id=template.id,
-        is_override=False,
-    )
-    db.add(instance_day)
+    instance_day = await _get_or_create_instance_day(db, instance, today)
+    instance_day.day_template_id = template.id
     await db.flush()
 
     # 1 slot = 60g protein (exceeds 50g limit)
@@ -761,14 +749,8 @@ async def test_stats_over_limit_override_days_excluded(
 
     instance = await _get_or_create_instance(db, week_start)
     # Mark as override — should be excluded from over-limit
-    instance_day = WeeklyPlanInstanceDay(
-        id=uuid4(),
-        weekly_plan_instance_id=instance.id,
-        date=today,
-        day_template_id=template.id,
-        is_override=True,
-    )
-    db.add(instance_day)
+    instance_day = await _get_or_create_instance_day(db, instance, today, is_override=True)
+    instance_day.day_template_id = template.id
     await db.flush()
 
     db.add(WeeklyPlanSlot(
