@@ -17,6 +17,11 @@ pydantic-settings==2.7.1
 python-dotenv==1.0.1
 python-multipart==0.0.20
 
+# Authentication
+argon2-cffi==23.1.0
+python-jose[cryptography]==3.3.0
+email-validator==2.3.0
+
 # Testing
 pytest==8.3.4
 pytest-asyncio==0.25.2

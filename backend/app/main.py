@@ -21,6 +21,7 @@ from app.api import (
     week_plans_router,
     stats_router,
     analytics_router,
+    auth_router,
 )
 
 
@@ -67,6 +68,7 @@ app.include_router(meal_types_router)
 app.include_router(week_plans_router)
 app.include_router(stats_router)
 app.include_router(analytics_router)
+app.include_router(auth_router)
 
 
 @app.get("/")

@@ -1,6 +1,8 @@
 """SQLAlchemy models for MealFrame application."""
 
 # Import all models for Alembic auto-generation
+from .user import User
+from .refresh_token import RefreshToken
 from .meal_type import MealType
 from .meal import Meal
 from .meal_to_meal_type import meal_to_meal_type
@@ -12,6 +14,8 @@ from .app_config import AppConfig
 from .landing_pageview import LandingPageview
 
 __all__ = [
+    "User",
+    "RefreshToken",
     "MealType",
     "Meal",
     "meal_to_meal_type",

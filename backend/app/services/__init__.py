@@ -62,6 +62,16 @@ from .stats import get_stats
 
 from .analytics import record_pageview
 
+from .auth import (
+    authenticate_user,
+    get_user_by_id,
+    issue_tokens,
+    refresh_tokens,
+    register_user,
+    revoke_all_user_tokens,
+    revoke_refresh_token,
+)
+
 __all__ = [
     # Meals
     "create_meal",
@@ -113,4 +123,12 @@ __all__ = [
     "get_stats",
     # Analytics
     "record_pageview",
+    # Auth
+    "authenticate_user",
+    "get_user_by_id",
+    "issue_tokens",
+    "refresh_tokens",
+    "register_user",
+    "revoke_all_user_tokens",
+    "revoke_refresh_token",
 ]

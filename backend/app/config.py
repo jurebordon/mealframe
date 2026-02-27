@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Server configuration
     debug: bool = False
 
+    # Authentication (ADR-014)
+    jwt_secret_key: str = "CHANGE-ME-in-production"  # Override via JWT_SECRET_KEY env var
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 7
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
