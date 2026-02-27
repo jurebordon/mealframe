@@ -1,23 +1,25 @@
 # Roadmap
 
-**Last Updated**: 2026-02-25
+**Last Updated**: 2026-02-27
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
 
 <!-- ONE task in progress at a time -->
 
-(empty — pick from Next)
+| Feature | ADR | Branch | Sessions | Status |
+|---------|-----|--------|----------|--------|
+| Authentication & multi-user | ADR-014 | `feat/auth` | 1 of ~5 done | Session 1 complete: backend auth endpoints + JWT + tests |
+
+**Remaining auth sessions:**
+- Session 2: Data migration — add `user_id` to all existing tables, backfill seed data, make NOT NULL
+- Session 3: Protect all existing routes, update services to filter by `user_id`
+- Session 4: Frontend — auth pages, auth context, protected routes, API client token handling
+- Session 5: Email verification, password reset, Google OAuth, settings page, rate limiting
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
-
-**Phase 2 — Wave 2 (after Wave 1 merges):**
-
-| Feature | ADR | Branch | Sessions | Depends on |
-|---------|-----|--------|----------|------------|
-| Authentication & multi-user | ADR-014 | `feat/auth` | ~5 (self-managed, Argon2id + JWT + Google OAuth) | Nothing, but touches every file — do after Wave 1 to avoid merge hell |
 
 **Phase 2 — Wave 3 (after auth):**
 

@@ -5,6 +5,59 @@
 
 ---
 
+## Session: 2026-02-27
+
+**Role**: backend
+**Task**: Authentication backend — Session 1 of ADR-014
+**Branch**: feat/auth
+
+### Summary
+- Added auth dependencies: `argon2-cffi`, `python-jose[cryptography]`, `email-validator`
+- Created `User` model (UUID PK, email unique, Argon2id password_hash, email_verified, is_active, auth_provider, google_sub)
+- Created `RefreshToken` model (hashed token, user FK, expires_at, is_revoked) with CASCADE delete
+- Alembic migration creates both tables with proper indexes
+- Security utilities: Argon2id hashing, JWT HS256 access tokens (15 min), SHA-256 hashed refresh tokens
+- Auth service with full token lifecycle: register, authenticate, issue tokens, rotate (single-use refresh), revoke, revoke-all
+- FastAPI dependencies: `get_current_user` (401 on failure) and `get_optional_user` (returns None) for transition period
+- Auth API router: `POST /register`, `POST /login`, `POST /refresh`, `POST /logout`, `GET /me`
+- Refresh tokens stored in HTTP-only secure SameSite=lax cookies scoped to `/api/v1/auth`
+- 15 integration tests covering: registration (success, duplicate, validation), login (success, wrong password, nonexistent), refresh (success, reuse-revoked, no cookie), logout (success, idempotent), me (success, no token, invalid token)
+- Existing routes remain unprotected — backward compatible
+
+### Files Created
+- [backend/app/models/user.py](backend/app/models/user.py) — User model
+- [backend/app/models/refresh_token.py](backend/app/models/refresh_token.py) — RefreshToken model
+- [backend/app/security.py](backend/app/security.py) — Password hashing + JWT utilities
+- [backend/app/schemas/auth.py](backend/app/schemas/auth.py) — Auth request/response schemas
+- [backend/app/services/auth.py](backend/app/services/auth.py) — Auth business logic
+- [backend/app/dependencies.py](backend/app/dependencies.py) — get_current_user, get_optional_user
+- [backend/app/api/auth.py](backend/app/api/auth.py) — Auth route handlers
+- [backend/alembic/versions/6a9cd73c43d6_add_auth_tables.py](backend/alembic/versions/6a9cd73c43d6_add_auth_tables.py) — Migration
+- [backend/tests/test_auth.py](backend/tests/test_auth.py) — 15 auth tests
+
+### Files Modified
+- [backend/requirements.txt](backend/requirements.txt) — Added auth dependencies
+- [backend/app/config.py](backend/app/config.py) — JWT settings (secret key, token expiry)
+- [backend/app/models/__init__.py](backend/app/models/__init__.py) — Registered User, RefreshToken
+- [backend/app/services/__init__.py](backend/app/services/__init__.py) — Exported auth service functions
+- [backend/app/api/__init__.py](backend/app/api/__init__.py) — Exported auth_router
+- [backend/app/main.py](backend/app/main.py) — Registered auth_router
+
+### Decisions
+- **Custom auth over fastapi-users** — Scope is narrow (email/password + future Google OAuth), full control is more valuable than library abstractions for <50 users
+- **email_verified defaults to True for now** — Email verification deferred to Session 5; clearly marked with TODO in User model
+- **Rate limiting deferred** — Will add `slowapi` or custom middleware in Session 5
+- **Refresh token in HTTP-only cookie** — Not in response body; cookie scoped to `/api/v1/auth` path only
+
+### Blockers
+- Pre-existing test failures in test_weekly_api.py, test_today_api.py, test_stats.py, test_reassign_api.py due to `week_start_date` unique constraint collision with seed data (not related to auth changes)
+
+### Next
+- Session 2: Data migration — add `user_id` FK to all existing tables, create admin user, backfill seed data, make `user_id` NOT NULL
+- Session 3: Protect existing routes with `get_current_user`, update all services to filter by `user_id`
+
+---
+
 ## Session: 2026-02-26
 
 **Role**: devops / frontend
