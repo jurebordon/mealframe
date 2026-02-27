@@ -11,6 +11,8 @@ from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
+from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..models.user import User
 from ..schemas.meal import (
     MealCreate,
     MealImportResult,
@@ -97,9 +99,11 @@ async def get_meal(
 async def create_meal_endpoint(
     data: MealCreate,
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ) -> MealResponse:
     """Create a new meal."""
-    meal = await create_meal(db, data)
+    user_id = user.id if user else ADMIN_USER_ID
+    meal = await create_meal(db, data, user_id=user_id)
 
     return MealResponse(
         id=meal.id,
@@ -161,6 +165,7 @@ async def delete_meal_endpoint(
 async def import_meals(
     file: UploadFile = File(..., description="CSV file to import"),
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ) -> MealImportResult:
     """
     Import meals from a CSV file.
@@ -199,5 +204,6 @@ async def import_meals(
             detail="CSV file is empty.",
         )
 
-    result = await import_meals_from_csv(db, csv_content)
+    user_id = user.id if user else ADMIN_USER_ID
+    result = await import_meals_from_csv(db, csv_content, user_id=user_id)
     return result

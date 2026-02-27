@@ -11,6 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
+from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..models.user import User
 from ..schemas.meal_type import (
     MealTypeCreate,
     MealTypeResponse,
@@ -75,9 +77,11 @@ async def get_meal_type(
 async def create_meal_type_endpoint(
     data: MealTypeCreate,
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ) -> MealTypeResponse:
     """Create a new meal type."""
-    meal_type = await create_meal_type(db, data)
+    user_id = user.id if user else ADMIN_USER_ID
+    meal_type = await create_meal_type(db, data, user_id=user_id)
 
     return MealTypeResponse(
         id=meal_type.id,

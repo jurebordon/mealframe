@@ -23,7 +23,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.models import MealType, Meal, DayTemplate, WeeklyPlanInstance, WeeklyPlanInstanceDay, WeeklyPlanSlot
+from app.models import MealType, Meal, DayTemplate, User, WeeklyPlanInstance, WeeklyPlanInstanceDay, WeeklyPlanSlot
 from app.database import get_db
 
 
@@ -46,7 +46,7 @@ async def client(db: AsyncSession):
 
 
 async def _get_or_create_instance(
-    db: AsyncSession, week_start: date
+    db: AsyncSession, week_start: date, user_id=None
 ) -> WeeklyPlanInstance:
     """Get an existing instance for the week, or create one."""
     result = await db.execute(
@@ -57,7 +57,7 @@ async def _get_or_create_instance(
     instance = result.scalars().first()
     if instance:
         return instance
-    instance = WeeklyPlanInstance(id=uuid4(), week_start_date=week_start)
+    instance = WeeklyPlanInstance(id=uuid4(), user_id=user_id, week_start_date=week_start)
     db.add(instance)
     await db.flush()
     return instance
@@ -118,7 +118,7 @@ async def _create_slots(
         d = day_data["date"]
         week_start = d - timedelta(days=d.weekday())
         if week_start not in instances:
-            instances[week_start] = await _get_or_create_instance(db, week_start)
+            instances[week_start] = await _get_or_create_instance(db, week_start, user_id=meal_type.user_id)
 
     for day_data in days_data:
         d = day_data["date"]
@@ -150,10 +150,11 @@ async def _create_slots(
 
 
 @pytest_asyncio.fixture
-async def meal_type(db: AsyncSession) -> MealType:
+async def meal_type(db: AsyncSession, test_user: User) -> MealType:
     """Create a test meal type."""
     mt = MealType(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Breakfast {uuid4().hex[:8]}",
         description="Morning meal",
     )
@@ -163,10 +164,11 @@ async def meal_type(db: AsyncSession) -> MealType:
 
 
 @pytest_asyncio.fixture
-async def meal(db: AsyncSession) -> Meal:
+async def meal(db: AsyncSession, test_user: User) -> Meal:
     """Create a test meal."""
     m = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Oatmeal {uuid4().hex[:8]}",
         portion_description="1 bowl",
     )
@@ -210,7 +212,7 @@ async def test_stats_response_structure(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_stats_status_breakdown(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """GET /stats correctly counts each completion status."""
     today = date.today()
@@ -240,7 +242,7 @@ async def test_stats_status_breakdown(
 
 @pytest.mark.asyncio
 async def test_stats_adherence_rate_calculation(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """Adherence = followed / (total - equivalent - social - unmarked) per ADR-012."""
     today = date.today()
@@ -264,7 +266,7 @@ async def test_stats_adherence_rate_calculation(
 
 @pytest.mark.asyncio
 async def test_stats_perfect_adherence(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """All followed yields adherence > 0."""
     today = date.today()
@@ -286,7 +288,7 @@ async def test_stats_perfect_adherence(
 
 @pytest.mark.asyncio
 async def test_stats_current_streak(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """Current streak counts consecutive completed days before today."""
     today = date.today()
@@ -306,7 +308,7 @@ async def test_stats_current_streak(
 
 @pytest.mark.asyncio
 async def test_stats_streak_excludes_today(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """Current streak excludes today (today is still in progress)."""
     today = date.today()
@@ -325,7 +327,7 @@ async def test_stats_streak_excludes_today(
 
 @pytest.mark.asyncio
 async def test_stats_streak_breaks_on_unmarked_past_day(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """Streak breaks when a past day has an unmarked slot."""
     today = date.today()
@@ -342,7 +344,7 @@ async def test_stats_streak_breaks_on_unmarked_past_day(
 
 @pytest.mark.asyncio
 async def test_stats_best_streak_gte_current(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """Best streak is always >= current streak."""
     today = date.today()
@@ -363,7 +365,7 @@ async def test_stats_best_streak_gte_current(
 
 @pytest.mark.asyncio
 async def test_stats_override_days(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """Override days are counted correctly."""
     today = date.today()
@@ -387,19 +389,19 @@ async def test_stats_override_days(
 
 @pytest.mark.asyncio
 async def test_stats_by_meal_type(
-    client: AsyncClient, db: AsyncSession, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal: Meal
 ):
     """Per-meal-type breakdown is returned sorted by lowest adherence."""
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
 
-    mt_breakfast = MealType(id=uuid4(), name=f"Breakfast {uuid4().hex[:8]}")
-    mt_lunch = MealType(id=uuid4(), name=f"Lunch {uuid4().hex[:8]}")
+    mt_breakfast = MealType(id=uuid4(), user_id=test_user.id, name=f"Breakfast {uuid4().hex[:8]}")
+    mt_lunch = MealType(id=uuid4(), user_id=test_user.id, name=f"Lunch {uuid4().hex[:8]}")
     db.add(mt_breakfast)
     db.add(mt_lunch)
     await db.flush()
 
-    instance = await _get_or_create_instance(db, week_start)
+    instance = await _get_or_create_instance(db, week_start, user_id=test_user.id)
     await _get_or_create_instance_day(db, instance, today)
 
     # Breakfast: 2 followed out of 2 = 100%
@@ -449,7 +451,7 @@ async def test_stats_by_meal_type(
 
 @pytest.mark.asyncio
 async def test_stats_daily_adherence(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """Daily adherence returns per-day data points."""
     today = date.today()
@@ -523,7 +525,7 @@ async def test_stats_over_limit_response_fields(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_stats_over_limit_no_templates_with_limits(
-    client: AsyncClient, db: AsyncSession, meal_type: MealType, meal: Meal
+    client: AsyncClient, db: AsyncSession, test_user: User, meal_type: MealType, meal: Meal
 ):
     """Over-limit stats are zero when no templates have limits set."""
     today = date.today()
@@ -540,17 +542,18 @@ async def test_stats_over_limit_no_templates_with_limits(
 
 @pytest.mark.asyncio
 async def test_stats_over_limit_calories_exceeded(
-    client: AsyncClient, db: AsyncSession
+    client: AsyncClient, db: AsyncSession, test_user: User
 ):
     """Over-limit detects when daily calories exceed template limit."""
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
 
     # Create template with calorie limit
-    mt = MealType(id=uuid4(), name=f"Meal {uuid4().hex[:8]}")
+    mt = MealType(id=uuid4(), user_id=test_user.id, name=f"Meal {uuid4().hex[:8]}")
     db.add(mt)
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Low Cal {uuid4().hex[:8]}",
         max_calories_kcal=1500,
     )
@@ -560,6 +563,7 @@ async def test_stats_over_limit_calories_exceeded(
     # Create a meal with 800 calories
     high_cal_meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Big Meal {uuid4().hex[:8]}",
         portion_description="Large portion",
         calories_kcal=800,
@@ -569,7 +573,7 @@ async def test_stats_over_limit_calories_exceeded(
     await db.flush()
 
     # Create instance day with template
-    instance = await _get_or_create_instance(db, week_start)
+    instance = await _get_or_create_instance(db, week_start, user_id=test_user.id)
     instance_day = await _get_or_create_instance_day(db, instance, today)
     instance_day.day_template_id = template.id
     await db.flush()
@@ -606,16 +610,17 @@ async def test_stats_over_limit_calories_exceeded(
 
 @pytest.mark.asyncio
 async def test_stats_over_limit_within_limits(
-    client: AsyncClient, db: AsyncSession
+    client: AsyncClient, db: AsyncSession, test_user: User
 ):
     """Over-limit is zero when daily totals are within template limits."""
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
 
-    mt = MealType(id=uuid4(), name=f"Meal {uuid4().hex[:8]}")
+    mt = MealType(id=uuid4(), user_id=test_user.id, name=f"Meal {uuid4().hex[:8]}")
     db.add(mt)
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Generous {uuid4().hex[:8]}",
         max_calories_kcal=3000,
         max_protein_g=Decimal("200.0"),
@@ -625,6 +630,7 @@ async def test_stats_over_limit_within_limits(
 
     small_meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Small Meal {uuid4().hex[:8]}",
         portion_description="Small portion",
         calories_kcal=400,
@@ -633,7 +639,7 @@ async def test_stats_over_limit_within_limits(
     db.add(small_meal)
     await db.flush()
 
-    instance = await _get_or_create_instance(db, week_start)
+    instance = await _get_or_create_instance(db, week_start, user_id=test_user.id)
     instance_day = await _get_or_create_instance_day(db, instance, today)
     instance_day.day_template_id = template.id
     await db.flush()
@@ -666,16 +672,17 @@ async def test_stats_over_limit_within_limits(
 
 @pytest.mark.asyncio
 async def test_stats_over_limit_protein_exceeded(
-    client: AsyncClient, db: AsyncSession
+    client: AsyncClient, db: AsyncSession, test_user: User
 ):
     """Over-limit detects when daily protein exceeds template limit."""
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
 
-    mt = MealType(id=uuid4(), name=f"Meal {uuid4().hex[:8]}")
+    mt = MealType(id=uuid4(), user_id=test_user.id, name=f"Meal {uuid4().hex[:8]}")
     db.add(mt)
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Low Protein {uuid4().hex[:8]}",
         max_protein_g=Decimal("50.0"),
     )
@@ -684,6 +691,7 @@ async def test_stats_over_limit_protein_exceeded(
 
     high_protein_meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Protein Bomb {uuid4().hex[:8]}",
         portion_description="300g chicken",
         calories_kcal=500,
@@ -692,7 +700,7 @@ async def test_stats_over_limit_protein_exceeded(
     db.add(high_protein_meal)
     await db.flush()
 
-    instance = await _get_or_create_instance(db, week_start)
+    instance = await _get_or_create_instance(db, week_start, user_id=test_user.id)
     instance_day = await _get_or_create_instance_day(db, instance, today)
     instance_day.day_template_id = template.id
     await db.flush()
@@ -722,16 +730,17 @@ async def test_stats_over_limit_protein_exceeded(
 
 @pytest.mark.asyncio
 async def test_stats_over_limit_override_days_excluded(
-    client: AsyncClient, db: AsyncSession
+    client: AsyncClient, db: AsyncSession, test_user: User
 ):
     """Override days are excluded from over-limit calculations."""
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
 
-    mt = MealType(id=uuid4(), name=f"Meal {uuid4().hex[:8]}")
+    mt = MealType(id=uuid4(), user_id=test_user.id, name=f"Meal {uuid4().hex[:8]}")
     db.add(mt)
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Override Test {uuid4().hex[:8]}",
         max_calories_kcal=1000,
     )
@@ -740,6 +749,7 @@ async def test_stats_over_limit_override_days_excluded(
 
     big_meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Big {uuid4().hex[:8]}",
         portion_description="huge",
         calories_kcal=2000,
@@ -747,7 +757,7 @@ async def test_stats_over_limit_override_days_excluded(
     db.add(big_meal)
     await db.flush()
 
-    instance = await _get_or_create_instance(db, week_start)
+    instance = await _get_or_create_instance(db, week_start, user_id=test_user.id)
     # Mark as override — should be excluded from over-limit
     instance_day = await _get_or_create_instance_day(db, instance, today, is_override=True)
     instance_day.day_template_id = template.id

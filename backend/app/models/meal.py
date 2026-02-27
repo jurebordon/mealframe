@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Integer, Numeric, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -19,6 +19,7 @@ class Meal(Base):
     __tablename__ = "meal"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(Text, nullable=False, index=True)
     portion_description = Column(Text, nullable=False)  # MANDATORY - invariant
     calories_kcal = Column(Integer)
@@ -33,6 +34,7 @@ class Meal(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
+    user = relationship("User", back_populates="meals")
     meal_types = relationship("MealType", secondary="meal_to_meal_type", back_populates="meals")
     weekly_plan_slots = relationship("WeeklyPlanSlot", foreign_keys="[WeeklyPlanSlot.meal_id]", back_populates="meal")
 

@@ -13,6 +13,10 @@ from app.services.auth import get_user_by_id
 _bearer_scheme = HTTPBearer()
 _bearer_scheme_optional = HTTPBearer(auto_error=False)
 
+# Admin user seeded by migration — fallback when no auth token is provided.
+# Session 3 will replace get_optional_user usage with get_current_user (mandatory).
+ADMIN_USER_ID = UUID("00000000-0000-4000-a000-000000000001")
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),

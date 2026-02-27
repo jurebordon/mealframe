@@ -17,7 +17,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Meal, MealType, RoundRobinState
+from app.models import Meal, MealType, RoundRobinState, User
 from app.models.meal_to_meal_type import meal_to_meal_type
 from app.services.round_robin import (
     get_meals_for_type,
@@ -297,13 +297,14 @@ class TestEdgeCases:
 
     @pytest.mark.asyncio
     async def test_handles_null_last_meal_id(
-        self, db: AsyncSession, meal_type: MealType
+        self, db: AsyncSession, meal_type: MealType, test_user: User
     ):
         """State with null last_meal_id starts from first meal."""
         meals = await create_meals_with_timestamps(db, meal_type, 3)
 
         # Create state with null last_meal_id
         state = RoundRobinState(
+            user_id=test_user.id,
             meal_type_id=meal_type.id,
             last_meal_id=None,
         )

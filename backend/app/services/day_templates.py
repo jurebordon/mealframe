@@ -59,14 +59,17 @@ async def get_day_template_by_id(db: AsyncSession, template_id: UUID) -> DayTemp
     return result.scalars().first()
 
 
-async def create_day_template(db: AsyncSession, data: DayTemplateCreate) -> DayTemplate:
+async def create_day_template(db: AsyncSession, data: DayTemplateCreate, user_id: UUID | None = None) -> DayTemplate:
     """Create a new day template with slots."""
-    template = DayTemplate(
+    dt_kwargs = dict(
         name=data.name,
         notes=data.notes,
         max_calories_kcal=data.max_calories_kcal,
         max_protein_g=data.max_protein_g,
     )
+    if user_id:
+        dt_kwargs["user_id"] = user_id
+    template = DayTemplate(**dt_kwargs)
     db.add(template)
     await db.flush()
 

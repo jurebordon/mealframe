@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "CHANGE-ME-in-production"  # Override via JWT_SECRET_KEY env var
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
+    admin_email: str = "admin@mealframe.io"  # Admin user for data migration backfill
 
     @field_validator("cors_origins", mode="before")
     @classmethod

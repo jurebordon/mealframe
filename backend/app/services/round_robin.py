@@ -54,6 +54,7 @@ async def get_meals_for_type(
 async def get_round_robin_state(
     db: AsyncSession,
     meal_type_id: UUID,
+    user_id: Optional[UUID] = None,
 ) -> Optional[RoundRobinState]:
     """
     Get the current round-robin state for a meal type.
@@ -61,6 +62,7 @@ async def get_round_robin_state(
     Args:
         db: Database session
         meal_type_id: UUID of the meal type
+        user_id: UUID of the user (optional, will filter by user if provided)
 
     Returns:
         RoundRobinState if exists, None otherwise
@@ -68,8 +70,20 @@ async def get_round_robin_state(
     stmt = select(RoundRobinState).where(
         RoundRobinState.meal_type_id == meal_type_id
     )
+    if user_id is not None:
+        stmt = stmt.where(RoundRobinState.user_id == user_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def _get_user_id_for_meal_type(db: AsyncSession, meal_type_id: UUID) -> UUID:
+    """Look up the user_id for a meal type."""
+    stmt = select(MealType.user_id).where(MealType.id == meal_type_id)
+    result = await db.execute(stmt)
+    user_id = result.scalar_one_or_none()
+    if user_id is None:
+        raise ValueError(f"MealType {meal_type_id} not found")
+    return user_id
 
 
 async def update_round_robin_state(
@@ -81,7 +95,8 @@ async def update_round_robin_state(
     Update or create the round-robin state for a meal type.
 
     This is an upsert operation: if state exists, it's updated;
-    otherwise, a new state record is created.
+    otherwise, a new state record is created. The user_id is derived
+    from the meal type's owner.
 
     Args:
         db: Database session
@@ -99,7 +114,9 @@ async def update_round_robin_state(
         state.last_meal_id = meal_id
         state.updated_at = now
     else:
+        user_id = await _get_user_id_for_meal_type(db, meal_type_id)
         state = RoundRobinState(
+            user_id=user_id,
             meal_type_id=meal_type_id,
             last_meal_id=meal_id,
             updated_at=now,
@@ -217,6 +234,7 @@ async def peek_next_meal_for_type(
 async def reset_round_robin_state(
     db: AsyncSession,
     meal_type_id: UUID,
+    user_id: Optional[UUID] = None,
 ) -> None:
     """
     Reset the round-robin state for a meal type.
@@ -227,8 +245,9 @@ async def reset_round_robin_state(
     Args:
         db: Database session
         meal_type_id: UUID of the meal type
+        user_id: UUID of the user (optional)
     """
-    state = await get_round_robin_state(db, meal_type_id)
+    state = await get_round_robin_state(db, meal_type_id, user_id=user_id)
     if state:
         await db.delete(state)
         await db.flush()

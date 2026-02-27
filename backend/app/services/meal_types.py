@@ -5,6 +5,7 @@ Handles CRUD operations for meal types.
 Per Tech Spec section 4.5 (Setup/Admin Endpoints).
 """
 import logging
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -51,13 +52,16 @@ async def get_meal_type_by_id(db: AsyncSession, meal_type_id: UUID) -> MealType 
     return result.scalars().first()
 
 
-async def create_meal_type(db: AsyncSession, data: MealTypeCreate) -> MealType:
+async def create_meal_type(db: AsyncSession, data: MealTypeCreate, user_id: Optional[UUID] = None) -> MealType:
     """Create a new meal type."""
-    meal_type = MealType(
+    mt_kwargs = dict(
         name=data.name,
         description=data.description,
         tags=data.tags,
     )
+    if user_id:
+        mt_kwargs["user_id"] = user_id
+    meal_type = MealType(**mt_kwargs)
     db.add(meal_type)
     await db.flush()
     return meal_type

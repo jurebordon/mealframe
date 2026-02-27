@@ -29,11 +29,12 @@ from app.models import (
     DayTemplateSlot,
     Meal,
     MealType,
+    RoundRobinState,
+    User,
     WeekPlan,
     WeeklyPlanInstance,
     WeeklyPlanInstanceDay,
     WeeklyPlanSlot,
-    RoundRobinState,
 )
 from app.models.meal_to_meal_type import meal_to_meal_type
 from app.database import get_db
@@ -63,10 +64,11 @@ def get_week_start(target_date: date) -> date:
 
 
 @pytest_asyncio.fixture
-async def meal_type_a(db: AsyncSession) -> MealType:
+async def meal_type_a(db: AsyncSession, test_user: User) -> MealType:
     """Create meal type A (e.g., Breakfast)."""
     mt = MealType(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Reassign Breakfast {uuid4().hex[:8]}",
         description="Test meal type A",
     )
@@ -76,10 +78,11 @@ async def meal_type_a(db: AsyncSession) -> MealType:
 
 
 @pytest_asyncio.fixture
-async def meal_type_b(db: AsyncSession) -> MealType:
+async def meal_type_b(db: AsyncSession, test_user: User) -> MealType:
     """Create meal type B (e.g., Lunch)."""
     mt = MealType(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Reassign Lunch {uuid4().hex[:8]}",
         description="Test meal type B",
     )
@@ -89,10 +92,11 @@ async def meal_type_b(db: AsyncSession) -> MealType:
 
 
 @pytest_asyncio.fixture
-async def meal_a1(db: AsyncSession, meal_type_a: MealType) -> Meal:
+async def meal_a1(db: AsyncSession, test_user: User, meal_type_a: MealType) -> Meal:
     """Create a meal assigned to meal type A."""
     meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Scrambled Eggs {uuid4().hex[:8]}",
         portion_description="2 eggs + toast",
         calories_kcal=320,
@@ -111,10 +115,11 @@ async def meal_a1(db: AsyncSession, meal_type_a: MealType) -> Meal:
 
 
 @pytest_asyncio.fixture
-async def meal_a2(db: AsyncSession, meal_type_a: MealType) -> Meal:
+async def meal_a2(db: AsyncSession, test_user: User, meal_type_a: MealType) -> Meal:
     """Create a second meal assigned to meal type A."""
     meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Oatmeal {uuid4().hex[:8]}",
         portion_description="1 cup oats + banana",
         calories_kcal=350,
@@ -133,10 +138,11 @@ async def meal_a2(db: AsyncSession, meal_type_a: MealType) -> Meal:
 
 
 @pytest_asyncio.fixture
-async def meal_b1(db: AsyncSession, meal_type_b: MealType) -> Meal:
+async def meal_b1(db: AsyncSession, test_user: User, meal_type_b: MealType) -> Meal:
     """Create a meal assigned to meal type B."""
     meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Chicken Salad {uuid4().hex[:8]}",
         portion_description="200g chicken + greens",
         calories_kcal=450,
@@ -157,6 +163,7 @@ async def meal_b1(db: AsyncSession, meal_type_b: MealType) -> Meal:
 @pytest_asyncio.fixture
 async def today_slot(
     db: AsyncSession,
+    test_user: User,
     meal_type_a: MealType,
     meal_a1: Meal,
 ) -> WeeklyPlanSlot:
@@ -172,6 +179,7 @@ async def today_slot(
 
     week_plan = WeekPlan(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Week {uuid4().hex[:8]}",
         is_default=True,
     )
@@ -180,6 +188,7 @@ async def today_slot(
 
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Template {uuid4().hex[:8]}",
     )
     db.add(template)
@@ -187,6 +196,7 @@ async def today_slot(
 
     instance = WeeklyPlanInstance(
         id=uuid4(),
+        user_id=test_user.id,
         week_plan_id=week_plan.id,
         week_start_date=week_start,
     )
@@ -336,6 +346,7 @@ class TestReassignSlot:
         self,
         db: AsyncSession,
         client: AsyncClient,
+        test_user: User,
         meal_type_a: MealType,
         meal_a1: Meal,
         meal_a2: Meal,
@@ -352,6 +363,7 @@ class TestReassignSlot:
 
         week_plan = WeekPlan(
             id=uuid4(),
+            user_id=test_user.id,
             name=f"Test Past {uuid4().hex[:8]}",
             is_default=True,
         )
@@ -360,6 +372,7 @@ class TestReassignSlot:
 
         template = DayTemplate(
             id=uuid4(),
+            user_id=test_user.id,
             name=f"Test Template Past {uuid4().hex[:8]}",
         )
         db.add(template)
@@ -367,6 +380,7 @@ class TestReassignSlot:
 
         instance = WeeklyPlanInstance(
             id=uuid4(),
+            user_id=test_user.id,
             week_plan_id=week_plan.id,
             week_start_date=week_start,
         )
@@ -408,6 +422,7 @@ class TestReassignSlot:
         self,
         db: AsyncSession,
         client: AsyncClient,
+        test_user: User,
         today_slot: WeeklyPlanSlot,
         meal_type_a: MealType,
         meal_a2: Meal,
@@ -415,6 +430,7 @@ class TestReassignSlot:
         """Round-robin state should NOT be advanced by reassignment."""
         # Set up round-robin state
         rr_state = RoundRobinState(
+            user_id=test_user.id,
             meal_type_id=meal_type_a.id,
             last_meal_id=today_slot.meal_id,
         )

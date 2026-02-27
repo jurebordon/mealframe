@@ -11,6 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
+from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..models.user import User
 from ..schemas.day_template import (
     DayTemplateCreate,
     DayTemplateListItem,
@@ -76,9 +78,11 @@ async def get_day_template(
 async def create_day_template_endpoint(
     data: DayTemplateCreate,
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ) -> DayTemplateResponse:
     """Create a new day template with ordered meal type slots."""
-    template = await create_day_template(db, data)
+    user_id = user.id if user else ADMIN_USER_ID
+    template = await create_day_template(db, data, user_id=user_id)
     return _template_to_response(template)
 
 

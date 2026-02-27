@@ -15,17 +15,19 @@ class WeekPlan(Base):
 
     A week plan maps day templates to weekdays. One plan can be marked as default,
     which is used when generating new weekly instances. Application-level enforcement
-    ensures only one default exists.
+    ensures only one default exists (per user).
     """
     __tablename__ = "week_plan"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(Text, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
+    user = relationship("User", back_populates="week_plans")
     days = relationship("WeekPlanDay", back_populates="week_plan", cascade="all, delete-orphan", order_by="WeekPlanDay.weekday")
     weekly_plan_instances = relationship("WeeklyPlanInstance", back_populates="week_plan")
 

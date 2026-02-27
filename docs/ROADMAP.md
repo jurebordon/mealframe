@@ -9,10 +9,9 @@
 
 | Feature | ADR | Branch | Sessions | Status |
 |---------|-----|--------|----------|--------|
-| Authentication & multi-user | ADR-014 | `feat/auth` | 1 of ~5 done | Session 1 complete: backend auth endpoints + JWT + tests |
+| Authentication & multi-user | ADR-014 | `feat/auth-data-migration` | 2 of ~5 done | Session 2 complete: user_id columns + migration + service updates |
 
 **Remaining auth sessions:**
-- Session 2: Data migration — add `user_id` to all existing tables, backfill seed data, make NOT NULL
 - Session 3: Protect all existing routes, update services to filter by `user_id`
 - Session 4: Frontend — auth pages, auth context, protected routes, API client token handling
 - Session 5: Email verification, password reset, Google OAuth, settings page, rate limiting

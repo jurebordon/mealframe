@@ -5,6 +5,42 @@
 
 ---
 
+## Session: 2026-02-27 (2)
+
+**Role**: backend
+**Task**: Auth data migration — Session 2 of ADR-014
+**Branch**: feat/auth-data-migration
+
+### Summary
+- Added `user_id` FK column (NOT NULL) to 6 existing tables: meal, meal_type, day_template, week_plan, weekly_plan_instance, round_robin_state
+- Created multi-step Alembic migration: seed admin user → add nullable columns → backfill → set NOT NULL → update constraints
+- Changed single-column unique constraints to per-user composites (meal_type.name, day_template.name, weekly_plan_instance.week_start_date)
+- Changed round_robin_state PK from `(meal_type_id)` to `(user_id, meal_type_id)`
+- Updated all service functions to accept `user_id` parameter for create operations
+- API routes use `get_optional_user` with admin fallback — Session 3 will switch to mandatory `get_current_user`
+- Fixed 43 pre-existing test failures from seed data constraint collisions
+- All 180 tests pass
+
+### Files Created
+- [backend/alembic/versions/e247862f8eb7_add_user_id_to_existing_tables.py](backend/alembic/versions/e247862f8eb7_add_user_id_to_existing_tables.py) — Data migration
+
+### Files Modified
+- **Models** (6): meal.py, meal_type.py, day_template.py, week_plan.py, weekly_plan.py, round_robin.py — added user_id FK + relationships
+- **user.py** — added back-populates for all new relationships
+- **Services** (5): meals.py, meal_types.py, day_templates.py, week_plans.py, weekly.py — accept user_id param
+- **round_robin.py** service — derive user_id from meal_type when creating state
+- **API routes** (5): meals.py, meal_types.py, day_templates.py, week_plans.py, weekly.py — pass user_id from auth context
+- **dependencies.py** — ADMIN_USER_ID constant for transition period
+- **config.py** — admin_email setting
+- **Tests** (11): conftest.py + all 10 test files — test_user fixture, user_id in all model constructors, seed data cleanup
+
+### Decisions
+- **Deterministic admin UUID** (`00000000-0000-4000-a000-000000000001`) — reproducible across environments, referenced by both migration and tests
+- **Optional user_id param pattern** — Services accept `user_id=None`, API routes resolve via `get_optional_user` fallback. Clean upgrade path for Session 3
+- **Pre-existing test failures fixed here** — Seed data constraint collisions in weekly/today/stats tests resolved with targeted deletes inside savepoints
+
+---
+
 ## Session: 2026-02-27
 
 **Role**: backend

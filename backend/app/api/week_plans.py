@@ -11,6 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
+from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..models.user import User
 from ..schemas.week_plan import (
     WeekPlanCreate,
     WeekPlanDayResponse,
@@ -69,9 +71,11 @@ async def get_week_plan(
 async def create_week_plan_endpoint(
     data: WeekPlanCreate,
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ) -> WeekPlanResponse:
     """Create a new week plan with weekday-to-template mappings."""
-    plan = await create_week_plan(db, data)
+    user_id = user.id if user else ADMIN_USER_ID
+    plan = await create_week_plan(db, data, user_id=user_id)
     return _plan_to_response(plan)
 
 

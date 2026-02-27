@@ -28,6 +28,7 @@ from app.models import (
     DayTemplateSlot,
     Meal,
     MealType,
+    User,
     WeekPlan,
     WeekPlanDay,
     WeeklyPlanInstance,
@@ -62,13 +63,13 @@ async def client(db: AsyncSession):
 # Helper fixtures for creating test data
 
 @pytest_asyncio.fixture
-async def test_meal_types(db: AsyncSession) -> list[MealType]:
+async def test_meal_types(db: AsyncSession, test_user: User) -> list[MealType]:
     """Create multiple meal types for testing."""
     suffix = uuid4().hex[:8]
     types = [
-        MealType(id=uuid4(), name=f"Breakfast {suffix}", description="Morning meal"),
-        MealType(id=uuid4(), name=f"Lunch {suffix}", description="Midday meal"),
-        MealType(id=uuid4(), name=f"Dinner {suffix}", description="Evening meal"),
+        MealType(id=uuid4(), user_id=test_user.id, name=f"Breakfast {suffix}", description="Morning meal"),
+        MealType(id=uuid4(), user_id=test_user.id, name=f"Lunch {suffix}", description="Midday meal"),
+        MealType(id=uuid4(), user_id=test_user.id, name=f"Dinner {suffix}", description="Evening meal"),
     ]
     for mt in types:
         db.add(mt)
@@ -77,7 +78,7 @@ async def test_meal_types(db: AsyncSession) -> list[MealType]:
 
 
 @pytest_asyncio.fixture
-async def test_meals(db: AsyncSession, test_meal_types: list[MealType]) -> list[Meal]:
+async def test_meals(db: AsyncSession, test_user: User, test_meal_types: list[MealType]) -> list[Meal]:
     """Create meals for each meal type."""
     meals = []
     base_time = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
@@ -87,6 +88,7 @@ async def test_meals(db: AsyncSession, test_meal_types: list[MealType]) -> list[
         for j in range(2):
             meal = Meal(
                 id=uuid4(),
+                user_id=test_user.id,
                 name=f"Test Meal {i}-{j} {uuid4().hex[:8]}",
                 portion_description=f"Portion for meal {i}-{j}",
                 calories_kcal=300 + (i * 100) + (j * 50),
@@ -113,7 +115,7 @@ async def test_meals(db: AsyncSession, test_meal_types: list[MealType]) -> list[
 
 @pytest_asyncio.fixture
 async def test_day_templates(
-    db: AsyncSession, test_meal_types: list[MealType]
+    db: AsyncSession, test_user: User, test_meal_types: list[MealType]
 ) -> list[DayTemplate]:
     """Create day templates with slots."""
     suffix = uuid4().hex[:8]
@@ -122,6 +124,7 @@ async def test_day_templates(
     # Template with all 3 meal types
     template1 = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Full Day {suffix}",
         notes="All meals",
     )
@@ -142,6 +145,7 @@ async def test_day_templates(
     # Template with just breakfast
     template2 = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Light Day {suffix}",
         notes="Just breakfast",
     )
@@ -163,7 +167,7 @@ async def test_day_templates(
 
 @pytest_asyncio.fixture
 async def test_week_plan(
-    db: AsyncSession, test_day_templates: list[DayTemplate]
+    db: AsyncSession, test_user: User, test_day_templates: list[DayTemplate]
 ) -> WeekPlan:
     """Create a default week plan with templates assigned to days."""
     # Clear any existing default week plans (e.g. from seed data) to avoid
@@ -175,6 +179,7 @@ async def test_week_plan(
 
     week_plan = WeekPlan(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Week Plan {uuid4().hex[:8]}",
         is_default=True,
     )
@@ -201,6 +206,7 @@ async def test_week_plan(
 @pytest_asyncio.fixture
 async def current_week_instance(
     db: AsyncSession,
+    test_user: User,
     test_week_plan: WeekPlan,
     test_day_templates: list[DayTemplate],
     test_meal_types: list[MealType],
@@ -218,6 +224,7 @@ async def current_week_instance(
 
     instance = WeeklyPlanInstance(
         id=uuid4(),
+        user_id=test_user.id,
         week_plan_id=test_week_plan.id,
         week_start_date=week_start,
     )

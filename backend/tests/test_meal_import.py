@@ -29,7 +29,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.models import Meal, MealType
+from app.models import Meal, MealType, User
 from app.models.meal_to_meal_type import meal_to_meal_type
 from app.database import get_db
 
@@ -53,7 +53,7 @@ async def client(db: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def meal_types(db: AsyncSession) -> dict[str, MealType]:
+async def meal_types(db: AsyncSession, test_user: User) -> dict[str, MealType]:
     """Create meal types that match the frozen spec defaults."""
     suffix = uuid4().hex[:8]
     names = ["Breakfast", "Lunch", "Dinner", "Weekend Breakfast", "Hiking Fuel"]
@@ -61,6 +61,7 @@ async def meal_types(db: AsyncSession) -> dict[str, MealType]:
     for name in names:
         mt = MealType(
             id=uuid4(),
+            user_id=test_user.id,
             name=f"{name} {suffix}",
             description=f"Test {name}",
         )

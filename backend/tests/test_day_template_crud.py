@@ -17,7 +17,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.models import MealType, DayTemplate, DayTemplateSlot
+from app.models import MealType, DayTemplate, DayTemplateSlot, User
 from app.database import get_db
 
 
@@ -40,12 +40,12 @@ async def client(db: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def sample_meal_types(db: AsyncSession) -> list[MealType]:
+async def sample_meal_types(db: AsyncSession, test_user: User) -> list[MealType]:
     """Create sample meal types for slot assignments."""
     suffix = uuid4().hex[:8]
     types = []
     for name in ["Breakfast", "Lunch", "Dinner"]:
-        mt = MealType(id=uuid4(), name=f"{name} {suffix}", description=f"Test {name}")
+        mt = MealType(id=uuid4(), user_id=test_user.id, name=f"{name} {suffix}", description=f"Test {name}")
         db.add(mt)
         types.append(mt)
     await db.flush()
@@ -54,11 +54,12 @@ async def sample_meal_types(db: AsyncSession) -> list[MealType]:
 
 @pytest_asyncio.fixture
 async def sample_template(
-    db: AsyncSession, sample_meal_types: list[MealType]
+    db: AsyncSession, test_user: User, sample_meal_types: list[MealType]
 ) -> DayTemplate:
     """Create a sample day template with slots."""
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Normal Workday {uuid4().hex[:8]}",
         notes="Standard workday template",
     )
@@ -237,11 +238,12 @@ async def test_update_day_template_not_found(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_delete_day_template(client: AsyncClient, db: AsyncSession):
+async def test_delete_day_template(client: AsyncClient, db: AsyncSession, test_user: User):
     """DELETE /day-templates/{id} removes the template."""
     # Create a standalone template (not used by any week plan)
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Deletable Template {uuid4().hex[:8]}",
     )
     db.add(template)
@@ -322,12 +324,13 @@ async def test_update_day_template_set_soft_limits(
 
 @pytest.mark.asyncio
 async def test_update_day_template_clear_soft_limits(
-    client: AsyncClient, db: AsyncSession, sample_meal_types: list[MealType]
+    client: AsyncClient, db: AsyncSession, test_user: User, sample_meal_types: list[MealType]
 ):
     """PUT /day-templates/{id} can clear soft limits by sending null."""
     # Create a template with limits
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Clearable Limits {uuid4().hex[:8]}",
         max_calories_kcal=2000,
         max_protein_g=160,
@@ -348,11 +351,12 @@ async def test_update_day_template_clear_soft_limits(
 
 @pytest.mark.asyncio
 async def test_update_day_template_omit_limits_preserves_them(
-    client: AsyncClient, db: AsyncSession
+    client: AsyncClient, db: AsyncSession, test_user: User
 ):
     """PUT /day-templates/{id} without limit fields leaves them unchanged."""
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Preserved Limits {uuid4().hex[:8]}",
         max_calories_kcal=2500,
         max_protein_g=200,
@@ -375,11 +379,12 @@ async def test_update_day_template_omit_limits_preserves_them(
 
 @pytest.mark.asyncio
 async def test_list_day_templates_includes_soft_limits(
-    client: AsyncClient, db: AsyncSession
+    client: AsyncClient, db: AsyncSession, test_user: User
 ):
     """GET /day-templates list includes soft limit fields."""
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Listed Limits {uuid4().hex[:8]}",
         max_calories_kcal=1900,
         max_protein_g=170,

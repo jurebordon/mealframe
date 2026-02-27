@@ -26,7 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.models import Meal, MealType
+from app.models import Meal, MealType, User
 from app.models.meal_to_meal_type import meal_to_meal_type
 from app.database import get_db
 
@@ -50,12 +50,12 @@ async def client(db: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def sample_meal_types(db: AsyncSession) -> list[MealType]:
+async def sample_meal_types(db: AsyncSession, test_user: User) -> list[MealType]:
     """Create sample meal types for testing."""
     suffix = uuid4().hex[:8]
     types = []
     for name in ["Breakfast", "Lunch", "Dinner"]:
-        mt = MealType(id=uuid4(), name=f"{name} {suffix}", description=f"Test {name}")
+        mt = MealType(id=uuid4(), user_id=test_user.id, name=f"{name} {suffix}", description=f"Test {name}")
         db.add(mt)
         types.append(mt)
     await db.flush()
@@ -63,10 +63,11 @@ async def sample_meal_types(db: AsyncSession) -> list[MealType]:
 
 
 @pytest_asyncio.fixture
-async def sample_meal(db: AsyncSession, sample_meal_types: list[MealType]) -> Meal:
+async def sample_meal(db: AsyncSession, test_user: User, sample_meal_types: list[MealType]) -> Meal:
     """Create a sample meal with meal type associations."""
     meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Scrambled Eggs {uuid4().hex[:8]}",
         portion_description="2 eggs + 1 slice toast",
         calories_kcal=320,
@@ -133,7 +134,7 @@ async def test_list_meals_returns_meals(
 
 @pytest.mark.asyncio
 async def test_list_meals_pagination(
-    client: AsyncClient, db: AsyncSession, sample_meal_types: list[MealType]
+    client: AsyncClient, db: AsyncSession, test_user: User, sample_meal_types: list[MealType]
 ):
     """GET /meals respects page and page_size parameters."""
     suffix = uuid4().hex[:8]
@@ -141,6 +142,7 @@ async def test_list_meals_pagination(
     for i in range(5):
         meal = Meal(
             id=uuid4(),
+            user_id=test_user.id,
             name=f"Pagination Meal {i} {suffix}",
             portion_description=f"Portion {i}",
         )
@@ -166,14 +168,14 @@ async def test_list_meals_pagination(
 
 @pytest.mark.asyncio
 async def test_list_meals_search(
-    client: AsyncClient, db: AsyncSession
+    client: AsyncClient, db: AsyncSession, test_user: User
 ):
     """GET /meals?search= filters by meal name (case-insensitive)."""
     suffix = uuid4().hex[:8]
     # Create meals with distinct names using a unique prefix to avoid seeded data matches
     prefix = f"XTest{suffix}"
     for name in [f"{prefix}ChickenRice", f"{prefix}SalmonBowl", f"{prefix}ChickenSalad"]:
-        meal = Meal(id=uuid4(), name=name, portion_description="Test portion")
+        meal = Meal(id=uuid4(), user_id=test_user.id, name=name, portion_description="Test portion")
         db.add(meal)
     await db.flush()
 
@@ -187,16 +189,16 @@ async def test_list_meals_search(
 
 @pytest.mark.asyncio
 async def test_list_meals_filter_by_meal_type(
-    client: AsyncClient, db: AsyncSession, sample_meal_types: list[MealType]
+    client: AsyncClient, db: AsyncSession, test_user: User, sample_meal_types: list[MealType]
 ):
     """GET /meals?meal_type_id= filters by meal type."""
     suffix = uuid4().hex[:8]
     # Create two meals: one breakfast, one lunch
     breakfast_meal = Meal(
-        id=uuid4(), name=f"Oatmeal {suffix}", portion_description="100g oats"
+        id=uuid4(), user_id=test_user.id, name=f"Oatmeal {suffix}", portion_description="100g oats"
     )
     lunch_meal = Meal(
-        id=uuid4(), name=f"Sandwich {suffix}", portion_description="2 slices bread"
+        id=uuid4(), user_id=test_user.id, name=f"Sandwich {suffix}", portion_description="2 slices bread"
     )
     db.add(breakfast_meal)
     db.add(lunch_meal)

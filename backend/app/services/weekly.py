@@ -94,6 +94,7 @@ async def generate_weekly_plan(
     db: AsyncSession,
     week_start_date: Optional[date] = None,
     week_plan_id: Optional[UUID] = None,
+    user_id: Optional[UUID] = None,
 ) -> WeeklyPlanInstance:
     """
     Generate a new weekly plan instance.
@@ -142,10 +143,13 @@ async def generate_weekly_plan(
             raise ValueError("No default week plan available")
 
     # Create instance
-    instance = WeeklyPlanInstance(
+    inst_kwargs = dict(
         week_plan_id=week_plan.id,
         week_start_date=week_start_date,
     )
+    if user_id:
+        inst_kwargs["user_id"] = user_id
+    instance = WeeklyPlanInstance(**inst_kwargs)
     db.add(instance)
     await db.flush()
 

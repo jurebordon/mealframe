@@ -26,6 +26,7 @@ from app.models import (
     DayTemplateSlot,
     Meal,
     MealType,
+    User,
     WeekPlan,
     WeekPlanDay,
     WeeklyPlanInstance,
@@ -61,10 +62,11 @@ async def client(db: AsyncSession):
 # Helper fixtures for creating test data
 
 @pytest_asyncio.fixture
-async def test_meal_type(db: AsyncSession) -> MealType:
+async def test_meal_type(db: AsyncSession, test_user: User) -> MealType:
     """Create a meal type for testing."""
     mt = MealType(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Breakfast {uuid4().hex[:8]}",
         description="Test meal type",
     )
@@ -74,10 +76,11 @@ async def test_meal_type(db: AsyncSession) -> MealType:
 
 
 @pytest_asyncio.fixture
-async def test_meal(db: AsyncSession, test_meal_type: MealType) -> Meal:
+async def test_meal(db: AsyncSession, test_user: User, test_meal_type: MealType) -> Meal:
     """Create a meal for testing."""
     meal = Meal(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Scrambled Eggs {uuid4().hex[:8]}",
         portion_description="2 eggs + 1 slice toast",
         calories_kcal=320,
@@ -101,10 +104,11 @@ async def test_meal(db: AsyncSession, test_meal_type: MealType) -> Meal:
 
 
 @pytest_asyncio.fixture
-async def test_day_template(db: AsyncSession, test_meal_type: MealType) -> DayTemplate:
+async def test_day_template(db: AsyncSession, test_user: User, test_meal_type: MealType) -> DayTemplate:
     """Create a day template with one slot."""
     template = DayTemplate(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Workday {uuid4().hex[:8]}",
         notes="Test template",
     )
@@ -132,6 +136,7 @@ def get_week_start(target_date: date) -> date:
 @pytest_asyncio.fixture
 async def weekly_plan_with_today(
     db: AsyncSession,
+    test_user: User,
     test_meal_type: MealType,
     test_meal: Meal,
     test_day_template: DayTemplate,
@@ -153,6 +158,7 @@ async def weekly_plan_with_today(
     # Create week plan
     week_plan = WeekPlan(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Week Plan {uuid4().hex[:8]}",
         is_default=True,
     )
@@ -162,6 +168,7 @@ async def weekly_plan_with_today(
     # Create weekly plan instance
     instance = WeeklyPlanInstance(
         id=uuid4(),
+        user_id=test_user.id,
         week_plan_id=week_plan.id,
         week_start_date=week_start,
     )
@@ -199,6 +206,7 @@ async def weekly_plan_with_today(
 @pytest_asyncio.fixture
 async def weekly_plan_with_yesterday(
     db: AsyncSession,
+    test_user: User,
     test_meal_type: MealType,
     test_meal: Meal,
     test_day_template: DayTemplate,
@@ -220,6 +228,7 @@ async def weekly_plan_with_yesterday(
     # Create week plan
     week_plan = WeekPlan(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Week Plan {uuid4().hex[:8]}",
         is_default=True,
     )
@@ -229,6 +238,7 @@ async def weekly_plan_with_yesterday(
     # Create weekly plan instance
     instance = WeeklyPlanInstance(
         id=uuid4(),
+        user_id=test_user.id,
         week_plan_id=week_plan.id,
         week_start_date=week_start,
     )
@@ -332,6 +342,7 @@ class TestGetToday:
         self,
         db: AsyncSession,
         client: AsyncClient,
+        test_user: User,
         test_meal_type: MealType,
         test_meal: Meal,
         test_day_template: DayTemplate,
@@ -347,12 +358,13 @@ class TestGetToday:
         await db.flush()
 
         # Create week plan and instance
-        week_plan = WeekPlan(id=uuid4(), name=f"Test {uuid4().hex[:8]}", is_default=True)
+        week_plan = WeekPlan(id=uuid4(), user_id=test_user.id, name=f"Test {uuid4().hex[:8]}", is_default=True)
         db.add(week_plan)
         await db.flush()
 
         instance = WeeklyPlanInstance(
             id=uuid4(),
+            user_id=test_user.id,
             week_plan_id=week_plan.id,
             week_start_date=week_start,
         )
@@ -616,6 +628,7 @@ class TestStreakCalculation:
         self,
         db: AsyncSession,
         client: AsyncClient,
+        test_user: User,
         test_meal_type: MealType,
         test_meal: Meal,
         test_day_template: DayTemplate,
@@ -637,7 +650,7 @@ class TestStreakCalculation:
         await db.flush()
 
         # Create week plan
-        week_plan = WeekPlan(id=uuid4(), name=f"Test {uuid4().hex[:8]}", is_default=True)
+        week_plan = WeekPlan(id=uuid4(), user_id=test_user.id, name=f"Test {uuid4().hex[:8]}", is_default=True)
         db.add(week_plan)
         await db.flush()
 
@@ -646,6 +659,7 @@ class TestStreakCalculation:
         for ws in set([week_start_yesterday, week_start_day_before]):
             instance = WeeklyPlanInstance(
                 id=uuid4(),
+                user_id=test_user.id,
                 week_plan_id=week_plan.id,
                 week_start_date=ws,
             )
@@ -694,6 +708,7 @@ class TestStreakCalculation:
         self,
         db: AsyncSession,
         client: AsyncClient,
+        test_user: User,
         test_meal_type: MealType,
         test_meal: Meal,
         test_day_template: DayTemplate,
@@ -714,7 +729,7 @@ class TestStreakCalculation:
         await db.flush()
 
         # Create week plan
-        week_plan = WeekPlan(id=uuid4(), name=f"Test {uuid4().hex[:8]}", is_default=True)
+        week_plan = WeekPlan(id=uuid4(), user_id=test_user.id, name=f"Test {uuid4().hex[:8]}", is_default=True)
         db.add(week_plan)
         await db.flush()
 
@@ -723,6 +738,7 @@ class TestStreakCalculation:
         for ws in set([week_start, week_start_day_before]):
             instance = WeeklyPlanInstance(
                 id=uuid4(),
+                user_id=test_user.id,
                 week_plan_id=week_plan.id,
                 week_start_date=ws,
             )

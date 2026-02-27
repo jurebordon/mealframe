@@ -17,6 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Path, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
+from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..models.user import User
 from ..schemas.common import ErrorCode, WEEKDAY_NAMES
 from ..schemas.weekly_plan import (
     WeeklyPlanInstanceResponse,
@@ -206,6 +208,7 @@ async def generate_week(
     request: WeeklyPlanGenerateRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ) -> WeeklyPlanInstanceResponse:
     """
     Generate or regenerate a weekly plan.
@@ -229,10 +232,12 @@ async def generate_week(
     Errors:
     - 400 Bad Request: No default week plan, or invalid date
     """
+    user_id = user.id if user else ADMIN_USER_ID
     try:
         instance = await generate_weekly_plan(
             db,
             week_start_date=request.week_start_date,
+            user_id=user_id,
         )
         response.status_code = status.HTTP_201_CREATED
         return await build_instance_response(db, instance)

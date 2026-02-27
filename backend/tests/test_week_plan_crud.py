@@ -17,7 +17,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.models import MealType, DayTemplate, DayTemplateSlot, WeekPlan, WeekPlanDay
+from app.models import MealType, DayTemplate, DayTemplateSlot, User, WeekPlan, WeekPlanDay
 from app.database import get_db
 
 
@@ -40,17 +40,18 @@ async def client(db: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def sample_templates(db: AsyncSession) -> list[DayTemplate]:
+async def sample_templates(db: AsyncSession, test_user: User) -> list[DayTemplate]:
     """Create sample day templates for week plan assignments."""
     suffix = uuid4().hex[:8]
     # Need meal types for the templates
-    mt = MealType(id=uuid4(), name=f"Breakfast {suffix}")
+    mt = MealType(id=uuid4(), user_id=test_user.id, name=f"Breakfast {suffix}")
     db.add(mt)
 
     templates = []
     for name in ["Normal Workday", "Weekend", "Workout Day"]:
         template = DayTemplate(
             id=uuid4(),
+            user_id=test_user.id,
             name=f"{name} {suffix}",
         )
         db.add(template)
@@ -61,11 +62,12 @@ async def sample_templates(db: AsyncSession) -> list[DayTemplate]:
 
 @pytest_asyncio.fixture
 async def sample_week_plan(
-    db: AsyncSession, sample_templates: list[DayTemplate]
+    db: AsyncSession, test_user: User, sample_templates: list[DayTemplate]
 ) -> WeekPlan:
     """Create a sample week plan with day mappings."""
     plan = WeekPlan(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Standard Week {uuid4().hex[:8]}",
         is_default=False,
     )
@@ -251,10 +253,11 @@ async def test_update_week_plan_not_found(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_delete_week_plan(client: AsyncClient, db: AsyncSession):
+async def test_delete_week_plan(client: AsyncClient, db: AsyncSession, test_user: User):
     """DELETE /week-plans/{id} removes the plan."""
     plan = WeekPlan(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Deletable Plan {uuid4().hex[:8]}",
     )
     db.add(plan)
@@ -295,12 +298,12 @@ async def test_set_default_week_plan(
 
 @pytest.mark.asyncio
 async def test_set_default_clears_previous(
-    client: AsyncClient, db: AsyncSession, sample_templates: list[DayTemplate]
+    client: AsyncClient, db: AsyncSession, test_user: User, sample_templates: list[DayTemplate]
 ):
     """POST /week-plans/{id}/set-default clears previous default."""
     # Create two plans
-    plan1 = WeekPlan(id=uuid4(), name=f"Plan A {uuid4().hex[:8]}", is_default=True)
-    plan2 = WeekPlan(id=uuid4(), name=f"Plan B {uuid4().hex[:8]}", is_default=False)
+    plan1 = WeekPlan(id=uuid4(), user_id=test_user.id, name=f"Plan A {uuid4().hex[:8]}", is_default=True)
+    plan2 = WeekPlan(id=uuid4(), user_id=test_user.id, name=f"Plan B {uuid4().hex[:8]}", is_default=False)
     db.add(plan1)
     db.add(plan2)
     await db.flush()

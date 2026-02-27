@@ -18,13 +18,18 @@ class WeeklyPlanInstance(Base):
     multiple days with concrete meal assignments.
     """
     __tablename__ = "weekly_plan_instance"
+    __table_args__ = (
+        UniqueConstraint("user_id", "week_start_date", name="uq_weekly_plan_instance_user_week"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
     week_plan_id = Column(UUID(as_uuid=True), ForeignKey("week_plan.id", ondelete="SET NULL"))
-    week_start_date = Column(Date, nullable=False, unique=True, index=True)
+    week_start_date = Column(Date, nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     # Relationships
+    user = relationship("User", back_populates="weekly_plan_instances")
     week_plan = relationship("WeekPlan", back_populates="weekly_plan_instances")
     days = relationship("WeeklyPlanInstanceDay", back_populates="weekly_plan_instance", cascade="all, delete-orphan")
     slots = relationship("WeeklyPlanSlot", back_populates="weekly_plan_instance", cascade="all, delete-orphan")

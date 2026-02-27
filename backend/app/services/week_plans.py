@@ -48,7 +48,7 @@ async def get_week_plan_by_id(db: AsyncSession, plan_id: UUID) -> WeekPlan | Non
     return result.scalars().first()
 
 
-async def create_week_plan(db: AsyncSession, data: WeekPlanCreate) -> WeekPlan:
+async def create_week_plan(db: AsyncSession, data: WeekPlanCreate, user_id: UUID | None = None) -> WeekPlan:
     """Create a new week plan with day mappings."""
     # Check if this is the first week plan
     count_result = await db.execute(select(func.count(WeekPlan.id)))
@@ -63,10 +63,13 @@ async def create_week_plan(db: AsyncSession, data: WeekPlanCreate) -> WeekPlan:
     if is_default:
         await _clear_default(db)
 
-    plan = WeekPlan(
+    wp_kwargs = dict(
         name=data.name,
         is_default=is_default,
     )
+    if user_id:
+        wp_kwargs["user_id"] = user_id
+    plan = WeekPlan(**wp_kwargs)
     db.add(plan)
     await db.flush()
 

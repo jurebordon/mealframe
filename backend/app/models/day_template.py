@@ -17,9 +17,13 @@ class DayTemplate(Base):
     the structure of a day. Templates can be assigned to weekdays in a week plan.
     """
     __tablename__ = "day_template"
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_day_template_user_name"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    name = Column(Text, nullable=False, unique=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(Text, nullable=False)
     notes = Column(Text)
     max_calories_kcal = Column(Integer, nullable=True)
     max_protein_g = Column(Numeric(6, 1), nullable=True)
@@ -27,6 +31,7 @@ class DayTemplate(Base):
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
+    user = relationship("User", back_populates="day_templates")
     slots = relationship("DayTemplateSlot", back_populates="day_template", cascade="all, delete-orphan", order_by="DayTemplateSlot.position")
     week_plan_days = relationship("WeekPlanDay", back_populates="day_template")
     weekly_plan_instance_days = relationship("WeeklyPlanInstanceDay", back_populates="day_template")

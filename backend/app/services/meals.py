@@ -66,6 +66,7 @@ def _parse_optional_decimal(value: str, field_name: str) -> tuple[Decimal | None
 async def import_meals_from_csv(
     db: AsyncSession,
     csv_content: str,
+    user_id: UUID | None = None,
 ) -> MealImportResult:
     """
     Import meals from CSV content.
@@ -186,7 +187,7 @@ async def import_meals_from_csv(
         notes = row.get("notes", "").strip() or None
 
         # Create meal
-        meal = Meal(
+        meal_kwargs = dict(
             name=name,
             portion_description=portion_description,
             calories_kcal=calories_kcal,
@@ -198,6 +199,9 @@ async def import_meals_from_csv(
             fiber_g=fiber_g,
             notes=notes,
         )
+        if user_id:
+            meal_kwargs["user_id"] = user_id
+        meal = Meal(**meal_kwargs)
         db.add(meal)
         await db.flush()  # Get the meal ID
 
@@ -209,7 +213,10 @@ async def import_meals_from_csv(
                 mt = meal_type_lookup.get(type_name)
                 if mt is None:
                     # Auto-create the meal type
-                    mt = MealType(name=type_name)
+                    mt_kwargs = {"name": type_name}
+                    if user_id:
+                        mt_kwargs["user_id"] = user_id
+                    mt = MealType(**mt_kwargs)
                     db.add(mt)
                     await db.flush()  # Get the ID
 
@@ -314,9 +321,9 @@ async def get_meal_by_id(db: AsyncSession, meal_id: UUID) -> Meal | None:
     return result.scalars().first()
 
 
-async def create_meal(db: AsyncSession, data: MealCreate) -> Meal:
+async def create_meal(db: AsyncSession, data: MealCreate, user_id: UUID | None = None) -> Meal:
     """Create a new meal with optional meal type associations."""
-    meal = Meal(
+    meal_kwargs = dict(
         name=data.name,
         portion_description=data.portion_description,
         calories_kcal=data.calories_kcal,
@@ -328,6 +335,9 @@ async def create_meal(db: AsyncSession, data: MealCreate) -> Meal:
         fiber_g=data.fiber_g,
         notes=data.notes,
     )
+    if user_id:
+        meal_kwargs["user_id"] = user_id
+    meal = Meal(**meal_kwargs)
     db.add(meal)
     await db.flush()
 

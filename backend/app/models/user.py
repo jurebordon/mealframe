@@ -40,6 +40,12 @@ class User(Base):
     refresh_tokens = relationship(
         "RefreshToken", back_populates="user", cascade="all, delete-orphan"
     )
+    meals = relationship("Meal", back_populates="user", cascade="all, delete-orphan")
+    meal_types = relationship("MealType", back_populates="user", cascade="all, delete-orphan")
+    day_templates = relationship("DayTemplate", back_populates="user", cascade="all, delete-orphan")
+    week_plans = relationship("WeekPlan", back_populates="user", cascade="all, delete-orphan")
+    weekly_plan_instances = relationship("WeeklyPlanInstance", back_populates="user", cascade="all, delete-orphan")
+    round_robin_states = relationship("RoundRobinState", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"

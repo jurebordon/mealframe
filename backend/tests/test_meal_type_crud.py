@@ -16,7 +16,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.models import MealType, Meal
+from app.models import MealType, Meal, User
 from app.models.meal_to_meal_type import meal_to_meal_type
 from app.database import get_db
 
@@ -40,10 +40,11 @@ async def client(db: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def sample_meal_type(db: AsyncSession) -> MealType:
+async def sample_meal_type(db: AsyncSession, test_user: User) -> MealType:
     """Create a sample meal type."""
     mt = MealType(
         id=uuid4(),
+        user_id=test_user.id,
         name=f"Test Breakfast {uuid4().hex[:8]}",
         description="Morning meal",
         tags=["morning", "energy"],
@@ -75,11 +76,11 @@ async def test_list_meal_types(client: AsyncClient, sample_meal_type: MealType):
 
 @pytest.mark.asyncio
 async def test_list_meal_types_with_meal_count(
-    client: AsyncClient, db: AsyncSession, sample_meal_type: MealType
+    client: AsyncClient, db: AsyncSession, test_user: User, sample_meal_type: MealType
 ):
     """GET /meal-types includes correct meal_count."""
     # Create a meal associated with this type
-    meal = Meal(id=uuid4(), name=f"Test Meal {uuid4().hex[:8]}", portion_description="Test")
+    meal = Meal(id=uuid4(), user_id=test_user.id, name=f"Test Meal {uuid4().hex[:8]}", portion_description="Test")
     db.add(meal)
     await db.flush()
     await db.execute(
