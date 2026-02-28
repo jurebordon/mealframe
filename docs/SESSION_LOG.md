@@ -5,6 +5,36 @@
 
 ---
 
+## Session: 2026-02-28
+
+**Role**: backend
+**Task**: Protect all API routes with mandatory auth — Session 3 of ADR-014
+**Branch**: feat/auth-route-protection
+
+### Summary
+- All 35+ API endpoints now require valid JWT via `get_current_user` dependency
+- All service functions filter queries by `user_id` for complete data isolation
+- Removed `get_optional_user`, `ADMIN_USER_ID` fallback, and `_bearer_scheme_optional` from dependencies
+- Ownership violations return 404 (not 403) to avoid leaking resource existence
+- Added 4 cross-user isolation tests verifying meals, meal types, day templates, and week plans
+- All 184 tests pass (180 existing + 4 new isolation tests)
+
+### Files Modified
+- **API routes** (7): meals.py, meal_types.py, day_templates.py, week_plans.py, weekly.py, today.py, stats.py — `get_optional_user` → `get_current_user`, pass `user.id` to all services
+- **Services** (7): meals.py, meal_types.py, day_templates.py, week_plans.py, weekly.py, today.py, stats.py — mandatory `user_id: UUID` param, all queries filter by user_id
+- **dependencies.py** — removed `get_optional_user`, `ADMIN_USER_ID`, `_bearer_scheme_optional`
+- **Tests** (9): all API test files — client fixtures override `get_current_user` with `test_user`
+
+### Files Created
+- [backend/tests/test_user_isolation.py](backend/tests/test_user_isolation.py) — 4 cross-user isolation tests
+
+### Decisions
+- **404 for ownership violations** — Returning 404 instead of 403 prevents attackers from discovering whether a resource UUID exists for another user
+- **Override get_current_user in tests** — Each test file's `client` fixture injects `test_user` via `app.dependency_overrides[get_current_user]`, avoiding JWT token generation in tests
+- **round_robin service unchanged** — Already scoped by `meal_type_id` (which is user-owned), no direct user_id param needed
+
+---
+
 ## Session: 2026-02-27 (2)
 
 **Role**: backend

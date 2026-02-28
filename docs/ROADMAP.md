@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-02-27
+**Last Updated**: 2026-02-28
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -9,10 +9,9 @@
 
 | Feature | ADR | Branch | Sessions | Status |
 |---------|-----|--------|----------|--------|
-| Authentication & multi-user | ADR-014 | `feat/auth-data-migration` | 2 of ~5 done | Session 2 complete: user_id columns + migration + service updates |
+| Authentication & multi-user | ADR-014 | `feat/auth-route-protection` | 3 of ~5 done | Session 3 complete: mandatory auth on all routes + user_id filtering |
 
 **Remaining auth sessions:**
-- Session 3: Protect all existing routes, update services to filter by `user_id`
 - Session 4: Frontend — auth pages, auth context, protected routes, API client token handling
 - Session 5: Email verification, password reset, Google OAuth, settings page, rate limiting
 
