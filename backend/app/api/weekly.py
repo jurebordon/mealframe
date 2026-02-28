@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Path, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..dependencies import get_current_user
 from ..models.user import User
 from ..schemas.common import ErrorCode, WEEKDAY_NAMES
 from ..schemas.weekly_plan import (
@@ -164,6 +164,7 @@ async def build_instance_response(
 async def get_current_week(
     week_start_date: date | None = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> WeeklyPlanInstanceResponse:
     """
     Get a week's plan.
@@ -179,7 +180,7 @@ async def get_current_week(
 
     If no plan exists for the specified week, returns 404.
     """
-    instance = await get_week_instance(db, week_start_date)
+    instance = await get_week_instance(db, user.id, week_start_date)
 
     if not instance:
         week_desc = f"week starting {week_start_date}" if week_start_date else "the current week"
@@ -208,7 +209,7 @@ async def generate_week(
     request: WeeklyPlanGenerateRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
 ) -> WeeklyPlanInstanceResponse:
     """
     Generate or regenerate a weekly plan.
@@ -232,12 +233,11 @@ async def generate_week(
     Errors:
     - 400 Bad Request: No default week plan, or invalid date
     """
-    user_id = user.id if user else ADMIN_USER_ID
     try:
         instance = await generate_weekly_plan(
             db,
             week_start_date=request.week_start_date,
-            user_id=user_id,
+            user_id=user.id,
         )
         response.status_code = status.HTTP_201_CREATED
         return await build_instance_response(db, instance)
@@ -251,6 +251,7 @@ async def generate_week(
                 instance = await regenerate_weekly_plan(
                     db,
                     week_start_date=request.week_start_date,
+                    user_id=user.id,
                 )
                 # Return 200 OK for regeneration (not 201 Created)
                 response.status_code = status.HTTP_200_OK
@@ -285,6 +286,7 @@ async def switch_template(
     target_date: date = Path(..., description="The date to switch (YYYY-MM-DD)"),
     request: SwitchTemplateRequest = ...,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> WeeklyPlanInstanceDayResponse:
     """
     Switch a day's template.
@@ -302,7 +304,7 @@ async def switch_template(
 
     Returns the updated day with regenerated slots.
     """
-    instance = await get_current_week_instance(db)
+    instance = await get_current_week_instance(db, user.id)
 
     if not instance:
         raise HTTPException(
@@ -367,6 +369,7 @@ async def set_override(
     target_date: date = Path(..., description="The date to override (YYYY-MM-DD)"),
     request: SetOverrideRequest = ...,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> OverrideResponse:
     """
     Mark a day as "no plan" override.
@@ -382,7 +385,7 @@ async def set_override(
 
     Returns the override status.
     """
-    instance = await get_current_week_instance(db)
+    instance = await get_current_week_instance(db, user.id)
 
     if not instance:
         raise HTTPException(
@@ -439,6 +442,7 @@ async def set_override(
 async def clear_override(
     target_date: date = Path(..., description="The date to restore (YYYY-MM-DD)"),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> WeeklyPlanInstanceDayResponse:
     """
     Remove override and restore plan for a day.
@@ -451,7 +455,7 @@ async def clear_override(
 
     Returns the day with restored slots.
     """
-    instance = await get_current_week_instance(db)
+    instance = await get_current_week_instance(db, user.id)
 
     if not instance:
         raise HTTPException(

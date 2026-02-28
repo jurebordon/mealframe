@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..dependencies import get_current_user
 from ..models.user import User
 from ..schemas.meal_type import (
     MealTypeCreate,
@@ -35,9 +35,10 @@ router = APIRouter(prefix="/api/v1/meal-types", tags=["Meal Types"])
 @router.get("", response_model=list[MealTypeWithCount])
 async def get_meal_types(
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[MealTypeWithCount]:
     """List all meal types with meal counts."""
-    rows = await list_meal_types(db)
+    rows = await list_meal_types(db, user.id)
 
     return [
         MealTypeWithCount(
@@ -57,9 +58,10 @@ async def get_meal_types(
 async def get_meal_type(
     meal_type_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MealTypeResponse:
     """Get a single meal type by ID."""
-    meal_type = await get_meal_type_by_id(db, meal_type_id)
+    meal_type = await get_meal_type_by_id(db, meal_type_id, user.id)
     if meal_type is None:
         raise HTTPException(status_code=404, detail="Meal type not found")
 
@@ -77,11 +79,10 @@ async def get_meal_type(
 async def create_meal_type_endpoint(
     data: MealTypeCreate,
     db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
 ) -> MealTypeResponse:
     """Create a new meal type."""
-    user_id = user.id if user else ADMIN_USER_ID
-    meal_type = await create_meal_type(db, data, user_id=user_id)
+    meal_type = await create_meal_type(db, data, user_id=user.id)
 
     return MealTypeResponse(
         id=meal_type.id,
@@ -98,9 +99,10 @@ async def update_meal_type_endpoint(
     meal_type_id: UUID,
     data: MealTypeUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MealTypeResponse:
     """Update an existing meal type."""
-    meal_type = await get_meal_type_by_id(db, meal_type_id)
+    meal_type = await get_meal_type_by_id(db, meal_type_id, user.id)
     if meal_type is None:
         raise HTTPException(status_code=404, detail="Meal type not found")
 
@@ -120,9 +122,10 @@ async def update_meal_type_endpoint(
 async def delete_meal_type_endpoint(
     meal_type_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> None:
     """Delete a meal type. Fails if used by day template slots."""
-    meal_type = await get_meal_type_by_id(db, meal_type_id)
+    meal_type = await get_meal_type_by_id(db, meal_type_id, user.id)
     if meal_type is None:
         raise HTTPException(status_code=404, detail="Meal type not found")
 

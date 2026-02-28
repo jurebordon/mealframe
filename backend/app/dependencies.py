@@ -11,11 +11,6 @@ from app.security import decode_access_token
 from app.services.auth import get_user_by_id
 
 _bearer_scheme = HTTPBearer()
-_bearer_scheme_optional = HTTPBearer(auto_error=False)
-
-# Admin user seeded by migration — fallback when no auth token is provided.
-# Session 3 will replace get_optional_user usage with get_current_user (mandatory).
-ADMIN_USER_ID = UUID("00000000-0000-4000-a000-000000000001")
 
 
 async def get_current_user(
@@ -42,31 +37,5 @@ async def get_current_user(
             detail="User not found or disabled",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    return user
-
-
-async def get_optional_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(
-        _bearer_scheme_optional
-    ),
-    db: AsyncSession = Depends(get_db),
-) -> User | None:
-    """
-    Same as get_current_user but returns None instead of 401.
-    Use during the transition period where routes accept both
-    authenticated and unauthenticated requests.
-    """
-    if not credentials:
-        return None
-
-    payload = decode_access_token(credentials.credentials)
-    if not payload:
-        return None
-
-    user_id = UUID(payload["sub"])
-    user = await get_user_by_id(db, user_id)
-    if not user or not user.is_active:
-        return None
 
     return user

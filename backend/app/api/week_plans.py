@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..dependencies import get_current_user
 from ..models.user import User
 from ..schemas.week_plan import (
     WeekPlanCreate,
@@ -39,9 +39,10 @@ router = APIRouter(prefix="/api/v1/week-plans", tags=["Week Plans"])
 @router.get("", response_model=list[WeekPlanListItem])
 async def get_week_plans(
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[WeekPlanListItem]:
     """List all week plans with day counts."""
-    rows = await list_week_plans(db)
+    rows = await list_week_plans(db, user.id)
 
     return [
         WeekPlanListItem(
@@ -58,9 +59,10 @@ async def get_week_plans(
 async def get_week_plan(
     plan_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> WeekPlanResponse:
     """Get a single week plan by ID with full day mapping details."""
-    plan = await get_week_plan_by_id(db, plan_id)
+    plan = await get_week_plan_by_id(db, plan_id, user.id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Week plan not found")
 
@@ -71,11 +73,10 @@ async def get_week_plan(
 async def create_week_plan_endpoint(
     data: WeekPlanCreate,
     db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
 ) -> WeekPlanResponse:
     """Create a new week plan with weekday-to-template mappings."""
-    user_id = user.id if user else ADMIN_USER_ID
-    plan = await create_week_plan(db, data, user_id=user_id)
+    plan = await create_week_plan(db, data, user_id=user.id)
     return _plan_to_response(plan)
 
 
@@ -84,9 +85,10 @@ async def update_week_plan_endpoint(
     plan_id: UUID,
     data: WeekPlanUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> WeekPlanResponse:
     """Update an existing week plan. Providing days replaces all day mappings."""
-    plan = await get_week_plan_by_id(db, plan_id)
+    plan = await get_week_plan_by_id(db, plan_id, user.id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Week plan not found")
 
@@ -98,9 +100,10 @@ async def update_week_plan_endpoint(
 async def delete_week_plan_endpoint(
     plan_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> None:
     """Delete a week plan."""
-    plan = await get_week_plan_by_id(db, plan_id)
+    plan = await get_week_plan_by_id(db, plan_id, user.id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Week plan not found")
 
@@ -111,9 +114,10 @@ async def delete_week_plan_endpoint(
 async def set_default_week_plan_endpoint(
     plan_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> WeekPlanResponse:
     """Set a week plan as the default plan for generating new weeks."""
-    plan = await get_week_plan_by_id(db, plan_id)
+    plan = await get_week_plan_by_id(db, plan_id, user.id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Week plan not found")
 

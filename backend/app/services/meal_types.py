@@ -5,7 +5,6 @@ Handles CRUD operations for meal types.
 Per Tech Spec section 4.5 (Setup/Admin Endpoints).
 """
 import logging
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -18,9 +17,9 @@ from app.schemas.meal_type import MealTypeCreate, MealTypeUpdate
 logger = logging.getLogger(__name__)
 
 
-async def list_meal_types(db: AsyncSession) -> list[dict]:
+async def list_meal_types(db: AsyncSession, user_id: UUID) -> list[dict]:
     """
-    List all meal types with their assigned meal counts.
+    List all meal types with their assigned meal counts, scoped to user.
 
     Returns list of dicts with MealType objects and meal_count.
     """
@@ -37,6 +36,7 @@ async def list_meal_types(db: AsyncSession) -> list[dict]:
     result = await db.execute(
         select(MealType, func.coalesce(count_subq.c.meal_count, 0).label("meal_count"))
         .outerjoin(count_subq, MealType.id == count_subq.c.meal_type_id)
+        .where(MealType.user_id == user_id)
         .order_by(MealType.name)
     )
     rows = result.all()
@@ -44,24 +44,22 @@ async def list_meal_types(db: AsyncSession) -> list[dict]:
     return [{"meal_type": row[0], "meal_count": row[1]} for row in rows]
 
 
-async def get_meal_type_by_id(db: AsyncSession, meal_type_id: UUID) -> MealType | None:
-    """Get a single meal type by ID."""
+async def get_meal_type_by_id(db: AsyncSession, meal_type_id: UUID, user_id: UUID) -> MealType | None:
+    """Get a single meal type by ID. Returns None if not owned by user."""
     result = await db.execute(
-        select(MealType).where(MealType.id == meal_type_id)
+        select(MealType).where(MealType.id == meal_type_id, MealType.user_id == user_id)
     )
     return result.scalars().first()
 
 
-async def create_meal_type(db: AsyncSession, data: MealTypeCreate, user_id: Optional[UUID] = None) -> MealType:
+async def create_meal_type(db: AsyncSession, data: MealTypeCreate, user_id: UUID) -> MealType:
     """Create a new meal type."""
-    mt_kwargs = dict(
+    meal_type = MealType(
         name=data.name,
         description=data.description,
         tags=data.tags,
+        user_id=user_id,
     )
-    if user_id:
-        mt_kwargs["user_id"] = user_id
-    meal_type = MealType(**mt_kwargs)
     db.add(meal_type)
     await db.flush()
     return meal_type

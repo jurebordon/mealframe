@@ -19,6 +19,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
+from ..dependencies import get_current_user
+from ..models.user import User
 from ..schemas.common import ErrorCode
 from ..schemas.meal import MealCompact
 from ..schemas.meal_type import MealTypeCompact
@@ -38,7 +40,10 @@ router = APIRouter(prefix="/api/v1", tags=["Daily Use"])
 
 
 @router.get("/today", response_model=TodayResponse)
-async def get_today(db: AsyncSession = Depends(get_db)) -> TodayResponse:
+async def get_today(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> TodayResponse:
     """
     Get today's meal plan with completion status.
 
@@ -51,11 +56,14 @@ async def get_today(db: AsyncSession = Depends(get_db)) -> TodayResponse:
     If no plan exists for today, returns an empty slots list with stats.
     """
     today = date.today()
-    return await get_today_response(db, today)
+    return await get_today_response(db, today, user.id)
 
 
 @router.get("/yesterday", response_model=TodayResponse)
-async def get_yesterday(db: AsyncSession = Depends(get_db)) -> TodayResponse:
+async def get_yesterday(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> TodayResponse:
     """
     Get yesterday's meal plan for review/catch-up.
 
@@ -63,7 +71,7 @@ async def get_yesterday(db: AsyncSession = Depends(get_db)) -> TodayResponse:
     Useful for the Yesterday Review modal to catch up on unmarked meals.
     """
     yesterday = date.today() - timedelta(days=1)
-    return await get_today_response(db, yesterday)
+    return await get_today_response(db, yesterday, user.id)
 
 
 @router.post(
@@ -74,6 +82,7 @@ async def get_yesterday(db: AsyncSession = Depends(get_db)) -> TodayResponse:
 async def add_adhoc_slot(
     request: AddAdhocSlotRequest,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> WeeklyPlanSlotWithNext:
     """
     Add an ad-hoc meal to today's plan.
@@ -84,7 +93,7 @@ async def add_adhoc_slot(
     Returns 404 if no weekly plan exists for today or the meal doesn't exist.
     """
     today = date.today()
-    slot = await create_adhoc_slot(db, today, request.meal_id)
+    slot = await create_adhoc_slot(db, today, request.meal_id, user.id)
 
     if not slot:
         raise HTTPException(
@@ -141,6 +150,7 @@ async def complete_meal_slot(
     slot_id: UUID,
     request: CompleteSlotRequest,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> CompleteSlotResponse:
     """
     Mark a meal slot as complete with a status (ADR-012).
@@ -155,7 +165,7 @@ async def complete_meal_slot(
     For equivalent/deviated, optionally pass actual_meal_id to record what was eaten.
     Returns the updated slot with completion_status, completed_at, and actual_meal.
     """
-    slot = await complete_slot(db, slot_id, request.status.value, request.actual_meal_id)
+    slot = await complete_slot(db, slot_id, request.status.value, user.id, request.actual_meal_id)
 
     if not slot:
         raise HTTPException(
@@ -200,13 +210,14 @@ async def complete_meal_slot(
 async def uncomplete_meal_slot(
     slot_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> CompleteSlotResponse:
     """
     Undo completion of a meal slot (reset to unmarked).
 
     Clears the completion_status and completed_at timestamp.
     """
-    slot = await uncomplete_slot(db, slot_id)
+    slot = await uncomplete_slot(db, slot_id, user.id)
 
     if not slot:
         raise HTTPException(
@@ -233,6 +244,7 @@ async def uncomplete_meal_slot(
 async def delete_meal_slot(
     slot_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> None:
     """
     Delete an ad-hoc meal slot.
@@ -240,7 +252,7 @@ async def delete_meal_slot(
     Only ad-hoc slots (is_adhoc=True) can be deleted. Template-generated
     slots return 403 Forbidden.
     """
-    result = await delete_adhoc_slot(db, slot_id)
+    result = await delete_adhoc_slot(db, slot_id, user.id)
 
     if result is None:
         raise HTTPException(
@@ -274,6 +286,7 @@ async def reassign_meal_slot(
     slot_id: UUID,
     request: ReassignSlotRequest,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> WeeklyPlanSlotWithNext:
     """
     Reassign a slot to a different meal (ADR-011).
@@ -285,7 +298,7 @@ async def reassign_meal_slot(
     Optionally change the slot's meal type by providing meal_type_id.
     """
     error, slot = await reassign_slot(
-        db, slot_id, request.meal_id, request.meal_type_id
+        db, slot_id, request.meal_id, user.id, request.meal_type_id
     )
 
     if error == "NOT_FOUND":

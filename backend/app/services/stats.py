@@ -51,13 +51,22 @@ def _adherence_rate(followed: int, total: int, equivalent: int, social: int, unm
     return rate.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
 
 
-async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
+def _user_slots_filter(user_id: UUID):
+    """Return a join condition that filters slots to a specific user's weekly plans."""
+    return and_(
+        WeeklyPlanSlot.weekly_plan_instance_id == WeeklyPlanInstance.id,
+        WeeklyPlanInstance.user_id == user_id,
+    )
+
+
+async def get_stats(db: AsyncSession, days: int, user_id: UUID) -> StatsResponse:
     """
-    Calculate adherence statistics for the given period.
+    Calculate adherence statistics for the given period, scoped to user.
 
     Args:
         db: Database session
         days: Number of days to look back (from today inclusive)
+        user_id: UUID of the authenticated user
 
     Returns:
         StatsResponse with all computed stats
@@ -65,13 +74,15 @@ async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
     today = date.today()
     start_date = today - timedelta(days=days - 1)
 
-    # Fetch all slots in the date range
+    # Fetch all slots in the date range, scoped to user
     slots_query = (
         select(WeeklyPlanSlot)
+        .join(WeeklyPlanInstance, WeeklyPlanSlot.weekly_plan_instance_id == WeeklyPlanInstance.id)
         .where(
             and_(
                 WeeklyPlanSlot.date >= start_date,
                 WeeklyPlanSlot.date <= today,
+                WeeklyPlanInstance.user_id == user_id,
             )
         )
         .order_by(WeeklyPlanSlot.date, WeeklyPlanSlot.position)
@@ -79,15 +90,17 @@ async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
     result = await db.execute(slots_query)
     slots = result.scalars().all()
 
-    # Fetch override days in range
+    # Fetch override days in range, scoped to user
     override_query = (
         select(func.count())
         .select_from(WeeklyPlanInstanceDay)
+        .join(WeeklyPlanInstance, WeeklyPlanInstanceDay.weekly_plan_instance_id == WeeklyPlanInstance.id)
         .where(
             and_(
                 WeeklyPlanInstanceDay.date >= start_date,
                 WeeklyPlanInstanceDay.date <= today,
                 WeeklyPlanInstanceDay.is_override.is_(True),
+                WeeklyPlanInstance.user_id == user_id,
             )
         )
     )
@@ -121,20 +134,20 @@ async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
     adherence_rate = _adherence_rate(followed, total_slots, equivalent, social, unmarked)
 
     # Calculate streaks
-    current_streak, best_streak = await _calculate_streaks(db, today)
+    current_streak, best_streak = await _calculate_streaks(db, today, user_id)
 
     # Per-meal-type breakdown
-    by_meal_type = await _calculate_meal_type_adherence(db, start_date, today)
+    by_meal_type = await _calculate_meal_type_adherence(db, start_date, today, user_id)
 
     # Daily adherence data points
     daily_adherence = _calculate_daily_adherence(slots, start_date, today)
 
     # Average daily macros
-    avg_cal, avg_pro = await _calculate_avg_daily_macros(db, start_date, today)
+    avg_cal, avg_pro = await _calculate_avg_daily_macros(db, start_date, today, user_id)
 
     # Over-limit stats
     over_limit_days, days_with_limits, over_limit_breakdown = await _calculate_over_limit_stats(
-        db, start_date, today
+        db, start_date, today, user_id
     )
 
     return StatsResponse(
@@ -156,9 +169,9 @@ async def get_stats(db: AsyncSession, days: int) -> StatsResponse:
     )
 
 
-async def _calculate_streaks(db: AsyncSession, today: date) -> tuple[int, int]:
+async def _calculate_streaks(db: AsyncSession, today: date, user_id: UUID) -> tuple[int, int]:
     """
-    Calculate current and best streaks.
+    Calculate current and best streaks, scoped to user.
 
     A streak day = a day where ALL slots have a completion status
     (i.e. no unmarked slots). The streak breaks on any day with unmarked slots
@@ -169,17 +182,19 @@ async def _calculate_streaks(db: AsyncSession, today: date) -> tuple[int, int]:
     """
     lookback_start = today - timedelta(days=364)
 
-    # Get per-day counts of total slots and unmarked slots
+    # Get per-day counts of total slots and unmarked slots, scoped to user
     day_stats_query = (
         select(
             WeeklyPlanSlot.date,
             func.count().label("total"),
             func.count().filter(WeeklyPlanSlot.completion_status.is_(None)).label("unmarked"),
         )
+        .join(WeeklyPlanInstance, WeeklyPlanSlot.weekly_plan_instance_id == WeeklyPlanInstance.id)
         .where(
             and_(
                 WeeklyPlanSlot.date >= lookback_start,
                 WeeklyPlanSlot.date <= today,
+                WeeklyPlanInstance.user_id == user_id,
             )
         )
         .group_by(WeeklyPlanSlot.date)
@@ -222,17 +237,18 @@ async def _calculate_streaks(db: AsyncSession, today: date) -> tuple[int, int]:
 
 
 async def _calculate_meal_type_adherence(
-    db: AsyncSession, start_date: date, end_date: date
+    db: AsyncSession, start_date: date, end_date: date, user_id: UUID,
 ) -> list[MealTypeAdherence]:
     """
     Calculate per-meal-type adherence, sorted by lowest adherence first.
+    Scoped to user.
     """
-    # Get meal type names
-    mt_query = select(MealType.id, MealType.name)
+    # Get meal type names for this user
+    mt_query = select(MealType.id, MealType.name).where(MealType.user_id == user_id)
     mt_result = await db.execute(mt_query)
     meal_type_names: dict[UUID, str] = {row.id: row.name for row in mt_result.all()}
 
-    # Get per-type stats
+    # Get per-type stats, scoped to user
     type_stats_query = (
         select(
             WeeklyPlanSlot.meal_type_id,
@@ -242,11 +258,13 @@ async def _calculate_meal_type_adherence(
             func.count().filter(WeeklyPlanSlot.completion_status == "social").label("social_count"),
             func.count().filter(WeeklyPlanSlot.completion_status.is_(None)).label("unmarked_count"),
         )
+        .join(WeeklyPlanInstance, WeeklyPlanSlot.weekly_plan_instance_id == WeeklyPlanInstance.id)
         .where(
             and_(
                 WeeklyPlanSlot.date >= start_date,
                 WeeklyPlanSlot.date <= end_date,
                 WeeklyPlanSlot.meal_type_id.isnot(None),
+                WeeklyPlanInstance.user_id == user_id,
             )
         )
         .group_by(WeeklyPlanSlot.meal_type_id)
@@ -277,15 +295,17 @@ async def _calculate_meal_type_adherence(
 
 
 async def _calculate_avg_daily_macros(
-    db: AsyncSession, start_date: date, end_date: date
+    db: AsyncSession, start_date: date, end_date: date, user_id: UUID,
 ) -> tuple[Decimal | None, Decimal | None]:
-    """Calculate average daily calories and protein across days with data."""
+    """Calculate average daily calories and protein across days with data, scoped to user."""
     slots_query = (
         select(WeeklyPlanSlot)
+        .join(WeeklyPlanInstance, WeeklyPlanSlot.weekly_plan_instance_id == WeeklyPlanInstance.id)
         .where(
             and_(
                 WeeklyPlanSlot.date >= start_date,
                 WeeklyPlanSlot.date <= end_date,
+                WeeklyPlanInstance.user_id == user_id,
             )
         )
         .options(selectinload(WeeklyPlanSlot.meal))
@@ -367,10 +387,10 @@ def _calculate_daily_adherence(
 
 
 async def _calculate_over_limit_stats(
-    db: AsyncSession, start_date: date, end_date: date
+    db: AsyncSession, start_date: date, end_date: date, user_id: UUID,
 ) -> tuple[int, int, list[OverLimitBreakdown]]:
     """
-    Calculate over-limit statistics for days with template soft limits.
+    Calculate over-limit statistics for days with template soft limits, scoped to user.
 
     For each day that has a template with max_calories_kcal or max_protein_g set,
     sum the actual meal macros and compare against the limits.
@@ -378,15 +398,17 @@ async def _calculate_over_limit_stats(
     Returns:
         (over_limit_days, days_with_limits, breakdown_list)
     """
-    # Get instance days in range that have a template with limits
+    # Get instance days in range that have a template with limits, scoped to user
     days_query = (
         select(WeeklyPlanInstanceDay)
+        .join(WeeklyPlanInstance, WeeklyPlanInstanceDay.weekly_plan_instance_id == WeeklyPlanInstance.id)
         .join(DayTemplate, WeeklyPlanInstanceDay.day_template_id == DayTemplate.id)
         .where(
             and_(
                 WeeklyPlanInstanceDay.date >= start_date,
                 WeeklyPlanInstanceDay.date <= end_date,
                 WeeklyPlanInstanceDay.is_override.is_(False),
+                WeeklyPlanInstance.user_id == user_id,
                 # At least one limit is set
                 (DayTemplate.max_calories_kcal.isnot(None))
                 | (DayTemplate.max_protein_g.isnot(None)),
@@ -404,7 +426,11 @@ async def _calculate_over_limit_stats(
     dates_with_limits = [d.date for d in instance_days]
     slots_query = (
         select(WeeklyPlanSlot)
-        .where(WeeklyPlanSlot.date.in_(dates_with_limits))
+        .join(WeeklyPlanInstance, WeeklyPlanSlot.weekly_plan_instance_id == WeeklyPlanInstance.id)
+        .where(
+            WeeklyPlanSlot.date.in_(dates_with_limits),
+            WeeklyPlanInstance.user_id == user_id,
+        )
         .options(selectinload(WeeklyPlanSlot.meal))
     )
     slots_result = await db.execute(slots_query)

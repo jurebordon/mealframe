@@ -37,19 +37,24 @@ from app.models import (
 )
 from app.models.meal_to_meal_type import meal_to_meal_type
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.services.weekly import get_week_start_date, get_next_monday
 
 
 # Fixture to override database dependency
 @pytest_asyncio.fixture
-async def client(db: AsyncSession):
+async def client(db: AsyncSession, test_user: User):
     """
-    Create an async HTTP client with database override.
+    Create an async HTTP client with database and auth overrides.
     """
     async def override_get_db():
         yield db
 
+    async def override_get_current_user():
+        return test_user
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
 
     async with AsyncClient(
         transport=ASGITransport(app=app),

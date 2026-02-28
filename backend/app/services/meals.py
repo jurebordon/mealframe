@@ -36,9 +36,12 @@ ALL_COLUMNS = REQUIRED_COLUMNS | OPTIONAL_COLUMNS
 
 async def _resolve_meal_types(
     db: AsyncSession,
+    user_id: UUID,
 ) -> dict[str, MealType]:
     """Build a lookup dict of meal type name -> MealType object (case-sensitive)."""
-    result = await db.execute(select(MealType))
+    result = await db.execute(
+        select(MealType).where(MealType.user_id == user_id)
+    )
     meal_types = result.scalars().all()
     return {mt.name: mt for mt in meal_types}
 
@@ -66,7 +69,7 @@ def _parse_optional_decimal(value: str, field_name: str) -> tuple[Decimal | None
 async def import_meals_from_csv(
     db: AsyncSession,
     csv_content: str,
-    user_id: UUID | None = None,
+    user_id: UUID,
 ) -> MealImportResult:
     """
     Import meals from CSV content.
@@ -90,7 +93,7 @@ async def import_meals_from_csv(
     created_meal_types: list[str] = []
 
     # Resolve all meal types upfront
-    meal_type_lookup = await _resolve_meal_types(db)
+    meal_type_lookup = await _resolve_meal_types(db, user_id)
 
     # Parse CSV
     try:
@@ -187,7 +190,7 @@ async def import_meals_from_csv(
         notes = row.get("notes", "").strip() or None
 
         # Create meal
-        meal_kwargs = dict(
+        meal = Meal(
             name=name,
             portion_description=portion_description,
             calories_kcal=calories_kcal,
@@ -198,10 +201,8 @@ async def import_meals_from_csv(
             saturated_fat_g=saturated_fat_g,
             fiber_g=fiber_g,
             notes=notes,
+            user_id=user_id,
         )
-        if user_id:
-            meal_kwargs["user_id"] = user_id
-        meal = Meal(**meal_kwargs)
         db.add(meal)
         await db.flush()  # Get the meal ID
 
@@ -213,10 +214,7 @@ async def import_meals_from_csv(
                 mt = meal_type_lookup.get(type_name)
                 if mt is None:
                     # Auto-create the meal type
-                    mt_kwargs = {"name": type_name}
-                    if user_id:
-                        mt_kwargs["user_id"] = user_id
-                    mt = MealType(**mt_kwargs)
+                    mt = MealType(name=type_name, user_id=user_id)
                     db.add(mt)
                     await db.flush()  # Get the ID
 
@@ -269,6 +267,7 @@ async def import_meals_from_csv(
 async def list_meals(
     db: AsyncSession,
     *,
+    user_id: UUID,
     page: int = 1,
     page_size: int = 20,
     search: str | None = None,
@@ -279,9 +278,9 @@ async def list_meals(
 
     Returns (meals, total_count) tuple.
     """
-    # Base query with eager-loaded meal_types
-    query = select(Meal).options(selectinload(Meal.meal_types))
-    count_query = select(func.count(Meal.id))
+    # Base query with eager-loaded meal_types, scoped to user
+    query = select(Meal).options(selectinload(Meal.meal_types)).where(Meal.user_id == user_id)
+    count_query = select(func.count(Meal.id)).where(Meal.user_id == user_id)
 
     # Search filter (name only, case-insensitive)
     if search:
@@ -311,19 +310,19 @@ async def list_meals(
     return meals, total
 
 
-async def get_meal_by_id(db: AsyncSession, meal_id: UUID) -> Meal | None:
-    """Get a single meal by ID with meal_types eagerly loaded."""
+async def get_meal_by_id(db: AsyncSession, meal_id: UUID, user_id: UUID) -> Meal | None:
+    """Get a single meal by ID with meal_types eagerly loaded. Returns None if not owned by user."""
     result = await db.execute(
         select(Meal)
         .options(selectinload(Meal.meal_types))
-        .where(Meal.id == meal_id)
+        .where(Meal.id == meal_id, Meal.user_id == user_id)
     )
     return result.scalars().first()
 
 
-async def create_meal(db: AsyncSession, data: MealCreate, user_id: UUID | None = None) -> Meal:
+async def create_meal(db: AsyncSession, data: MealCreate, user_id: UUID) -> Meal:
     """Create a new meal with optional meal type associations."""
-    meal_kwargs = dict(
+    meal = Meal(
         name=data.name,
         portion_description=data.portion_description,
         calories_kcal=data.calories_kcal,
@@ -334,10 +333,8 @@ async def create_meal(db: AsyncSession, data: MealCreate, user_id: UUID | None =
         saturated_fat_g=data.saturated_fat_g,
         fiber_g=data.fiber_g,
         notes=data.notes,
+        user_id=user_id,
     )
-    if user_id:
-        meal_kwargs["user_id"] = user_id
-    meal = Meal(**meal_kwargs)
     db.add(meal)
     await db.flush()
 

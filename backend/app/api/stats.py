@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
+from ..dependencies import get_current_user
+from ..models.user import User
 from ..schemas.stats import StatsResponse
 from ..services.stats import get_stats
 
@@ -19,6 +21,7 @@ router = APIRouter(prefix="/api/v1", tags=["Stats"])
 async def stats(
     days: int = Query(default=30, ge=1, le=365, description="Number of days to analyze"),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> StatsResponse:
     """
     Get adherence statistics for the given period.
@@ -29,4 +32,4 @@ async def stats(
     Query parameters:
     - days: Number of days to look back (1-365, default 30)
     """
-    return await get_stats(db, days)
+    return await get_stats(db, days, user.id)

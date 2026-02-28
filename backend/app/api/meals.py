@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..dependencies import get_current_user
 from ..models.user import User
 from ..schemas.meal import (
     MealCreate,
@@ -42,10 +42,11 @@ async def get_meals(
     search: str | None = Query(default=None, description="Search by meal name"),
     meal_type_id: UUID | None = Query(default=None, description="Filter by meal type ID"),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> PaginatedResponse[MealListItem]:
     """List all meals with pagination, optional search and meal type filter."""
     meals, total = await list_meals(
-        db, page=page, page_size=page_size, search=search, meal_type_id=meal_type_id
+        db, user_id=user.id, page=page, page_size=page_size, search=search, meal_type_id=meal_type_id
     )
 
     items = [
@@ -74,9 +75,10 @@ async def get_meals(
 async def get_meal(
     meal_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MealResponse:
     """Get a single meal by ID."""
-    meal = await get_meal_by_id(db, meal_id)
+    meal = await get_meal_by_id(db, meal_id, user.id)
     if meal is None:
         raise HTTPException(status_code=404, detail="Meal not found")
 
@@ -99,11 +101,10 @@ async def get_meal(
 async def create_meal_endpoint(
     data: MealCreate,
     db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
 ) -> MealResponse:
     """Create a new meal."""
-    user_id = user.id if user else ADMIN_USER_ID
-    meal = await create_meal(db, data, user_id=user_id)
+    meal = await create_meal(db, data, user_id=user.id)
 
     return MealResponse(
         id=meal.id,
@@ -125,9 +126,10 @@ async def update_meal_endpoint(
     meal_id: UUID,
     data: MealUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MealResponse:
     """Update an existing meal."""
-    meal = await get_meal_by_id(db, meal_id)
+    meal = await get_meal_by_id(db, meal_id, user.id)
     if meal is None:
         raise HTTPException(status_code=404, detail="Meal not found")
 
@@ -152,9 +154,10 @@ async def update_meal_endpoint(
 async def delete_meal_endpoint(
     meal_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> None:
     """Delete a meal."""
-    meal = await get_meal_by_id(db, meal_id)
+    meal = await get_meal_by_id(db, meal_id, user.id)
     if meal is None:
         raise HTTPException(status_code=404, detail="Meal not found")
 
@@ -165,7 +168,7 @@ async def delete_meal_endpoint(
 async def import_meals(
     file: UploadFile = File(..., description="CSV file to import"),
     db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
 ) -> MealImportResult:
     """
     Import meals from a CSV file.
@@ -204,6 +207,5 @@ async def import_meals(
             detail="CSV file is empty.",
         )
 
-    user_id = user.id if user else ADMIN_USER_ID
-    result = await import_meals_from_csv(db, csv_content, user_id=user_id)
+    result = await import_meals_from_csv(db, csv_content, user_id=user.id)
     return result

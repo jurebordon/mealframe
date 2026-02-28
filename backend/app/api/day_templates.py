@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..dependencies import ADMIN_USER_ID, get_optional_user
+from ..dependencies import get_current_user
 from ..models.user import User
 from ..schemas.day_template import (
     DayTemplateCreate,
@@ -37,6 +37,7 @@ router = APIRouter(prefix="/api/v1/day-templates", tags=["Day Templates"])
 @router.get("", response_model=list[DayTemplateListItem])
 async def get_day_templates(
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[DayTemplateListItem]:
     """
     List all day templates with slot counts and previews.
@@ -45,7 +46,7 @@ async def get_day_templates(
     - slot_count: Number of meal slots
     - slot_preview: Arrow-separated meal type names (e.g., "Breakfast → Lunch → Dinner")
     """
-    rows = await list_day_templates(db)
+    rows = await list_day_templates(db, user.id)
 
     return [
         DayTemplateListItem(
@@ -65,9 +66,10 @@ async def get_day_templates(
 async def get_day_template(
     template_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> DayTemplateResponse:
     """Get a single day template by ID with full slot details."""
-    template = await get_day_template_by_id(db, template_id)
+    template = await get_day_template_by_id(db, template_id, user.id)
     if template is None:
         raise HTTPException(status_code=404, detail="Day template not found")
 
@@ -78,11 +80,10 @@ async def get_day_template(
 async def create_day_template_endpoint(
     data: DayTemplateCreate,
     db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
 ) -> DayTemplateResponse:
     """Create a new day template with ordered meal type slots."""
-    user_id = user.id if user else ADMIN_USER_ID
-    template = await create_day_template(db, data, user_id=user_id)
+    template = await create_day_template(db, data, user_id=user.id)
     return _template_to_response(template)
 
 
@@ -91,9 +92,10 @@ async def update_day_template_endpoint(
     template_id: UUID,
     data: DayTemplateUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> DayTemplateResponse:
     """Update an existing day template. Providing slots replaces all existing slots."""
-    template = await get_day_template_by_id(db, template_id)
+    template = await get_day_template_by_id(db, template_id, user.id)
     if template is None:
         raise HTTPException(status_code=404, detail="Day template not found")
 
@@ -105,9 +107,10 @@ async def update_day_template_endpoint(
 async def delete_day_template_endpoint(
     template_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> None:
     """Delete a day template. Fails if used by week plans."""
-    template = await get_day_template_by_id(db, template_id)
+    template = await get_day_template_by_id(db, template_id, user.id)
     if template is None:
         raise HTTPException(status_code=404, detail="Day template not found")
 

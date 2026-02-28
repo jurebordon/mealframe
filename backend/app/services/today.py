@@ -41,9 +41,10 @@ async def get_week_start_date(target_date: date) -> date:
 async def get_day_plan(
     db: AsyncSession,
     target_date: date,
+    user_id: UUID,
 ) -> Optional[tuple[WeeklyPlanInstanceDay, list[WeeklyPlanSlot]]]:
     """
-    Get the plan for a specific day.
+    Get the plan for a specific day, scoped to user.
 
     Returns tuple of (instance_day, slots) if a plan exists, None otherwise.
     """
@@ -51,7 +52,8 @@ async def get_day_plan(
     week_start = await get_week_start_date(target_date)
 
     stmt = select(WeeklyPlanInstance).where(
-        WeeklyPlanInstance.week_start_date == week_start
+        WeeklyPlanInstance.week_start_date == week_start,
+        WeeklyPlanInstance.user_id == user_id,
     )
     result = await db.execute(stmt)
     instance = result.scalar_one_or_none()
@@ -96,7 +98,7 @@ async def get_day_plan(
     return (instance_day, slots)
 
 
-async def calculate_streak(db: AsyncSession, target_date: date) -> int:
+async def calculate_streak(db: AsyncSession, target_date: date, user_id: UUID) -> int:
     """
     Calculate the current streak of consecutive days with all meals completed.
 
@@ -111,7 +113,7 @@ async def calculate_streak(db: AsyncSession, target_date: date) -> int:
     check_date = target_date - timedelta(days=1)
 
     while True:
-        day_plan = await get_day_plan(db, check_date)
+        day_plan = await get_day_plan(db, check_date, user_id)
 
         if not day_plan:
             # No plan for this day - streak ends
@@ -260,14 +262,15 @@ def build_today_response(
 async def get_today_response(
     db: AsyncSession,
     target_date: date,
+    user_id: UUID,
 ) -> TodayResponse:
     """
     Get the full TodayResponse for a specific date.
 
     This is the main entry point for GET /today and GET /yesterday.
     """
-    day_plan = await get_day_plan(db, target_date)
-    streak = await calculate_streak(db, target_date)
+    day_plan = await get_day_plan(db, target_date, user_id)
+    streak = await calculate_streak(db, target_date, user_id)
 
     if day_plan:
         instance_day, slots = day_plan
@@ -279,9 +282,14 @@ async def get_today_response(
 async def get_slot_by_id(
     db: AsyncSession,
     slot_id: UUID,
+    user_id: UUID,
 ) -> Optional[WeeklyPlanSlot]:
-    """Get a slot by its ID."""
-    stmt = select(WeeklyPlanSlot).where(WeeklyPlanSlot.id == slot_id)
+    """Get a slot by its ID, verifying it belongs to the user's weekly plan instance."""
+    stmt = (
+        select(WeeklyPlanSlot)
+        .join(WeeklyPlanInstance, WeeklyPlanSlot.weekly_plan_instance_id == WeeklyPlanInstance.id)
+        .where(WeeklyPlanSlot.id == slot_id, WeeklyPlanInstance.user_id == user_id)
+    )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -290,6 +298,7 @@ async def complete_slot(
     db: AsyncSession,
     slot_id: UUID,
     status: str,
+    user_id: UUID,
     actual_meal_id: UUID | None = None,
 ) -> Optional[WeeklyPlanSlot]:
     """
@@ -300,7 +309,7 @@ async def complete_slot(
 
     Returns the updated slot, or None if slot not found.
     """
-    slot = await get_slot_by_id(db, slot_id)
+    slot = await get_slot_by_id(db, slot_id, user_id)
 
     if not slot:
         return None
@@ -319,13 +328,14 @@ async def complete_slot(
 async def uncomplete_slot(
     db: AsyncSession,
     slot_id: UUID,
+    user_id: UUID,
 ) -> Optional[WeeklyPlanSlot]:
     """
     Undo completion of a slot (reset to NULL).
 
     Returns the updated slot, or None if slot not found.
     """
-    slot = await get_slot_by_id(db, slot_id)
+    slot = await get_slot_by_id(db, slot_id, user_id)
 
     if not slot:
         return None
@@ -342,6 +352,7 @@ async def create_adhoc_slot(
     db: AsyncSession,
     target_date: date,
     meal_id: UUID,
+    user_id: UUID,
 ) -> Optional[WeeklyPlanSlot]:
     """
     Create an ad-hoc meal slot for the given date.
@@ -355,7 +366,8 @@ async def create_adhoc_slot(
     # Find the weekly instance
     week_start = await get_week_start_date(target_date)
     stmt = select(WeeklyPlanInstance).where(
-        WeeklyPlanInstance.week_start_date == week_start
+        WeeklyPlanInstance.week_start_date == week_start,
+        WeeklyPlanInstance.user_id == user_id,
     )
     result = await db.execute(stmt)
     instance = result.scalar_one_or_none()
@@ -363,10 +375,10 @@ async def create_adhoc_slot(
     if not instance:
         return None
 
-    # Get the meal (with its types)
+    # Get the meal (with its types) — verify it belongs to user
     meal_stmt = (
         select(Meal)
-        .where(Meal.id == meal_id)
+        .where(Meal.id == meal_id, Meal.user_id == user_id)
         .options(selectinload(Meal.meal_types))
     )
     meal_result = await db.execute(meal_stmt)
@@ -412,6 +424,7 @@ async def create_adhoc_slot(
 async def delete_adhoc_slot(
     db: AsyncSession,
     slot_id: UUID,
+    user_id: UUID,
 ) -> Optional[bool]:
     """
     Delete an ad-hoc slot.
@@ -419,7 +432,7 @@ async def delete_adhoc_slot(
     Returns True if deleted, False if the slot exists but is not ad-hoc,
     or None if the slot doesn't exist.
     """
-    slot = await get_slot_by_id(db, slot_id)
+    slot = await get_slot_by_id(db, slot_id, user_id)
 
     if not slot:
         return None
@@ -436,6 +449,7 @@ async def reassign_slot(
     db: AsyncSession,
     slot_id: UUID,
     meal_id: UUID,
+    user_id: UUID,
     meal_type_id: UUID | None = None,
 ) -> tuple[str | None, Optional[WeeklyPlanSlot]]:
     """
@@ -445,10 +459,11 @@ async def reassign_slot(
     Does NOT advance round-robin pointer.
     Clears completion status if slot was already completed.
     """
-    # Get the slot with relationships loaded
+    # Get the slot with relationships loaded, verified against user
     stmt = (
         select(WeeklyPlanSlot)
-        .where(WeeklyPlanSlot.id == slot_id)
+        .join(WeeklyPlanInstance, WeeklyPlanSlot.weekly_plan_instance_id == WeeklyPlanInstance.id)
+        .where(WeeklyPlanSlot.id == slot_id, WeeklyPlanInstance.user_id == user_id)
         .options(
             selectinload(WeeklyPlanSlot.meal),
             selectinload(WeeklyPlanSlot.meal_type),
@@ -465,8 +480,8 @@ async def reassign_slot(
     if slot.date < today:
         return ("PAST_DATE", None)
 
-    # Verify meal exists
-    meal_stmt = select(Meal).where(Meal.id == meal_id)
+    # Verify meal exists and belongs to user
+    meal_stmt = select(Meal).where(Meal.id == meal_id, Meal.user_id == user_id)
     meal_result = await db.execute(meal_stmt)
     meal = meal_result.scalar_one_or_none()
 

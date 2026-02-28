@@ -35,20 +35,25 @@ from app.models import (
 )
 from app.models.meal_to_meal_type import meal_to_meal_type
 from app.database import get_db
+from app.dependencies import get_current_user
 
 
 # Fixture to override database dependency
 @pytest_asyncio.fixture
-async def client(db: AsyncSession):
+async def client(db: AsyncSession, test_user: User):
     """
-    Create an async HTTP client with database override.
+    Create an async HTTP client with database and auth overrides.
 
-    Overrides the get_db dependency to use the test session with rollback.
+    Overrides get_db and get_current_user dependencies for testing.
     """
     async def override_get_db():
         yield db
 
+    async def override_get_current_user():
+        return test_user
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
 
     async with AsyncClient(
         transport=ASGITransport(app=app),

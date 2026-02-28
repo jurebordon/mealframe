@@ -18,14 +18,16 @@ from app.schemas.day_template import DayTemplateCreate, DayTemplateSlotCreate, D
 logger = logging.getLogger(__name__)
 
 
-async def list_day_templates(db: AsyncSession) -> list[dict]:
+async def list_day_templates(db: AsyncSession, user_id: UUID) -> list[dict]:
     """
-    List all day templates with slot counts and previews.
+    List all day templates with slot counts and previews, scoped to user.
 
     Returns list of dicts with template info, slot_count, and slot_preview.
     """
     result = await db.execute(
-        select(DayTemplate).order_by(DayTemplate.name)
+        select(DayTemplate)
+        .where(DayTemplate.user_id == user_id)
+        .order_by(DayTemplate.name)
     )
     templates = result.scalars().all()
 
@@ -49,27 +51,25 @@ async def list_day_templates(db: AsyncSession) -> list[dict]:
     return items
 
 
-async def get_day_template_by_id(db: AsyncSession, template_id: UUID) -> DayTemplate | None:
-    """Get a single day template by ID with slots eagerly loaded."""
+async def get_day_template_by_id(db: AsyncSession, template_id: UUID, user_id: UUID) -> DayTemplate | None:
+    """Get a single day template by ID with slots eagerly loaded. Returns None if not owned by user."""
     result = await db.execute(
         select(DayTemplate)
         .options(selectinload(DayTemplate.slots).selectinload(DayTemplateSlot.meal_type))
-        .where(DayTemplate.id == template_id)
+        .where(DayTemplate.id == template_id, DayTemplate.user_id == user_id)
     )
     return result.scalars().first()
 
 
-async def create_day_template(db: AsyncSession, data: DayTemplateCreate, user_id: UUID | None = None) -> DayTemplate:
+async def create_day_template(db: AsyncSession, data: DayTemplateCreate, user_id: UUID) -> DayTemplate:
     """Create a new day template with slots."""
-    dt_kwargs = dict(
+    template = DayTemplate(
         name=data.name,
         notes=data.notes,
         max_calories_kcal=data.max_calories_kcal,
         max_protein_g=data.max_protein_g,
+        user_id=user_id,
     )
-    if user_id:
-        dt_kwargs["user_id"] = user_id
-    template = DayTemplate(**dt_kwargs)
     db.add(template)
     await db.flush()
 
@@ -77,7 +77,7 @@ async def create_day_template(db: AsyncSession, data: DayTemplateCreate, user_id
     await _replace_slots(db, template.id, data.slots)
 
     # Reload with relationships
-    return await get_day_template_by_id(db, template.id)
+    return await get_day_template_by_id(db, template.id, user_id)
 
 
 async def update_day_template(
@@ -99,12 +99,13 @@ async def update_day_template(
 
     await db.flush()
 
-    # Capture ID before expunging (async SQLAlchemy can't lazy-load after expire)
+    # Capture ID and user_id before expunging
     template_id = template.id
+    template_user_id = template.user_id
     db.expunge(template)
 
     # Reload with fresh relationships
-    return await get_day_template_by_id(db, template_id)
+    return await get_day_template_by_id(db, template_id, template_user_id)
 
 
 async def delete_day_template(db: AsyncSession, template: DayTemplate) -> None:

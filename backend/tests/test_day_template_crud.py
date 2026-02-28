@@ -19,16 +19,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.main import app
 from app.models import MealType, DayTemplate, DayTemplateSlot, User
 from app.database import get_db
+from app.dependencies import get_current_user
 
 
 @pytest_asyncio.fixture
-async def client(db: AsyncSession):
-    """Create an async HTTP client with database override."""
+async def client(db: AsyncSession, test_user: User):
+    """Create an async HTTP client with database and auth overrides."""
 
     async def override_get_db():
         yield db
 
+    async def override_get_current_user():
+        return test_user
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
 
     async with AsyncClient(
         transport=ASGITransport(app=app),

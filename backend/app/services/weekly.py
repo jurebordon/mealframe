@@ -46,11 +46,11 @@ def get_next_monday(from_date: date) -> date:
     return from_date + timedelta(days=days_until_monday)
 
 
-async def get_default_week_plan(db: AsyncSession) -> Optional[WeekPlan]:
-    """Get the default week plan."""
+async def get_default_week_plan(db: AsyncSession, user_id: UUID) -> Optional[WeekPlan]:
+    """Get the default week plan for a user."""
     stmt = (
         select(WeekPlan)
-        .where(WeekPlan.is_default == True)
+        .where(WeekPlan.is_default == True, WeekPlan.user_id == user_id)
         .options(selectinload(WeekPlan.days).selectinload(WeekPlanDay.day_template))
     )
     result = await db.execute(stmt)
@@ -58,7 +58,7 @@ async def get_default_week_plan(db: AsyncSession) -> Optional[WeekPlan]:
 
 
 async def get_week_plan_by_id(db: AsyncSession, week_plan_id: UUID) -> Optional[WeekPlan]:
-    """Get a specific week plan by ID."""
+    """Get a specific week plan by ID (internal use, no user_id filter)."""
     stmt = (
         select(WeekPlan)
         .where(WeekPlan.id == week_plan_id)
@@ -69,18 +69,19 @@ async def get_week_plan_by_id(db: AsyncSession, week_plan_id: UUID) -> Optional[
 
 
 async def get_weekly_instance_by_week_start(
-    db: AsyncSession, week_start_date: date
+    db: AsyncSession, week_start_date: date, user_id: UUID,
 ) -> Optional[WeeklyPlanInstance]:
-    """Get a weekly plan instance by its week start date."""
+    """Get a weekly plan instance by its week start date, scoped to user."""
     stmt = select(WeeklyPlanInstance).where(
-        WeeklyPlanInstance.week_start_date == week_start_date
+        WeeklyPlanInstance.week_start_date == week_start_date,
+        WeeklyPlanInstance.user_id == user_id,
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
 
 async def get_day_template_by_id(db: AsyncSession, template_id: UUID) -> Optional[DayTemplate]:
-    """Get a day template by ID with slots eagerly loaded."""
+    """Get a day template by ID with slots eagerly loaded (internal use)."""
     stmt = (
         select(DayTemplate)
         .where(DayTemplate.id == template_id)
@@ -94,7 +95,7 @@ async def generate_weekly_plan(
     db: AsyncSession,
     week_start_date: Optional[date] = None,
     week_plan_id: Optional[UUID] = None,
-    user_id: Optional[UUID] = None,
+    user_id: UUID = None,
 ) -> WeeklyPlanInstance:
     """
     Generate a new weekly plan instance.
@@ -103,6 +104,7 @@ async def generate_weekly_plan(
         db: Database session
         week_start_date: Monday of the target week. Defaults to next Monday if not provided.
         week_plan_id: Optional specific plan to use; uses default if not provided.
+        user_id: UUID of the authenticated user.
 
     Process (per Tech Spec section 3.2):
         1. Create weekly_plan_instance record
@@ -128,7 +130,7 @@ async def generate_weekly_plan(
         raise ValueError(f"week_start_date must be a Monday, got {week_start_date}")
 
     # Check for existing instance
-    existing = await get_weekly_instance_by_week_start(db, week_start_date)
+    existing = await get_weekly_instance_by_week_start(db, week_start_date, user_id)
     if existing:
         raise ValueError(f"Week starting {week_start_date} already exists")
 
@@ -138,18 +140,16 @@ async def generate_weekly_plan(
         if not week_plan:
             raise ValueError(f"Week plan with id {week_plan_id} not found")
     else:
-        week_plan = await get_default_week_plan(db)
+        week_plan = await get_default_week_plan(db, user_id)
         if not week_plan:
             raise ValueError("No default week plan available")
 
     # Create instance
-    inst_kwargs = dict(
+    instance = WeeklyPlanInstance(
         week_plan_id=week_plan.id,
         week_start_date=week_start_date,
+        user_id=user_id,
     )
-    if user_id:
-        inst_kwargs["user_id"] = user_id
-    instance = WeeklyPlanInstance(**inst_kwargs)
     db.add(instance)
     await db.flush()
 
@@ -202,14 +202,14 @@ async def generate_weekly_plan(
     return instance
 
 
-async def get_current_week_instance(db: AsyncSession) -> Optional[WeeklyPlanInstance]:
-    """Get the weekly plan instance for the current week."""
+async def get_current_week_instance(db: AsyncSession, user_id: UUID) -> Optional[WeeklyPlanInstance]:
+    """Get the weekly plan instance for the current week, scoped to user."""
     week_start = get_week_start_date(date.today())
-    return await get_weekly_instance_by_week_start(db, week_start)
+    return await get_weekly_instance_by_week_start(db, week_start, user_id)
 
 
 async def get_week_instance(
-    db: AsyncSession, week_start_date: Optional[date] = None
+    db: AsyncSession, user_id: UUID, week_start_date: Optional[date] = None,
 ) -> Optional[WeeklyPlanInstance]:
     """Get the weekly plan instance for a specific week or current week if not specified."""
     if week_start_date is None:
@@ -217,7 +217,7 @@ async def get_week_instance(
     else:
         # Normalize to Monday if not already
         week_start = get_week_start_date(week_start_date)
-    return await get_weekly_instance_by_week_start(db, week_start)
+    return await get_weekly_instance_by_week_start(db, week_start, user_id)
 
 
 async def get_full_weekly_instance(
@@ -473,6 +473,7 @@ def is_date_in_week(target_date: date, week_start: date) -> bool:
 async def regenerate_weekly_plan(
     db: AsyncSession,
     week_start_date: date,
+    user_id: UUID,
 ) -> WeeklyPlanInstance:
     """
     Regenerate uncompleted slots in an existing weekly plan.
@@ -486,6 +487,7 @@ async def regenerate_weekly_plan(
     Args:
         db: Database session
         week_start_date: Monday of the target week
+        user_id: UUID of the authenticated user
 
     Returns:
         Updated WeeklyPlanInstance
@@ -500,7 +502,7 @@ async def regenerate_weekly_plan(
         week_start_date = week_start
 
     # Get existing instance
-    instance = await get_weekly_instance_by_week_start(db, week_start_date)
+    instance = await get_weekly_instance_by_week_start(db, week_start_date, user_id)
     if not instance:
         raise ValueError(f"No week plan exists for week starting {week_start_date}")
 
