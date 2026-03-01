@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuthStore } from '@/lib/auth-store'
+import { Mail } from 'lucide-react'
 
 const registerSchema = z
   .object({
@@ -26,9 +26,11 @@ const registerSchema = z
 type RegisterForm = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
-  const router = useRouter()
   const registerUser = useAuthStore((s) => s.register)
+  const resendVerification = useAuthStore((s) => s.resendVerification)
   const [error, setError] = useState<string | null>(null)
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null)
+  const [resendStatus, setResendStatus] = useState<string | null>(null)
 
   const {
     register,
@@ -42,10 +44,58 @@ export default function RegisterPage() {
     setError(null)
     try {
       await registerUser(data.email, data.password)
-      router.push('/')
+      setRegisteredEmail(data.email)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed')
     }
+  }
+
+  const handleResend = async () => {
+    if (!registeredEmail) return
+    setResendStatus(null)
+    try {
+      await resendVerification(registeredEmail)
+      setResendStatus('Verification email resent.')
+    } catch {
+      setResendStatus('Failed to resend. Please try again.')
+    }
+  }
+
+  // Show "check your email" state after successful registration
+  if (registeredEmail) {
+    return (
+      <Card className="select-auto">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Mail className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle className="text-xl">Check your email</CardTitle>
+          <CardDescription>
+            We sent a verification link to{' '}
+            <span className="font-medium text-foreground">{registeredEmail}</span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            Click the link in the email to verify your account. The link expires in 24 hours.
+          </p>
+          {resendStatus && (
+            <p className="text-sm text-muted-foreground">{resendStatus}</p>
+          )}
+          <Button variant="outline" onClick={handleResend} className="w-full">
+            Resend verification email
+          </Button>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-sm text-muted-foreground">
+            Already verified?{' '}
+            <Link href="/login" className="text-primary hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    )
   }
 
   return (

@@ -15,13 +15,18 @@ interface AuthState {
 
 interface AuthActions {
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  /** Register returns a message — user must verify email before logging in */
+  register: (email: string, password: string) => Promise<string>
   logout: () => Promise<void>
   /** Try to restore session from refresh token cookie */
   initialize: () => Promise<void>
   /** Get a valid access token, refreshing if needed */
   getAccessToken: () => Promise<string | null>
   clearAuth: () => void
+  verifyEmail: (token: string) => Promise<string>
+  forgotPassword: (email: string) => Promise<string>
+  resetPassword: (token: string, password: string) => Promise<string>
+  resendVerification: (email: string) => Promise<string>
 }
 
 type AuthStore = AuthState & AuthActions
@@ -78,19 +83,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   register: async (email: string, password: string) => {
     set({ isLoading: true })
     try {
-      const data = await authFetch<{ access_token: string }>('/register', {
+      const data = await authFetch<{ message: string }>('/register', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
-      set({ accessToken: data.access_token })
-
-      // Fetch user profile
-      const user = await authFetch<AuthUser>('/me', {
-        headers: { Authorization: `Bearer ${data.access_token}` },
-      })
-      set({ user, isLoading: false })
+      set({ isLoading: false })
+      return data.message
     } catch (error) {
-      set({ user: null, accessToken: null, isLoading: false })
+      set({ isLoading: false })
       throw error
     }
   },
@@ -145,5 +145,37 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   clearAuth: () => {
     set({ user: null, accessToken: null })
+  },
+
+  verifyEmail: async (token: string) => {
+    const data = await authFetch<{ message: string }>('/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    })
+    return data.message
+  },
+
+  forgotPassword: async (email: string) => {
+    const data = await authFetch<{ message: string }>('/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+    return data.message
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    const data = await authFetch<{ message: string }>('/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    })
+    return data.message
+  },
+
+  resendVerification: async (email: string) => {
+    const data = await authFetch<{ message: string }>('/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+    return data.message
   },
 }))
