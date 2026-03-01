@@ -104,7 +104,7 @@ export default function RegisterPage() {
         <CardTitle className="text-xl">Create account</CardTitle>
         <CardDescription>Enter your details to get started</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <CardContent className="space-y-4">
           {error && (
             <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
