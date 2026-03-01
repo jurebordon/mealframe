@@ -5,6 +5,68 @@
 
 ---
 
+## Session: 2026-03-01 (2)
+
+**Role**: backend + frontend
+**Task**: Email verification, password reset, rate limiting — Session 5 of ADR-014
+**Branch**: feat/auth-session5
+
+### Summary
+- Built Resend email service with console fallback when API key is missing
+- Created EmailToken model (shared for verification + password reset, SHA-256 hashed, single-use)
+- Created FailedLoginAttempt model for DB-persisted account lockout tracking
+- Registration now sends verification email; login blocked until email_verified=true
+- Password reset flow: request → email with time-limited token (1h) → reset + revoke all sessions
+- Rate limiting via slowapi: register (3/min), login (5/min), forgot-password (3/min)
+- Account lockout after configurable N failed attempts within lockout window (DB table, not in-memory)
+- Updated auth-store: register returns message (not tokens), added verifyEmail, forgotPassword, resetPassword, resendVerification
+- Built 3 new frontend pages: verify-email (auto-verifies from URL token), forgot-password, reset-password
+- Register page shows "check your email" success state with resend button
+- Login page has "Forgot password?" link
+- Google OAuth deferred to separate session (requires Google Cloud Console setup)
+- All 198 backend tests pass (29 auth tests, was 15), frontend builds clean (16 pages, was 13)
+
+### Files Created
+- [backend/app/models/email_token.py](backend/app/models/email_token.py) — EmailToken model (verification + password reset)
+- [backend/app/models/failed_login.py](backend/app/models/failed_login.py) — FailedLoginAttempt model (account lockout)
+- [backend/app/services/email.py](backend/app/services/email.py) — Resend integration with console fallback
+- [backend/alembic/versions/b09731906f17_add_email_token_and_failed_login_tables.py](backend/alembic/versions/b09731906f17_add_email_token_and_failed_login_tables.py) — Migration
+- [frontend/src/app/(auth)/verify-email/page.tsx](frontend/src/app/(auth)/verify-email/page.tsx) — Email verification page
+- [frontend/src/app/(auth)/forgot-password/page.tsx](frontend/src/app/(auth)/forgot-password/page.tsx) — Forgot password page
+- [frontend/src/app/(auth)/reset-password/page.tsx](frontend/src/app/(auth)/reset-password/page.tsx) — Reset password page
+
+### Files Modified
+- [backend/requirements.txt](backend/requirements.txt) — Added resend, slowapi
+- [backend/app/config.py](backend/app/config.py) — Resend API key, frontend URL, rate limit + lockout settings
+- [backend/app/security.py](backend/app/security.py) — Added create_url_safe_token helper
+- [backend/app/models/user.py](backend/app/models/user.py) — Changed email_verified default to False
+- [backend/app/models/__init__.py](backend/app/models/__init__.py) — Registered new models
+- [backend/app/schemas/auth.py](backend/app/schemas/auth.py) — Added ForgotPasswordRequest, ResetPasswordRequest, VerifyEmailRequest, MessageResponse
+- [backend/app/services/auth.py](backend/app/services/auth.py) — Email verification, password reset, account lockout logic
+- [backend/app/api/auth.py](backend/app/api/auth.py) — 4 new endpoints + rate limiting decorators
+- [backend/app/main.py](backend/app/main.py) — slowapi rate limit error handler
+- [backend/tests/test_auth.py](backend/tests/test_auth.py) — Rewritten: 29 tests covering all new flows
+- [frontend/src/lib/auth-store.ts](frontend/src/lib/auth-store.ts) — Register returns message, added 4 new auth methods
+- [frontend/src/app/(auth)/login/page.tsx](frontend/src/app/(auth)/login/page.tsx) — "Forgot password?" link
+- [frontend/src/app/(auth)/register/page.tsx](frontend/src/app/(auth)/register/page.tsx) — "Check your email" success state + resend
+
+### Decisions
+- **Google OAuth deferred** — Requires external Google Cloud Console setup, independently deployable, keeps this session focused
+- **Shared EmailToken model** — Single table with `token_type` field ("verification" or "password_reset") instead of separate tables. Simpler, same structure
+- **DB-persisted lockout** — FailedLoginAttempt table instead of in-memory cache. Survives server restarts, works across multiple workers
+- **Timezone-aware defaults** — `default=lambda: datetime.now(timezone.utc)` on FailedLoginAttempt.attempted_at. Naive datetimes from `datetime.utcnow` caused comparison mismatches with timezone-aware window calculations
+- **Rate limiting disabled in tests** — `limiter.enabled = False` in test client fixture, re-enabled in teardown
+- **Silent responses for enumeration prevention** — forgot-password and resend-verification always return 200 regardless of whether the email exists
+
+### Blockers
+- None
+
+### Next
+- Session 6: Google OAuth (create Google Cloud Console project, authlib OIDC flow, "Sign in with Google" button)
+- After auth: ADR-013 AI ad hoc meal capture (Wave 3)
+
+---
+
 ## Session: 2026-03-01
 
 **Role**: frontend + backend (minor)

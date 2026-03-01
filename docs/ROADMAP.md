@@ -9,10 +9,10 @@
 
 | Feature | ADR | Branch | Sessions | Status |
 |---------|-----|--------|----------|--------|
-| Authentication & multi-user | ADR-014 | `feat/auth-frontend` | 4 of ~5 done | Session 4 complete: frontend auth pages, protected routes, settings page |
+| Authentication & multi-user — Google OAuth | ADR-014 | — | 1 remaining | Sessions 1-5 complete; Google OAuth deferred to separate session |
 
-**Remaining auth sessions:**
-- Session 5: Email verification, password reset, Google OAuth, rate limiting
+**Remaining auth work:**
+- Session 6: Google OAuth (requires Google Cloud Console setup)
 
 ## Next (Queued)
 
@@ -41,6 +41,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Auth session 5: email verification, password reset, rate limiting, account lockout (2026-03-01)
 - [x] Privacy policy page for waitlist landing (2026-02-25)
 - [x] Track C: Waitlist landing page + self-hosted pageview analytics (2026-02-25)
 - [x] Fix: MealPicker empty state (page_size 422), iOS keyboard overlap, sheet resizing (2026-02-24)
