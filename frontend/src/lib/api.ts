@@ -61,8 +61,50 @@ export class ApiError extends Error {
   }
 }
 
+import { useAuthStore } from './auth-store'
+
 /**
- * Generic fetch wrapper with error handling.
+ * Build fetch options with auth token and credentials.
+ */
+function buildOptions(options: RequestInit = {}): RequestInit {
+  const token = useAuthStore.getState().accessToken
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return {
+    ...options,
+    credentials: 'include', // Send HTTP-only refresh cookie
+    headers,
+  }
+}
+
+/**
+ * Parse an API response, throwing ApiError on failure.
+ */
+async function parseResponse<T>(response: Response): Promise<T> {
+  if (response.status === 204) return undefined as T
+
+  const data = await response.json()
+  if (!response.ok) {
+    // Handle both structured errors ({error: {code, message}}) and
+    // FastAPI default errors ({detail: "..."})
+    const errorResponse = data as ErrorResponse & { detail?: string }
+    throw new ApiError(
+      response.status,
+      errorResponse.error?.code || 'UNKNOWN_ERROR',
+      errorResponse.error?.message || errorResponse.detail || 'An error occurred',
+      errorResponse.error?.details
+    )
+  }
+  return data as T
+}
+
+/**
+ * Generic fetch wrapper with auth token injection and automatic 401 refresh retry.
  */
 async function fetchApi<T>(
   endpoint: string,
@@ -70,32 +112,30 @@ async function fetchApi<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  })
+  const response = await fetch(url, buildOptions(options))
 
-  // Handle no-content responses
-  if (response.status === 204) {
-    return undefined as T
+  // On 401, try refreshing the access token and retry once
+  if (response.status === 401) {
+    const newToken = await useAuthStore.getState().getAccessToken()
+    if (newToken) {
+      const retryHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string>),
+        Authorization: `Bearer ${newToken}`,
+      }
+      const retryResponse = await fetch(url, {
+        ...options,
+        credentials: 'include',
+        headers: retryHeaders,
+      })
+      return parseResponse<T>(retryResponse)
+    }
+    // Refresh failed — clear auth (AuthGuard will redirect to login)
+    useAuthStore.getState().clearAuth()
+    throw new ApiError(401, 'UNAUTHORIZED', 'Session expired')
   }
 
-  const data = await response.json()
-
-  if (!response.ok) {
-    const errorResponse = data as ErrorResponse
-    throw new ApiError(
-      response.status,
-      errorResponse.error?.code || 'UNKNOWN_ERROR',
-      errorResponse.error?.message || 'An error occurred',
-      errorResponse.error?.details
-    )
-  }
-
-  return data as T
+  return parseResponse<T>(response)
 }
 
 // ============================================================================
@@ -314,10 +354,16 @@ export async function importMeals(file: File): Promise<MealImportResult> {
   const formData = new FormData()
   formData.append('file', file)
 
+  const token = useAuthStore.getState().accessToken
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  // Do NOT set Content-Type header — browser sets it with boundary for multipart
+
   const response = await fetch(url, {
     method: 'POST',
     body: formData,
-    // Do NOT set Content-Type header — browser sets it with boundary for multipart
+    credentials: 'include',
+    headers,
   })
 
   const data = await response.json()

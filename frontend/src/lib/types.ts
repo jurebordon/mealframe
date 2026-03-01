@@ -443,6 +443,33 @@ export interface PaginatedResponse<T> {
 }
 
 // ============================================================================
+// Auth
+// ============================================================================
+
+export interface AuthUser {
+  id: string
+  email: string
+  email_verified: boolean
+  auth_provider: string
+  created_at: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterRequest {
+  email: string
+  password: string
+}
+
+export interface TokenResponse {
+  access_token: string
+  token_type: string
+}
+
+// ============================================================================
 // Errors
 // ============================================================================
 

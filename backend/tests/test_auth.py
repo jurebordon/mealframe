@@ -234,7 +234,7 @@ class TestMe:
 
     async def test_me_no_token(self, client: AsyncClient):
         resp = await client.get(f"{AUTH_PREFIX}/me")
-        assert resp.status_code == 403  # HTTPBearer returns 403 when no credentials
+        assert resp.status_code == 401
 
     async def test_me_invalid_token(self, client: AsyncClient):
         resp = await client.get(

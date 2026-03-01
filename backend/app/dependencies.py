@@ -10,17 +10,23 @@ from app.models.user import User
 from app.security import decode_access_token
 from app.services.auth import get_user_by_id
 
-_bearer_scheme = HTTPBearer()
+_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """
     Extract and validate JWT from Authorization header.
     Returns the authenticated User or raises 401.
     """
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     payload = decode_access_token(credentials.credentials)
     if not payload:
         raise HTTPException(

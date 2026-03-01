@@ -1,4 +1,5 @@
 import { Providers } from '@/components/providers'
+import { AuthGuard } from '@/components/auth-guard'
 import { AppShell } from '@/components/navigation/app-shell'
 import { OfflineBanner } from '@/components/mealframe/offline-banner'
 
@@ -9,10 +10,12 @@ export default function AppLayout({
 }) {
   return (
     <Providers>
-      <OfflineBanner />
-      <AppShell>
-        {children}
-      </AppShell>
+      <AuthGuard>
+        <OfflineBanner />
+        <AppShell>
+          {children}
+        </AppShell>
+      </AuthGuard>
     </Providers>
   )
 }
