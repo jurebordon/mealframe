@@ -5,6 +5,55 @@
 
 ---
 
+## Session: 2026-03-01
+
+**Role**: frontend + backend (minor)
+**Task**: Frontend auth — Session 4 of ADR-014
+**Branch**: feat/auth-frontend
+
+### Summary
+- Created Zustand auth store with in-memory access token management and HTTP-only cookie-based refresh
+- Modified API client (`api.ts`) to inject Bearer token on all requests and auto-retry on 401 after token refresh
+- Built login and register pages with react-hook-form + zod validation, matching existing design system
+- Created AuthGuard component that wraps all `(app)` routes — tries refresh on load, redirects to `/login` if unauthenticated
+- Built settings page with profile info (email, auth provider, member since) and logout button
+- Updated desktop sidebar with settings link, user email display, and logout button
+- Added mobile-only settings gear icon in app shell header bar
+- Fixed backend `HTTPBearer` to return 401 (not 403) when no token is provided (`auto_error=False`)
+- All 184 backend tests pass, frontend builds clean (13 pages)
+
+### Files Created
+- [frontend/src/lib/auth-store.ts](frontend/src/lib/auth-store.ts) — Zustand auth store (login, register, logout, refresh, initialize)
+- [frontend/src/app/(auth)/layout.tsx](frontend/src/app/(auth)/layout.tsx) — Centered auth page layout with MealFrame branding
+- [frontend/src/app/(auth)/login/page.tsx](frontend/src/app/(auth)/login/page.tsx) — Login page with email/password form
+- [frontend/src/app/(auth)/register/page.tsx](frontend/src/app/(auth)/register/page.tsx) — Register page with password confirmation
+- [frontend/src/components/auth-guard.tsx](frontend/src/components/auth-guard.tsx) — Protected route wrapper
+- [frontend/src/app/(app)/settings/page.tsx](frontend/src/app/(app)/settings/page.tsx) — Settings page (profile + logout)
+
+### Files Modified
+- [frontend/src/lib/types.ts](frontend/src/lib/types.ts) — Added AuthUser, LoginRequest, RegisterRequest, TokenResponse types
+- [frontend/src/lib/api.ts](frontend/src/lib/api.ts) — Token injection, `credentials: 'include'`, 401 refresh retry, importMeals auth headers
+- [frontend/src/app/(app)/layout.tsx](frontend/src/app/(app)/layout.tsx) — Wrapped with AuthGuard
+- [frontend/src/components/navigation/sidebar.tsx](frontend/src/components/navigation/sidebar.tsx) — Settings link, user email, logout button
+- [frontend/src/components/navigation/app-shell.tsx](frontend/src/components/navigation/app-shell.tsx) — Mobile settings gear icon
+- [backend/app/dependencies.py](backend/app/dependencies.py) — HTTPBearer `auto_error=False`, explicit 401 for missing token
+- [backend/tests/test_auth.py](backend/tests/test_auth.py) — Updated test to expect 401 instead of 403
+
+### Decisions
+- **Access token in memory only** — Not localStorage. Refresh token (HTTP-only cookie) handles session persistence. More secure against XSS.
+- **Zustand over React Context** — Auth state needs to be readable from `api.ts` (outside React tree) via `useAuthStore.getState()`. Zustand supports this natively, Context doesn't.
+- **Separate `authFetch` in auth-store** — Avoids circular dependency between `api.ts` ↔ `auth-store.ts`. Auth endpoints use their own fetch, app endpoints use `fetchApi`.
+- **Mobile settings via gear icon, not 6th nav item** — Bottom nav stays at 5 items (industry standard). Settings accessible via small gear icon in mobile header bar.
+- **Backend 401 fix** — `HTTPBearer(auto_error=False)` + explicit 401 raise. Default `auto_error=True` returns 403 for missing credentials, which is semantically wrong and breaks frontend 401 retry logic.
+
+### Blockers
+- None
+
+### Next
+- Session 5: Email verification flow, password reset, Google OAuth, rate limiting on auth endpoints
+
+---
+
 ## Session: 2026-02-28
 
 **Role**: backend
