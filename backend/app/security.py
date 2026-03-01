@@ -59,3 +59,8 @@ def create_refresh_token() -> str:
 def hash_refresh_token(token: str) -> str:
     """Hash a refresh token for storage (SHA-256, not reversible)."""
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_url_safe_token() -> str:
+    """Generate a cryptographically secure URL-safe token for email verification / password reset."""
+    return secrets.token_urlsafe(48)

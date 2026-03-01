@@ -3,6 +3,8 @@
 # Import all models for Alembic auto-generation
 from .user import User
 from .refresh_token import RefreshToken
+from .email_token import EmailToken
+from .failed_login import FailedLoginAttempt
 from .meal_type import MealType
 from .meal import Meal
 from .meal_to_meal_type import meal_to_meal_type
@@ -16,6 +18,8 @@ from .landing_pageview import LandingPageview
 __all__ = [
     "User",
     "RefreshToken",
+    "EmailToken",
+    "FailedLoginAttempt",
     "MealType",
     "Meal",
     "meal_to_meal_type",

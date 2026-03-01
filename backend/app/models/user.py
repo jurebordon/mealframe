@@ -22,7 +22,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     email = Column(Text, unique=True, nullable=False, index=True)
     password_hash = Column(Text, nullable=True)  # NULL for Google OAuth-only users
-    email_verified = Column(Boolean, default=True, nullable=False)  # TODO: set to False when email verification is implemented
+    email_verified = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     auth_provider = Column(Text, default="email", nullable=False)  # "email" or "google"
     google_sub = Column(Text, unique=True, nullable=True)  # Google subject ID

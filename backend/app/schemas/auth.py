@@ -36,3 +36,28 @@ class UserResponse(BaseSchema):
     email_verified: bool
     auth_provider: str
     created_at: datetime
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request body for POST /auth/forgot-password."""
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request body for POST /auth/reset-password."""
+
+    token: str
+    password: str = Field(min_length=8, max_length=128)
+
+
+class VerifyEmailRequest(BaseModel):
+    """Request body for POST /auth/verify-email."""
+
+    token: str
+
+
+class MessageResponse(BaseSchema):
+    """Generic message response."""
+
+    message: str

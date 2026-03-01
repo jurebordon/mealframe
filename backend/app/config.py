@@ -38,6 +38,18 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     admin_email: str = "admin@mealframe.io"  # Admin user for data migration backfill
 
+    # Email (Resend)
+    resend_api_key: str = ""  # Override via RESEND_API_KEY env var
+    email_from: str = "MealFrame <noreply@mealframe.io>"
+    frontend_url: str = "http://localhost:3000"  # For email links
+
+    # Rate limiting
+    login_rate_limit: str = "5/minute"
+    register_rate_limit: str = "3/minute"
+    password_reset_rate_limit: str = "3/minute"
+    account_lockout_attempts: int = 10
+    account_lockout_minutes: int = 15
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
