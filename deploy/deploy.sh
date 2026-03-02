@@ -15,9 +15,9 @@ cd "$DEPLOY_DIR"
 echo "Pulling latest code..." | tee -a "$LOG_FILE"
 git pull origin main
 
-# Build and restart containers using NPM-compatible compose
+# Build and restart containers with bundled nginx reverse proxy
 echo "Building and restarting containers..." | tee -a "$LOG_FILE"
-docker compose -f docker-compose.yml -f docker-compose.npm.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
 
 # Clean up old images
 echo "Cleaning up old images..." | tee -a "$LOG_FILE"
@@ -25,6 +25,6 @@ docker image prune -f
 
 # Show container status
 echo "Container status:" | tee -a "$LOG_FILE"
-docker compose -f docker-compose.yml -f docker-compose.npm.yml ps | tee -a "$LOG_FILE"
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps | tee -a "$LOG_FILE"
 
 echo "=== Deployment Complete at $(date) ===" | tee -a "$LOG_FILE"

@@ -47,7 +47,7 @@ jobs:
             else
               echo "Deployment script not found, running inline..."
               git pull origin main
-              docker compose -f docker-compose.yml -f docker-compose.npm.yml up -d --build
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
               docker image prune -f
             fi
 
