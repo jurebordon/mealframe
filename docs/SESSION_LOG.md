@@ -5,6 +5,42 @@
 
 ---
 
+## Session: 2026-03-03
+
+**Role**: architecture
+**Task**: Phase 2 feature planning — Grocery List (ADR-008) + AI Meal Capture (ADR-013)
+**Branch**: main (docs only)
+
+### Summary
+- Designed Grocery List feature through collaborative discussion, resolving ADR-008's open questions
+- Created comprehensive PRD: `docs/features/grocery_list/Mealframe_GroceryList_PRD.md`
+- Created revised AI Capture PRD: `docs/features/ai_meal_capture/Mealframe_AI_Meal_Capture_PRD.md` (supersedes AI portions of original Ad Hoc Meal PRD)
+- Established sequencing: ADR-013 (Wave 3) → ADR-008 (Wave 4), so LLM infra is built once
+- Updated ROADMAP with PRD links, session breakdowns, and dependency graph
+
+### Key Decisions
+- `needs_groceries` boolean on `DayTemplateSlot` (not Meal) — same meal can include/exclude based on day context
+- AI ingredient extraction with JSONB cache on `WeeklyPlanSlot` for grocery list
+- Synchronous AI processing for both features (no job queue) — major simplification from original PRD
+- Confirmation screen for AI capture (original had fire-and-forget)
+- AI-captured meals saved to library but excluded from round-robin
+- Image storage on local volume
+
+### Files Changed
+- `docs/features/grocery_list/Mealframe_GroceryList_PRD.md` — new
+- `docs/features/ai_meal_capture/Mealframe_AI_Meal_Capture_PRD.md` — new
+- `docs/features/` — restructured from `docs/frozen/features/` (each feature in own folder)
+- `docs/ROADMAP.md` — updated Wave 3 + Wave 4, PRD links
+
+### Blockers
+- None
+
+### Next
+- Complete ADR-014 Session 6 (Google OAuth)
+- Begin ADR-013 Session 1: LLM infrastructure + backend
+
+---
+
 ## Session: 2026-03-01 (2)
 
 **Role**: backend + frontend

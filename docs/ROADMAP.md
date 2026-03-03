@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-03-01
+**Last Updated**: 2026-03-03
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -20,13 +20,20 @@
 
 **Phase 2 — Wave 3 (after auth):**
 
-| Feature | ADR | Branch | Sessions | Depends on |
-|---------|-----|--------|----------|------------|
-| AI ad hoc meal capture (image MVP) | ADR-013 | `feat/ai-capture` | ~4 (pipeline+be+fe+storage) | ADR-012 (`deviated` entry point), ADR-014 (usage metering) |
+| Feature | ADR | PRD | Branch | Sessions | Depends on |
+|---------|-----|-----|--------|----------|------------|
+| AI meal capture (image MVP) | ADR-013 | [AI Capture PRD](docs/features/ai_meal_capture/Mealframe_AI_Meal_Capture_PRD.md) | `feat/ai-capture` | ~4 (llm+backend+fe-capture+fe-deviated) | ADR-012 ✅, ADR-014 ✅ |
 
-**Phase 2 — Wave 4:**
+**Phase 2 — Wave 4 (after AI capture):**
 
-- Grocery list generation (ADR-008) — Most requested feature for personal use
+| Feature | ADR | PRD | Branch | Sessions | Depends on |
+|---------|-----|-----|--------|----------|------------|
+| Grocery list from weekly plan | ADR-008 | [Grocery List PRD](docs/features/grocery_list/Mealframe_GroceryList_PRD.md) | `feat/grocery-list-*` | ~3 (db+backend+frontend) | ADR-013 (LLM infrastructure), ADR-014 (auth) ✅ |
+
+Session breakdown:
+- Session 1: `needs_groceries` DB foundation + template editor toggle (no LLM dependency)
+- Session 2: AI extraction service + grocery list API (uses ADR-013 LLM infra)
+- Session 3: Frontend grocery list page + navigation
 
 ## Later (Backlog)
 
@@ -113,6 +120,11 @@ Wave 3 (after auth):                                │
        ADR-013 (AI Capture) ◄───────────────────────┘
        needs: ADR-012 (deviated status) ✅
        needs: ADR-014 (usage metering)
+                    │
+Wave 4 (after AI capture):
+       ADR-008 (Grocery List) ◄─────────────────────┘
+       needs: ADR-013 (LLM infrastructure)
+       needs: ADR-014 (auth) ✅
 ```
 
 ## Notes
@@ -122,7 +134,7 @@ Wave 3 (after auth):                                │
 - Add blockers immediately when encountered
 - Reference tasks by ID in SESSION_LOG entries
 - MVP scope defined in docs/frozen/PRD_v0.md
-- PRDs for Phase 2 features in docs/frozen/features/
+- PRDs for Phase 2 features in docs/features/
 
 ---
 
