@@ -41,6 +41,7 @@
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Fix: auth form "Required" validation bug — shadcn Input missing forwardRef for React 18 (2026-03-03)
 - [x] Auth session 5: email verification, password reset, rate limiting, account lockout (2026-03-01)
 - [x] Privacy policy page for waitlist landing (2026-02-25)
 - [x] Track C: Waitlist landing page + self-hosted pageview analytics (2026-02-25)
@@ -90,7 +91,8 @@
 ## Blockers
 
 <!-- Anything preventing progress -->
-(none)
+
+None
 
 ---
 
