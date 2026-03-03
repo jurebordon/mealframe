@@ -15,9 +15,11 @@ cd "$DEPLOY_DIR"
 echo "Pulling latest code..." | tee -a "$LOG_FILE"
 git pull origin main
 
-# Build and restart containers with bundled nginx reverse proxy
+# Build images first, then recreate containers cleanly
 echo "Building and restarting containers..." | tee -a "$LOG_FILE"
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # Clean up old images
 echo "Cleaning up old images..." | tee -a "$LOG_FILE"
