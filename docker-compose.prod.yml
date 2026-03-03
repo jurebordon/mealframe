@@ -16,6 +16,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://mealframe:${DB_PASSWORD}@db:5432/mealframe
       CORS_ORIGINS: ${CORS_ORIGINS:-https://mealframe.localhost}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      FRONTEND_URL: ${FRONTEND_URL:-https://meals.bordon.family}
     ports: !reset []
     volumes: !reset []
     command: !reset ""
