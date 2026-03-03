@@ -12,7 +12,7 @@ def _send(to: str, subject: str, html: str) -> bool:
     """Send an email via Resend. Returns True on success, False on failure."""
     if not settings.resend_api_key:
         logger.warning("RESEND_API_KEY not set — printing email to console")
-        logger.info("TO: %s | SUBJECT: %s\n%s", to, subject, html)
+        logger.warning("TO: %s | SUBJECT: %s\n%s", to, subject, html)
         return True
 
     resend.api_key = settings.resend_api_key
