@@ -48,6 +48,8 @@ Session breakdown:
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Resend email service setup — domain verification, DNS records, production config (2026-03-03)
+- [x] Fix: deploy.sh container rename conflict — split build/down/up (2026-03-03)
 - [x] Fix: auth form "Required" validation bug — shadcn Input missing forwardRef for React 18 (2026-03-03)
 - [x] Auth session 5: email verification, password reset, rate limiting, account lockout (2026-03-01)
 - [x] Privacy policy page for waitlist landing (2026-02-25)

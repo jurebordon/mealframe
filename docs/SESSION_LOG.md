@@ -5,6 +5,50 @@
 
 ---
 
+## Session: 2026-03-03 (2)
+
+**Role**: debugging + devops
+**Task**: Fix auth form validation bug, set up Resend email, deployment fixes
+**Branch**: main (direct commits)
+
+### Summary
+- Debugged login form "Required" validation bug using Chrome DevTools MCP on production
+- Root cause: shadcn/ui Input component used React 19 pattern (plain function), but project uses React 18 which requires `forwardRef` — react-hook-form's `ref` was silently dropped
+- Fixed Input and Textarea components with `React.forwardRef`
+- Helped user set admin password via forgot-password flow (admin user had NULL password_hash from migration)
+- Set up Resend transactional email service: domain verification (mealframe.io), DNS records (DKIM, SPF, MX, DMARC) on Namecheap
+- Fixed deploy.sh container rename conflict by splitting `up --build` into build → down → up
+- Added RESEND_API_KEY and FRONTEND_URL env vars to docker-compose.prod.yml
+
+### Key Decisions
+- Kept `logger.warning` for email console fallback (only fires when RESEND_API_KEY is unset)
+- FRONTEND_URL defaults to `https://meals.bordon.family` in prod compose
+- Resend MX record replaces Namecheap email redirect (admin@mealframe.io no longer receives mail — acceptable since it's not a real mailbox)
+
+### Files Changed
+- `frontend/src/components/ui/input.tsx` — added forwardRef for React 18
+- `frontend/src/components/ui/textarea.tsx` — same forwardRef fix
+- `backend/app/services/email.py` — logger.info → logger.warning for console fallback
+- `docker-compose.prod.yml` — added RESEND_API_KEY, FRONTEND_URL env vars
+- `deploy/deploy.sh` — split build/down/up to prevent container rename conflicts
+- `docs/ROADMAP.md` — removed blocker, added fixes to Done
+
+### Commits
+- `871f757` fix: add forwardRef to Input and Textarea for react-hook-form compatibility
+- `f76e4b7` docs: remove login form blocker from roadmap (fixed)
+- `a99762d` fix: use warning level for email console fallback so tokens appear in logs
+- `37f849e` fix: pass RESEND_API_KEY and FRONTEND_URL to production api container
+- `4566a12` fix: split build/down/up in deploy to prevent container rename conflicts
+
+### Blockers
+- None
+
+### Next
+- Complete ADR-014 Session 6 (Google OAuth)
+- Begin ADR-013 Session 1: LLM infrastructure + backend
+
+---
+
 ## Session: 2026-03-03
 
 **Role**: architecture
