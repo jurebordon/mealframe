@@ -30,6 +30,11 @@ class Meal(Base):
     saturated_fat_g = Column(Numeric(6, 1))
     fiber_g = Column(Numeric(6, 1))
     notes = Column(Text)
+    # AI capture fields (ADR-013)
+    source = Column(Text, nullable=False, default="manual")  # "manual" | "ai_capture"
+    confidence_score = Column(Numeric(3, 2))  # 0.00–1.00, NULL for manual meals
+    image_path = Column(Text)  # Server path to captured image
+    ai_model_version = Column(Text)  # Model identifier for traceability
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

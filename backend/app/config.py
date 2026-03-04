@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     email_from: str = "MealFrame <noreply@mealframe.io>"
     frontend_url: str = "http://localhost:3000"  # For email links
 
+    # AI / Vision (ADR-013)
+    openai_api_key: str = ""  # Override via OPENAI_API_KEY env var
+    captures_dir: str = "/data/captures"  # Local volume mount for food photos
+
     # Rate limiting
     login_rate_limit: str = "5/minute"
     register_rate_limit: str = "3/minute"
