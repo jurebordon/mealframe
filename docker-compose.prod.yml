@@ -18,8 +18,10 @@ services:
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       FRONTEND_URL: ${FRONTEND_URL:-https://meals.bordon.family}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports: !reset []
-    volumes: !reset []
+    volumes:
+      - captures:/data/captures
     command: !reset ""
 
   web:
@@ -48,3 +50,4 @@ services:
 
 volumes:
   pgdata:
+  captures:

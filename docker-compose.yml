@@ -25,6 +25,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://mealframe:${DB_PASSWORD:-password}@db:5432/mealframe
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "8003:8003"
     depends_on:
@@ -32,6 +33,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - captures:/data/captures
 
   web:
     build:
@@ -52,3 +54,4 @@ services:
 
 volumes:
   pgdata:
+  captures:
