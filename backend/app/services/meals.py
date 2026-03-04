@@ -272,6 +272,7 @@ async def list_meals(
     page_size: int = 20,
     search: str | None = None,
     meal_type_id: UUID | None = None,
+    source: str | None = None,
 ) -> tuple[list[Meal], int]:
     """
     List meals with pagination, optional name search, and meal type filter.
@@ -286,6 +287,11 @@ async def list_meals(
     if search:
         query = query.where(Meal.name.ilike(f"%{search}%"))
         count_query = count_query.where(Meal.name.ilike(f"%{search}%"))
+
+    # Source filter (ADR-013: "manual" or "ai_capture")
+    if source:
+        query = query.where(Meal.source == source)
+        count_query = count_query.where(Meal.source == source)
 
     # Meal type filter
     if meal_type_id:
@@ -333,6 +339,10 @@ async def create_meal(db: AsyncSession, data: MealCreate, user_id: UUID) -> Meal
         saturated_fat_g=data.saturated_fat_g,
         fiber_g=data.fiber_g,
         notes=data.notes,
+        source=data.source,
+        confidence_score=data.confidence_score,
+        image_path=data.image_path,
+        ai_model_version=data.ai_model_version,
         user_id=user_id,
     )
     db.add(meal)

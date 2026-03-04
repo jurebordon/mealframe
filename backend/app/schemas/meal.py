@@ -1,6 +1,7 @@
 """Pydantic schemas for Meal entity."""
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import Field, field_validator
@@ -25,6 +26,11 @@ class MealBase(BaseSchema):
     saturated_fat_g: Decimal | None = Field(default=None, ge=0, description="Saturated fat grams (subset of fat)")
     fiber_g: Decimal | None = Field(default=None, ge=0, description="Fiber grams")
     notes: str | None = Field(default=None, description="Preparation notes")
+    # AI capture fields (ADR-013)
+    source: str = Field(default="manual", description="Origin: 'manual' or 'ai_capture'")
+    confidence_score: Decimal | None = Field(default=None, ge=0, le=1, description="AI confidence 0.00–1.00")
+    image_path: str | None = Field(default=None, description="Server path to captured image")
+    ai_model_version: str | None = Field(default=None, description="Model identifier for traceability")
 
 
 class MealCreate(MealBase):
@@ -97,6 +103,7 @@ class MealListItem(BaseSchema):
     fat_g: Decimal | None = None
     saturated_fat_g: Decimal | None = None
     fiber_g: Decimal | None = None
+    source: str = "manual"
     meal_types: list[MealTypeCompact] = Field(default_factory=list)
 
 
@@ -164,3 +171,51 @@ class MealImportResult(BaseSchema):
     summary: MealImportSummary
     warnings: list[MealImportWarning] = Field(default_factory=list)
     errors: list[MealImportError] = Field(default_factory=list)
+
+
+# --- AI Capture schemas (ADR-013) ---
+
+class IdentifiedItem(BaseSchema):
+    """A food item identified by the vision model."""
+
+    name: str
+    estimated_quantity: str
+
+
+class AICaptureAnalysis(BaseSchema):
+    """
+    Structured output from the vision model.
+
+    This is an intermediate schema — the endpoint returns AICaptureResponse
+    which wraps this data for the frontend confirmation screen.
+    """
+
+    meal_name: str
+    portion_description: str
+    calories_kcal: int | None = None
+    protein_g: float | None = None
+    carbs_g: float | None = None
+    fat_g: float | None = None
+    confidence_score: float = Field(ge=0, le=1)
+    identified_items: list[IdentifiedItem] = Field(default_factory=list)
+    suggested_meal_type: str | None = None
+
+
+class AICaptureResponse(BaseSchema):
+    """
+    Response from POST /meals/ai-capture.
+
+    Returns analyzed meal data for the frontend confirmation screen.
+    Does NOT save to DB — the frontend calls POST /meals on confirm.
+    """
+
+    meal_name: str
+    portion_description: str
+    calories_kcal: int | None = None
+    protein_g: float | None = None
+    carbs_g: float | None = None
+    fat_g: float | None = None
+    confidence_score: float
+    identified_items: list[IdentifiedItem] = Field(default_factory=list)
+    suggested_meal_type: str | None = None
+    ai_model_version: str | None = None

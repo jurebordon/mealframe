@@ -45,6 +45,7 @@ async def get_meals_for_type(
         select(Meal)
         .join(meal_to_meal_type, Meal.id == meal_to_meal_type.c.meal_id)
         .where(meal_to_meal_type.c.meal_type_id == meal_type_id)
+        .where(Meal.source == "manual")  # Exclude AI-captured meals (ADR-013)
         .order_by(Meal.created_at.asc(), Meal.id.asc())
     )
     result = await db.execute(stmt)

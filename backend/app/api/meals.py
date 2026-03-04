@@ -14,6 +14,7 @@ from ..database import get_db
 from ..dependencies import get_current_user
 from ..models.user import User
 from ..schemas.meal import (
+    AICaptureResponse,
     MealCreate,
     MealImportResult,
     MealListItem,
@@ -29,6 +30,13 @@ from ..services.meals import (
     list_meals,
     update_meal,
 )
+from ..services.ai_capture import (
+    analyze_food_image,
+    AICaptureFailed,
+    AITimeoutError,
+    FoodNotDetected,
+)
+from ..services.image_storage import validate_image_content_type
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +49,13 @@ async def get_meals(
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
     search: str | None = Query(default=None, description="Search by meal name"),
     meal_type_id: UUID | None = Query(default=None, description="Filter by meal type ID"),
+    source: str | None = Query(default=None, description="Filter by source: 'manual' or 'ai_capture'"),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> PaginatedResponse[MealListItem]:
-    """List all meals with pagination, optional search and meal type filter."""
+    """List all meals with pagination, optional search, meal type, and source filter."""
     meals, total = await list_meals(
-        db, user_id=user.id, page=page, page_size=page_size, search=search, meal_type_id=meal_type_id
+        db, user_id=user.id, page=page, page_size=page_size, search=search, meal_type_id=meal_type_id, source=source
     )
 
     items = [
@@ -61,6 +70,7 @@ async def get_meals(
             fat_g=m.fat_g,
             saturated_fat_g=m.saturated_fat_g,
             fiber_g=m.fiber_g,
+            source=m.source,
             meal_types=[{"id": mt.id, "name": mt.name} for mt in m.meal_types],
         )
         for m in meals
@@ -68,6 +78,72 @@ async def get_meals(
 
     return PaginatedResponse.create(
         items=items, total=total, page=page, page_size=page_size
+    )
+
+
+@router.post("/ai-capture", response_model=AICaptureResponse)
+async def ai_capture_meal(
+    image: UploadFile = File(..., description="Food photo (JPEG or PNG, max 10MB)"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> AICaptureResponse:
+    """
+    Analyze a food photo using GPT-4o vision and return estimated meal data.
+
+    This endpoint analyzes but does NOT save. On confirmation, the frontend
+    calls POST /meals to create the meal record.
+
+    Returns structured meal data: name, portion description, macros, confidence score.
+    """
+    MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
+
+    # Validate content type
+    if not validate_image_content_type(image.content_type):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type: {image.content_type}. Expected JPEG or PNG.",
+        )
+
+    # Read and size-check
+    image_bytes = await image.read()
+    if len(image_bytes) > MAX_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="Image too large. Maximum size is 10MB.",
+        )
+
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Image file is empty.")
+
+    try:
+        analysis = await analyze_food_image(image_bytes, user_id=user.id, db=db)
+    except FoodNotDetected as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except AITimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail="Analysis took too long. Please try again.",
+        )
+    except AICaptureFailed as e:
+        logger.error("AI capture failed for user %s: %s", user.id, e)
+        raise HTTPException(
+            status_code=502,
+            detail="Could not analyze image. Please try again.",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    return AICaptureResponse(
+        meal_name=analysis.meal_name,
+        portion_description=analysis.portion_description,
+        calories_kcal=analysis.calories_kcal,
+        protein_g=analysis.protein_g,
+        carbs_g=analysis.carbs_g,
+        fat_g=analysis.fat_g,
+        confidence_score=analysis.confidence_score,
+        identified_items=analysis.identified_items,
+        suggested_meal_type=analysis.suggested_meal_type,
+        ai_model_version="gpt-4o",
     )
 
 
@@ -91,6 +167,10 @@ async def get_meal(
         carbs_g=meal.carbs_g,
         fat_g=meal.fat_g,
         notes=meal.notes,
+        source=meal.source,
+        confidence_score=meal.confidence_score,
+        image_path=meal.image_path,
+        ai_model_version=meal.ai_model_version,
         created_at=meal.created_at,
         updated_at=meal.updated_at,
         meal_types=[{"id": mt.id, "name": mt.name} for mt in meal.meal_types],
@@ -115,6 +195,10 @@ async def create_meal_endpoint(
         carbs_g=meal.carbs_g,
         fat_g=meal.fat_g,
         notes=meal.notes,
+        source=meal.source,
+        confidence_score=meal.confidence_score,
+        image_path=meal.image_path,
+        ai_model_version=meal.ai_model_version,
         created_at=meal.created_at,
         updated_at=meal.updated_at,
         meal_types=[{"id": mt.id, "name": mt.name} for mt in meal.meal_types],
@@ -144,6 +228,10 @@ async def update_meal_endpoint(
         carbs_g=updated.carbs_g,
         fat_g=updated.fat_g,
         notes=updated.notes,
+        source=updated.source,
+        confidence_score=updated.confidence_score,
+        image_path=updated.image_path,
+        ai_model_version=updated.ai_model_version,
         created_at=updated.created_at,
         updated_at=updated.updated_at,
         meal_types=[{"id": mt.id, "name": mt.name} for mt in updated.meal_types],
