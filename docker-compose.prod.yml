@@ -20,7 +20,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-https://meals.bordon.family}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports: !reset []
-    volumes:
+    volumes: !override
       - captures:/data/captures
     command: !reset ""
 
