@@ -5,6 +5,63 @@
 
 ---
 
+## Session: 2026-03-05
+
+**Role**: backend + architecture
+**Task**: ADR-013 Session 1 — AI Infrastructure + LLM Backend
+**Branch**: `feat/ai-capture` → merged to main
+
+### Summary
+- Implemented full backend LLM infrastructure for AI meal capture (ADR-013 Session 1)
+- Added OpenAI GPT-4o vision integration: `analyze_food_image` with base64 image encoding, structured JSON output, 15s timeout
+- Created Alembic migration: new `meal` columns (`source`, `confidence_score`, `image_path`, `ai_model_version`) + `openai_usage` table
+- Added `OpenAIUsage` SQLAlchemy model with token/cost logging after each API call
+- Extended Pydantic schemas: full macro set (`calories_kcal`, `protein_g`, `carbs_g`, `sugar_g`, `fat_g`, `saturated_fat_g`, `fiber_g`), `AICaptureAnalysis`, `AICaptureResponse`, `IdentifiedItem`
+- Added image storage utility: resize to max 1920px (LANCZOS), JPEG q=85, local volume `/data/captures`
+- Added `POST /meals/ai-capture` endpoint (analyze-only, does not save; stateless)
+- Updated round-robin to exclude `source = "ai_capture"` meals from rotation
+- Added `source` filter to `GET /meals` list endpoint
+- Vision prompt injects date/time + Europe location context for meal type and portion calibration
+- Updated `docker-compose.yml` and `docker-compose.prod.yml` with `OPENAI_API_KEY` and `captures` volume
+- Conducted architectural assessment: Chat Completions API is correct for now; Responses API warranted only for multi-turn/tool-use; user context injection via prompt augmentation is the path forward
+
+### Files Changed
+- `backend/requirements.txt` — added `openai>=1.0.0`, `pillow>=10.0.0`
+- `backend/app/config.py` — added `openai_api_key`, `captures_dir`
+- `backend/alembic/versions/20260304_ai_capture_fields.py` — new migration
+- `backend/app/models/meal.py` — 4 new AI columns
+- `backend/app/models/openai_usage.py` — new model
+- `backend/app/models/__init__.py` — export `OpenAIUsage`
+- `backend/app/schemas/meal.py` — extended schemas + new AI schemas
+- `backend/app/services/round_robin.py` — filter `source = "manual"`
+- `backend/app/services/image_storage.py` — new resize/save utility
+- `backend/app/services/ai_capture.py` — new OpenAI vision service
+- `backend/app/services/meals.py` — `source` filter in `list_meals`, new fields in `create_meal`
+- `backend/app/api/meals.py` — `POST /meals/ai-capture` route + `source` filter
+- `docker-compose.yml` — OPENAI_API_KEY, captures volume
+- `docker-compose.prod.yml` — same
+
+### Decisions
+- **Chat Completions over Responses API**: stateless single-turn image→JSON doesn't benefit from thread management; defer until multi-turn or tool-use required
+- **Prompt augmentation for user context**: when adding meal preference memory, inject top-N meals as text into `build_vision_prompt()`; `user_context: str | None` param is the hook
+- **No LLMService class yet**: premature abstraction; revisit when 3+ LLM features share the client
+- **Sync processing**: per PRD decision — no background queue, result returned inline
+- **`/ai-capture` before `/{meal_id}`**: route ordering critical; registered correctly in router
+
+### Commits
+- `5acf886` feat: add AI capture DB migration, models, and config (ADR-013)
+- `4353185` feat: implement AI capture endpoint and supporting services (ADR-013)
+- `061b64a` chore: add OPENAI_API_KEY and captures volume to docker-compose (ADR-013)
+- `02d8b72` feat: add date/time context and full macro set to vision prompt (ADR-013)
+
+### Blockers
+- None
+
+### Next
+- ADR-013 Session 2: Frontend capture UI — camera/upload button, confirmation sheet, deviated meal display
+
+---
+
 ## Session: 2026-03-03 (2)
 
 **Role**: debugging + devops

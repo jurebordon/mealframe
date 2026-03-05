@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-03-03
+**Last Updated**: 2026-03-05
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -9,20 +9,24 @@
 
 | Feature | ADR | Branch | Sessions | Status |
 |---------|-----|--------|----------|--------|
-| Authentication & multi-user — Google OAuth | ADR-014 | — | 1 remaining | Sessions 1-5 complete; Google OAuth deferred to separate session |
+| AI meal capture (image MVP) | ADR-013 | `feat/ai-capture-frontend` | ~3 remaining | Session 1 (backend + LLM infra) complete |
 
-**Remaining auth work:**
-- Session 6: Google OAuth (requires Google Cloud Console setup)
+**Remaining AI capture work:**
+- Session 2: Frontend capture UI (camera/upload, confirmation flow, deviated status)
+- Session 3: Frontend deviated meal display + history
+- Session 4 (optional): User meal context injection into vision prompt
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
 
-**Phase 2 — Wave 3 (after auth):**
+**Deferred auth work:**
+- ADR-014 Session 6: Google OAuth (requires Google Cloud Console setup)
+
+**Phase 2 — Wave 4 (after AI capture):**
 
 | Feature | ADR | PRD | Branch | Sessions | Depends on |
 |---------|-----|-----|--------|----------|------------|
-| AI meal capture (image MVP) | ADR-013 | [AI Capture PRD](docs/features/ai_meal_capture/Mealframe_AI_Meal_Capture_PRD.md) | `feat/ai-capture` | ~4 (llm+backend+fe-capture+fe-deviated) | ADR-012 ✅, ADR-014 ✅ |
 
 **Phase 2 — Wave 4 (after AI capture):**
 
@@ -48,6 +52,7 @@ Session breakdown:
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] ADR-013 Session 1: OpenAI GPT-4o vision, DB migration, ai-capture endpoint, image storage, round-robin exclusion (2026-03-05)
 - [x] Resend email service setup — domain verification, DNS records, production config (2026-03-03)
 - [x] Fix: deploy.sh container rename conflict — split build/down/up (2026-03-03)
 - [x] Fix: auth form "Required" validation bug — shadcn Input missing forwardRef for React 18 (2026-03-03)
