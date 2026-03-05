@@ -79,3 +79,4 @@ Thumbs.db
 
 # imports
 v0_design/
+.claude/settings.json
