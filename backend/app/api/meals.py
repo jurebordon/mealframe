@@ -5,6 +5,7 @@ Provides CRUD operations and CSV import for meals.
 Per Tech Spec section 4.5 (CRUD) and frozen spec MEAL_IMPORT_GUIDE.md (import).
 """
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
@@ -116,7 +117,9 @@ async def ai_capture_meal(
         raise HTTPException(status_code=400, detail="Image file is empty.")
 
     try:
-        analysis = await analyze_food_image(image_bytes, user_id=user.id, db=db)
+        analysis = await analyze_food_image(
+            image_bytes, user_id=user.id, db=db, captured_at=datetime.now(timezone.utc)
+        )
     except FoodNotDetected as e:
         raise HTTPException(status_code=400, detail=str(e))
     except AITimeoutError:
@@ -139,7 +142,10 @@ async def ai_capture_meal(
         calories_kcal=analysis.calories_kcal,
         protein_g=analysis.protein_g,
         carbs_g=analysis.carbs_g,
+        sugar_g=analysis.sugar_g,
         fat_g=analysis.fat_g,
+        saturated_fat_g=analysis.saturated_fat_g,
+        fiber_g=analysis.fiber_g,
         confidence_score=analysis.confidence_score,
         identified_items=analysis.identified_items,
         suggested_meal_type=analysis.suggested_meal_type,

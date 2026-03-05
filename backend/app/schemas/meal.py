@@ -195,7 +195,10 @@ class AICaptureAnalysis(BaseSchema):
     calories_kcal: int | None = None
     protein_g: float | None = None
     carbs_g: float | None = None
+    sugar_g: float | None = None
     fat_g: float | None = None
+    saturated_fat_g: float | None = None
+    fiber_g: float | None = None
     confidence_score: float = Field(ge=0, le=1)
     identified_items: list[IdentifiedItem] = Field(default_factory=list)
     suggested_meal_type: str | None = None
@@ -214,7 +217,10 @@ class AICaptureResponse(BaseSchema):
     calories_kcal: int | None = None
     protein_g: float | None = None
     carbs_g: float | None = None
+    sugar_g: float | None = None
     fat_g: float | None = None
+    saturated_fat_g: float | None = None
+    fiber_g: float | None = None
     confidence_score: float
     identified_items: list[IdentifiedItem] = Field(default_factory=list)
     suggested_meal_type: str | None = None
