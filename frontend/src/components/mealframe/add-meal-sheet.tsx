@@ -26,7 +26,7 @@ export function AddMealSheet({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
             onClick={() => onOpenChange(false)}
           />
 
@@ -36,7 +36,7 @@ export function AddMealSheet({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[480px] rounded-t-3xl border-t border-border bg-card pb-safe shadow-2xl"
+            className="fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-[480px] rounded-t-3xl border-t border-border bg-card pb-safe shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-meal-sheet-title"
