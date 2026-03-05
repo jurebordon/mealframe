@@ -115,6 +115,33 @@ export interface MealCreate {
   fiber_g?: number | null
   notes?: string | null
   meal_type_ids?: string[]
+  // AI capture fields (ADR-013)
+  source?: 'manual' | 'ai_capture'
+  confidence_score?: number | null
+  image_path?: string | null
+  ai_model_version?: string | null
+}
+
+// AI Capture (ADR-013)
+export interface AICaptureIdentifiedItem {
+  name: string
+  estimated_quantity: string
+}
+
+export interface AICaptureResponse {
+  meal_name: string
+  portion_description: string
+  calories_kcal: number | null
+  protein_g: number | null
+  carbs_g: number | null
+  sugar_g: number | null
+  fat_g: number | null
+  saturated_fat_g: number | null
+  fiber_g: number | null
+  confidence_score: number
+  identified_items: AICaptureIdentifiedItem[]
+  suggested_meal_type: string | null
+  ai_model_version: string | null
 }
 
 export interface MealUpdate {

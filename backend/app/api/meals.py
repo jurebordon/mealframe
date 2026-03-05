@@ -38,6 +38,7 @@ from ..services.ai_capture import (
     FoodNotDetected,
 )
 from ..services.image_storage import validate_image_content_type
+from ..services.meal_types import list_meal_types
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +117,17 @@ async def ai_capture_meal(
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Image file is empty.")
 
+    # Fetch user's meal type names for the vision prompt
+    meal_type_rows = await list_meal_types(db, user_id=user.id)
+    meal_type_names = [row["meal_type"].name for row in meal_type_rows]
+
     try:
         analysis = await analyze_food_image(
-            image_bytes, user_id=user.id, db=db, captured_at=datetime.now(timezone.utc)
+            image_bytes,
+            user_id=user.id,
+            db=db,
+            captured_at=datetime.now(timezone.utc),
+            meal_type_names=meal_type_names or None,
         )
     except FoodNotDetected as e:
         raise HTTPException(status_code=400, detail=str(e))

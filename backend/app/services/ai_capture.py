@@ -26,9 +26,20 @@ REQUEST_TIMEOUT = 15.0  # seconds
 _COST_PER_INPUT_TOKEN = 0.000005   # $5 per 1M input tokens
 _COST_PER_OUTPUT_TOKEN = 0.000015  # $15 per 1M output tokens
 
-def build_vision_prompt(captured_at: datetime) -> str:
-    """Build the vision prompt with current date/time context injected."""
+def build_vision_prompt(
+    captured_at: datetime,
+    meal_type_names: list[str] | None = None,
+) -> str:
+    """Build the vision prompt with current date/time context and meal type names injected."""
     time_str = captured_at.strftime("%A, %B %d %Y, %H:%M")
+
+    if meal_type_names:
+        types_str = ", ".join(meal_type_names)
+        example_type = meal_type_names[0].lower()
+    else:
+        types_str = "breakfast, lunch, dinner, snack"
+        example_type = "breakfast"
+
     return f"""You are a food nutrition analyzer. Look at this photo and identify what food is shown.
 
 Context: photo taken on {time_str} in Europe. Use this to inform suggested_meal_type and portion size norms.
@@ -48,12 +59,12 @@ Return ONLY valid JSON matching this exact structure — no extra text, no markd
   "identified_items": [
     {{"name": "food item name", "estimated_quantity": "Xg or X pieces"}}
   ],
-  "suggested_meal_type": "breakfast"
+  "suggested_meal_type": "{example_type}"
 }}
 
 Rules:
 - confidence_score is 0.0 to 1.0 (your confidence in ALL macro estimates combined)
-- suggested_meal_type must be one of: breakfast, lunch, dinner, snack
+- suggested_meal_type must be one of: {types_str}
 - portion_description must use the "+" delimiter format (e.g., "200g chicken + 250g rice + 100g salad")
 - sugar_g is a subset of carbs_g; saturated_fat_g is a subset of fat_g
 - If you cannot identify food clearly, still return your best guess with confidence_score below 0.3
@@ -81,6 +92,7 @@ async def analyze_food_image(
     user_id: UUID,
     db: AsyncSession,
     captured_at: datetime | None = None,
+    meal_type_names: list[str] | None = None,
 ) -> AICaptureAnalysis:
     """
     Call GPT-4o vision API synchronously and return structured meal data.
@@ -98,7 +110,10 @@ async def analyze_food_image(
 
     client = AsyncOpenAI(api_key=settings.openai_api_key, timeout=REQUEST_TIMEOUT)
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-    prompt = build_vision_prompt(captured_at or datetime.now(timezone.utc))
+    prompt = build_vision_prompt(
+        captured_at or datetime.now(timezone.utc),
+        meal_type_names=meal_type_names,
+    )
 
     try:
         response = await client.chat.completions.create(

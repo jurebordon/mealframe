@@ -39,6 +39,7 @@ import type {
   StatsResponse,
   PaginatedResponse,
   ErrorResponse,
+  AICaptureResponse,
 } from './types'
 
 // API base URL - configured via environment variable
@@ -381,6 +382,43 @@ export async function importMeals(file: File): Promise<MealImportResult> {
   return data as MealImportResult
 }
 
+/**
+ * Analyze a food photo using AI vision (ADR-013).
+ * Returns estimated meal data without saving.
+ * Uses multipart/form-data (not JSON).
+ */
+export async function captureAiMeal(image: File): Promise<AICaptureResponse> {
+  const url = `${API_BASE_URL}/meals/ai-capture`
+  const formData = new FormData()
+  formData.append('image', image)
+
+  const token = useAuthStore.getState().accessToken
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  // Do NOT set Content-Type header — browser sets it with boundary for multipart
+
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers,
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const errorResponse = data as ErrorResponse
+    throw new ApiError(
+      response.status,
+      errorResponse.error?.code || 'UNKNOWN_ERROR',
+      errorResponse.error?.message || (data as { detail?: string }).detail || 'An error occurred',
+      errorResponse.error?.details
+    )
+  }
+
+  return data as AICaptureResponse
+}
+
 // ============================================================================
 // Meal Types Endpoints
 // ============================================================================
@@ -583,6 +621,7 @@ export const api = {
   updateMeal,
   deleteMeal,
   importMeals,
+  captureAiMeal,
 
   // Meal Types
   getMealTypes,

@@ -8,6 +8,8 @@ import { CompletionSheetAnimated } from '@/components/mealframe/completion-sheet
 import { CompletionAnimation } from '@/components/mealframe/completion-animation'
 import { YesterdayReviewModal } from '@/components/mealframe/yesterday-review-modal'
 import { MealPicker } from '@/components/mealframe/meal-picker'
+import { AddMealSheet } from '@/components/mealframe/add-meal-sheet'
+import { AiCaptureSheet } from '@/components/mealframe/ai-capture-sheet'
 import { Toast } from '@/components/mealframe/toast'
 import { Button } from '@/components/ui/button'
 import { Loader2, RefreshCw, Calendar, Plus, ArrowLeftRight } from 'lucide-react'
@@ -42,7 +44,9 @@ export default function TodayView() {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [lastCompletedSlotId, setLastCompletedSlotId] = useState<string | null>(null)
+  const [showAddMealSheet, setShowAddMealSheet] = useState(false)
   const [showMealPicker, setShowMealPicker] = useState(false)
+  const [showAiCaptureSheet, setShowAiCaptureSheet] = useState(false)
   const [showReassignPicker, setShowReassignPicker] = useState(false)
   const [reassignSlot, setReassignSlot] = useState<WeeklyPlanSlotWithNext | null>(null)
 
@@ -98,6 +102,21 @@ export default function TodayView() {
       setLastCompletedSlotId(null)
     }
   }, [lastCompletedSlotId, uncompleteSlotMutation])
+
+  const handleSelectFromLibrary = useCallback(() => {
+    setShowAddMealSheet(false)
+    setShowMealPicker(true)
+  }, [])
+
+  const handleCaptureWithPhoto = useCallback(() => {
+    setShowAddMealSheet(false)
+    setShowAiCaptureSheet(true)
+  }, [])
+
+  const handleAiMealSaved = useCallback(() => {
+    setToastMessage('Meal captured and added')
+    setShowToast(true)
+  }, [])
 
   const handleAddAdhocMeal = useCallback((meal: MealListItem) => {
     addAdhocSlotMutation.mutate(meal.id, {
@@ -408,7 +427,7 @@ export default function TodayView() {
             {/* Add Meal Button */}
             <Button
               variant="ghost"
-              onClick={() => setShowMealPicker(true)}
+              onClick={() => setShowAddMealSheet(true)}
               className="mt-4 w-full gap-2 text-muted-foreground hover:text-foreground"
             >
               <Plus className="h-4 w-4" />
@@ -439,11 +458,26 @@ export default function TodayView() {
         onReassign={selectedSlot?.meal ? () => handleReassignStart(selectedSlot) : undefined}
       />
 
+      {/* Add Meal Action Sheet */}
+      <AddMealSheet
+        open={showAddMealSheet}
+        onOpenChange={setShowAddMealSheet}
+        onSelectFromLibrary={handleSelectFromLibrary}
+        onCaptureWithPhoto={handleCaptureWithPhoto}
+      />
+
       {/* Meal Picker Sheet (Add Adhoc) */}
       <MealPicker
         open={showMealPicker}
         onOpenChange={setShowMealPicker}
         onSelectMeal={handleAddAdhocMeal}
+      />
+
+      {/* AI Capture Sheet */}
+      <AiCaptureSheet
+        open={showAiCaptureSheet}
+        onOpenChange={setShowAiCaptureSheet}
+        onMealSaved={handleAiMealSaved}
       />
 
       {/* Meal Picker Sheet (Reassign) */}
