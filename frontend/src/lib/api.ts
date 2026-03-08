@@ -404,7 +404,16 @@ export async function captureAiMeal(image: File): Promise<AICaptureResponse> {
     headers,
   })
 
-  const data = await response.json()
+  let data: unknown
+  try {
+    data = await response.json()
+  } catch {
+    throw new ApiError(
+      response.status,
+      'INVALID_RESPONSE',
+      `Server returned non-JSON response (HTTP ${response.status})`
+    )
+  }
 
   if (!response.ok) {
     const errorResponse = data as ErrorResponse
