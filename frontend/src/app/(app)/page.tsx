@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { MealCardGesture } from '@/components/mealframe/meal-card-gesture'
 import { ProgressRing } from '@/components/mealframe/progress-ring'
 import { StreakBadge } from '@/components/mealframe/streak-badge'
@@ -9,7 +9,7 @@ import { CompletionAnimation } from '@/components/mealframe/completion-animation
 import { YesterdayReviewModal } from '@/components/mealframe/yesterday-review-modal'
 import { MealPicker } from '@/components/mealframe/meal-picker'
 import { AddMealSheet } from '@/components/mealframe/add-meal-sheet'
-import { AiCaptureSheet } from '@/components/mealframe/ai-capture-sheet'
+import { AiCaptureSheet, type AiCaptureSheetHandle } from '@/components/mealframe/ai-capture-sheet'
 import { Toast } from '@/components/mealframe/toast'
 import { Button } from '@/components/ui/button'
 import { Loader2, RefreshCw, Calendar, Plus, ArrowLeftRight } from 'lucide-react'
@@ -47,6 +47,7 @@ export default function TodayView() {
   const [showAddMealSheet, setShowAddMealSheet] = useState(false)
   const [showMealPicker, setShowMealPicker] = useState(false)
   const [showAiCaptureSheet, setShowAiCaptureSheet] = useState(false)
+  const aiCaptureRef = useRef<AiCaptureSheetHandle>(null)
   const [showReassignPicker, setShowReassignPicker] = useState(false)
   const [reassignSlot, setReassignSlot] = useState<WeeklyPlanSlotWithNext | null>(null)
 
@@ -111,6 +112,8 @@ export default function TodayView() {
   const handleCaptureWithPhoto = useCallback(() => {
     setShowAddMealSheet(false)
     setShowAiCaptureSheet(true)
+    // Trigger file picker synchronously in the same user gesture to satisfy iOS Safari
+    aiCaptureRef.current?.triggerFilePicker()
   }, [])
 
   const handleAiMealSaved = useCallback(() => {
@@ -475,6 +478,7 @@ export default function TodayView() {
 
       {/* AI Capture Sheet */}
       <AiCaptureSheet
+        ref={aiCaptureRef}
         open={showAiCaptureSheet}
         onOpenChange={setShowAiCaptureSheet}
         onMealSaved={handleAiMealSaved}

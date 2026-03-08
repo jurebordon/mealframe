@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2, AlertCircle, Camera, RotateCcw } from 'lucide-react'
@@ -11,6 +11,10 @@ import { useMealTypes } from '@/hooks/use-meal-types'
 import type { AICaptureResponse, MealCreate } from '@/lib/types'
 
 type Phase = 'idle' | 'analyzing' | 'confirming' | 'error'
+
+export interface AiCaptureSheetHandle {
+  triggerFilePicker: () => void
+}
 
 interface AiCaptureSheetProps {
   open: boolean
@@ -28,13 +32,18 @@ function mapCaptureError(error: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
-export function AiCaptureSheet({
+export const AiCaptureSheet = forwardRef<AiCaptureSheetHandle, AiCaptureSheetProps>(function AiCaptureSheet({
   open,
   onOpenChange,
   onMealSaved,
-}: AiCaptureSheetProps) {
+}, ref) {
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    triggerFilePicker: () => fileInputRef.current?.click(),
+  }))
+
   const [phase, setPhase] = useState<Phase>('idle')
   const [captureResult, setCaptureResult] = useState<AICaptureResponse | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -42,17 +51,6 @@ export function AiCaptureSheet({
   const [isSaving, setIsSaving] = useState(false)
 
   const { data: mealTypes } = useMealTypes()
-
-  // Trigger file picker when sheet opens
-  useEffect(() => {
-    if (open && phase === 'idle') {
-      // Small delay to let sheet animation start
-      const timer = setTimeout(() => {
-        fileInputRef.current?.click()
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-  }, [open, phase])
 
   // Pre-fill meal type when capture result arrives
   useEffect(() => {
@@ -342,7 +340,7 @@ export function AiCaptureSheet({
       </AnimatePresence>
     </>
   )
-}
+})
 
 function MacroCard({
   label,
