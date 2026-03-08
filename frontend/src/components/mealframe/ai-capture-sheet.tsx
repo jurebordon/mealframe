@@ -28,7 +28,10 @@ function mapCaptureError(error: unknown): string {
     if (error.status === 400) return 'Could not identify food in this photo. Try a clearer image.'
     if (error.status === 502) return 'Analysis service unavailable. Please try again.'
     if (error.status === 413) return 'Photo is too large. Please use a smaller image.'
+    if (error.status === 503) return `Service not configured (${error.message})`
+    return `Error ${error.status}: ${error.message}`
   }
+  if (error instanceof Error) return `${error.name}: ${error.message}`
   return 'Something went wrong. Please try again.'
 }
 
