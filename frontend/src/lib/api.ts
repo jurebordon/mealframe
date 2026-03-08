@@ -387,10 +387,38 @@ export async function importMeals(file: File): Promise<MealImportResult> {
  * Returns estimated meal data without saving.
  * Uses multipart/form-data (not JSON).
  */
+async function compressImage(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      const canvas = document.createElement('canvas')
+      const maxDim = 1920
+      let { width, height } = img
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
+        else { width = Math.round(width * maxDim / height); height = maxDim }
+      }
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(
+        (blob) => resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file),
+        'image/jpeg',
+        0.85
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file) }
+    img.src = objectUrl
+  })
+}
+
 export async function captureAiMeal(image: File): Promise<AICaptureResponse> {
   const url = `${API_BASE_URL}/meals/ai-capture`
+  const compressed = await compressImage(image)
   const formData = new FormData()
-  formData.append('image', image)
+  formData.append('image', compressed)
 
   const token = useAuthStore.getState().accessToken
   const headers: Record<string, string> = {}
