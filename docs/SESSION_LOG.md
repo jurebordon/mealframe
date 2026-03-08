@@ -5,6 +5,56 @@
 
 ---
 
+## Session: 2026-03-08
+
+**Role**: frontend + debugging
+**Task**: ADR-013 Session 2 — AI Capture Frontend UI
+**Branch**: direct to main (solo flow)
+
+### Summary
+- Built full frontend capture flow for AI meal capture (ADR-013 Session 2)
+- Added `AddMealSheet` — small action sheet with "Select from Library" and "Capture with Photo" options
+- Added `AiCaptureSheet` — state machine (idle/analyzing/confirming/error) with camera/file picker, loading spinner, confirmation screen (meal name, portion, 4-up macro grid, confidence bar, meal type dropdown), error state with mapped messages
+- Backend: injected user's actual meal type names into vision prompt (replacing hardcoded defaults)
+- Wired capture flow into Today View's "Add Meal" button
+- Fixed deploy regression: `docker-compose.prod.yml` missing `!override` tag caused dev bind mount to merge into prod, overwriting chmod'd `entrypoint.sh` → permission denied on startup
+- Fixed: sheets were `z-50` same as bottom nav — bumped to `z-[60]` so nav doesn't overlap sheet content
+- Fixed: iOS Safari blocks `fileInputRef.current?.click()` from `useEffect`/`setTimeout` (not a user gesture). Resolved via `forwardRef` + `useImperativeHandle` — parent calls `triggerFilePicker()` synchronously in the button handler
+- Fixed: large phone camera photos (>10MB) rejected with 413. Added client-side compression (canvas, max 1920px, JPEG 85%) before upload
+- Added better error surfacing: non-JSON responses caught separately; unknown status codes show actual HTTP status + message
+
+### Files Changed
+- `backend/app/services/ai_capture.py` — `meal_type_names` param in `build_vision_prompt()` + `analyze_food_image()`
+- `backend/app/api/meals.py` — fetch meal types from DB, pass names to vision service
+- `frontend/src/lib/types.ts` — `AICaptureResponse`, `AICaptureIdentifiedItem` types; extended `MealCreate` with AI fields
+- `frontend/src/lib/api.ts` — `captureAiMeal()` multipart upload + `compressImage()` helper
+- `frontend/src/components/mealframe/add-meal-sheet.tsx` — new action sheet component
+- `frontend/src/components/mealframe/ai-capture-sheet.tsx` — new capture/confirm sheet component
+- `frontend/src/app/(app)/page.tsx` — wired capture flow into Today View
+- `docker-compose.prod.yml` — `volumes: !override` fix
+
+### Decisions
+- **iOS Safari gesture requirement**: file input `.click()` must be called synchronously in a user gesture handler. `useEffect` + `setTimeout` doesn't qualify. Pattern: `forwardRef` exposes `triggerFilePicker` to parent, parent calls it directly in `onClick`.
+- **Client-side compression**: compress before upload rather than raising server limit. Canvas + `toBlob('image/jpeg', 0.85)` at max 1920px keeps quality adequate for GPT-4o vision while staying well under 10MB.
+- **Meal type dropdown pre-fill**: case-insensitive match of AI's `suggested_meal_type` against user's meal type names; falls back to first type.
+
+### Commits
+- `1e0fbf8` feat: add AI capture frontend UI with camera/upload and confirmation flow (ADR-013)
+- `4861efb` fix: use !override for prod volumes to prevent dev bind mount merge
+- `1385c27` fix: raise sheet z-index above bottom nav bar
+- `aa910dc` fix: trigger file picker synchronously to satisfy iOS Safari gesture requirement
+- `eb59f9c` fix: show actual error details in capture error state for debugging
+- `c8827c1` fix: handle non-JSON response in captureAiMeal to surface real HTTP status
+- `70fca07` fix: compress image before upload to handle large phone camera photos
+
+### Blockers
+- None
+
+### Next
+- ADR-013 Session 3: Frontend deviated meal display + history (captured meals in meal library, source badge)
+
+---
+
 ## Session: 2026-03-05
 
 **Role**: backend + architecture

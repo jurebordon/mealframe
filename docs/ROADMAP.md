@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-03-05
+**Last Updated**: 2026-03-08
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -9,11 +9,10 @@
 
 | Feature | ADR | Branch | Sessions | Status |
 |---------|-----|--------|----------|--------|
-| AI meal capture (image MVP) | ADR-013 | `feat/ai-capture-frontend` | ~3 remaining | Session 1 (backend + LLM infra) complete |
+| AI meal capture (image MVP) | ADR-013 | main | ~2 remaining | Session 2 (frontend capture UI) complete |
 
 **Remaining AI capture work:**
-- Session 2: Frontend capture UI (camera/upload, confirmation flow, deviated status)
-- Session 3: Frontend deviated meal display + history
+- Session 3: Frontend deviated meal display + history (captured meals in library, source badge)
 - Session 4 (optional): User meal context injection into vision prompt
 
 ## Next (Queued)
@@ -52,6 +51,7 @@ Session breakdown:
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] ADR-013 Session 2: Frontend capture UI — AddMealSheet, AiCaptureSheet, iOS Safari gesture fix, client-side compression (2026-03-08)
 - [x] ADR-013 Session 1: OpenAI GPT-4o vision, DB migration, ai-capture endpoint, image storage, round-robin exclusion (2026-03-05)
 - [x] Resend email service setup — domain verification, DNS records, production config (2026-03-03)
 - [x] Fix: deploy.sh container rename conflict — split build/down/up (2026-03-03)
