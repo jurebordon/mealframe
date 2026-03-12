@@ -388,28 +388,48 @@ export async function importMeals(file: File): Promise<MealImportResult> {
  * Uses multipart/form-data (not JSON).
  */
 async function compressImage(file: File): Promise<File> {
-  return new Promise((resolve) => {
-    const img = new Image()
-    const objectUrl = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
+  const compress = (source: HTMLImageElement, maxDim: number, quality: number): Promise<File> =>
+    new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas')
-      const maxDim = 1920
-      let { width, height } = img
+      let { width, height } = source
       if (width > maxDim || height > maxDim) {
         if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
         else { width = Math.round(width * maxDim / height); height = maxDim }
       }
       canvas.width = width
       canvas.height = height
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.getContext('2d')!.drawImage(source, 0, 0, width, height)
       canvas.toBlob(
-        (blob) => resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file),
+        (blob) => {
+          if (blob) resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+          else reject(new Error('Canvas compression failed'))
+        },
         'image/jpeg',
-        0.85
+        quality
       )
+    })
+
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = async () => {
+      URL.revokeObjectURL(objectUrl)
+      try {
+        // First pass: 1600px max, 80% quality
+        let result = await compress(img, 1600, 0.80)
+        // If still too large, re-compress more aggressively
+        if (result.size > 8 * 1024 * 1024) {
+          result = await compress(img, 1280, 0.70)
+        }
+        resolve(result)
+      } catch (err) {
+        reject(err)
+      }
     }
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file) }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Failed to load image for compression'))
+    }
     img.src = objectUrl
   })
 }

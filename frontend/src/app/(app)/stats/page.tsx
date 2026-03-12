@@ -281,9 +281,12 @@ export default function StatsPage() {
                       <XAxis
                         dataKey="label"
                         stroke="oklch(0.62 0.01 60)"
-                        fontSize={12}
+                        fontSize={10}
                         tickLine={false}
-                        interval={timePeriod >= 90 ? 6 : timePeriod >= 30 ? 2 : 0}
+                        interval={timePeriod >= 90 ? 6 : timePeriod >= 30 ? 4 : 0}
+                        angle={timePeriod >= 30 ? -45 : 0}
+                        textAnchor={timePeriod >= 30 ? 'end' : 'middle'}
+                        height={timePeriod >= 30 ? 60 : 30}
                       />
                       <YAxis
                         stroke="oklch(0.62 0.01 60)"

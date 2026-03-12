@@ -10,7 +10,8 @@
  */
 
 import { useState } from 'react'
-import { Plus, Star } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Settings, Star } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -59,7 +60,16 @@ export default function SetupPage() {
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-4xl px-4 pb-24 pt-safe">
         <header className="mb-6 pt-6">
-          <h1 className="text-2xl font-semibold text-foreground">Setup</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-foreground">Setup</h1>
+            <Link
+              href="/settings"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
+              aria-label="Settings"
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Configure the building blocks for your meal plans
           </p>
@@ -135,11 +145,11 @@ function MealTypesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Meal types define functional eating slots (e.g., Breakfast, Pre-Workout Snack).
         </p>
-        <Button onClick={handleAdd} size="sm">
+        <Button onClick={handleAdd} size="sm" className="shrink-0 self-end sm:self-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Type
         </Button>
@@ -252,11 +262,11 @@ function DayTemplatesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Day templates are ordered sequences of meal types for a day pattern.
         </p>
-        <Button onClick={handleAdd} size="sm">
+        <Button onClick={handleAdd} size="sm" className="shrink-0 self-end sm:self-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Template
         </Button>
@@ -321,7 +331,7 @@ function DayTemplatesTab() {
 // =============================================================================
 
 function WeekPlansTab() {
-  const { data: weekPlans, isLoading: plansLoading } = useWeekPlans()
+  const { data: weekPlans, isLoading: plansLoading, error: plansError } = useWeekPlans()
   const { data: dayTemplates } = useDayTemplates()
   const createMutation = useCreateWeekPlan()
   const updateMutation = useUpdateWeekPlan()
@@ -372,13 +382,21 @@ function WeekPlansTab() {
     return <TabSkeleton />
   }
 
+  if (plansError) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+        Failed to load week plans. Please try refreshing the page.
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Week plans map day templates to weekdays. The default plan is used for generating new weeks.
         </p>
-        <Button onClick={handleAdd} size="sm">
+        <Button onClick={handleAdd} size="sm" className="shrink-0 self-end sm:self-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Plan
         </Button>

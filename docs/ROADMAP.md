@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-03-08
+**Last Updated**: 2026-03-12
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -51,6 +51,7 @@ Session breakdown:
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
+- [x] Mobile UI polish: 9 fixes — chart x-axis, nav hover, settings gear, template editor overflow/autofocus, week plans layout, add-meal visibility, image compression (2026-03-12)
 - [x] ADR-013 Session 2: Frontend capture UI — AddMealSheet, AiCaptureSheet, iOS Safari gesture fix, client-side compression (2026-03-08)
 - [x] ADR-013 Session 1: OpenAI GPT-4o vision, DB migration, ai-capture endpoint, image storage, round-robin exclusion (2026-03-05)
 - [x] Resend email service setup — domain verification, DNS records, production config (2026-03-03)

@@ -161,7 +161,7 @@ export function DayTemplateEditor({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit Day Template' : 'Add Day Template'}
@@ -220,10 +220,10 @@ export function DayTemplateEditor({
                 {slots.map((slot, index) => (
                   <div
                     key={slot.tempId}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
+                    className="flex items-center gap-2 rounded-lg border border-border bg-card p-2 sm:gap-3 sm:p-3"
                   >
                     {/* Reorder Buttons */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex shrink-0 flex-col gap-0.5 sm:gap-1">
                       <button
                         onClick={() => handleMoveSlot(slot.tempId, 'up')}
                         disabled={index === 0 || isSaving}
@@ -243,7 +243,7 @@ export function DayTemplateEditor({
                     </div>
 
                     {/* Position Number */}
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary sm:h-8 sm:w-8 sm:text-sm">
                       {index + 1}
                     </div>
 
@@ -274,7 +274,7 @@ export function DayTemplateEditor({
                       onClick={() => handleRemoveSlot(slot.tempId)}
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 shrink-0 p-0"
                       disabled={isSaving}
                     >
                       <X className="h-4 w-4" />

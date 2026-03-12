@@ -5,6 +5,45 @@
 
 ---
 
+## Session: 2026-03-12
+
+**Role**: frontend
+**Task**: Mobile UI polish — 9 fixes from real-device iOS testing
+**Branch**: direct to main (solo flow)
+
+### Summary
+- Fixed 9 mobile UX issues identified from iOS Safari real-device testing
+- Stats chart: angled x-axis labels (-45deg) for 30+ day views, increased interval, reduced font size
+- Bottom nav: removed `hover:text-foreground` on mobile (was causing white "semi-active" state on long-press), kept for desktop via `md:hover:`
+- Settings gear: removed from global app-shell bar (eliminated gap on all pages), moved to Setup page header only
+- Template editor: prevented auto-focus on name field (`onOpenAutoFocus` prevention), made slot rows responsive with smaller gaps/padding/badges on mobile, added `overflow-x-hidden` and `w-full`
+- Setup tabs: stacked description text + action button vertically on mobile for all three tabs (Meal Types, Day Templates, Week Plans)
+- Week Plans: added error state handling for failed queries
+- Today View: changed "+ Add meal" from ghost to outline variant for visibility, removed static "Pull down to refresh" text
+- Image compression: reduced from 1920px/0.85 to 1600px/0.80, added re-compress fallback (1280px/0.70) if still >8MB, errors now throw instead of silently sending original file
+
+### Files Changed
+- `frontend/src/app/(app)/stats/page.tsx` — XAxis angle, interval, fontSize, height
+- `frontend/src/components/navigation/bottom-nav.tsx` — `md:hover:text-foreground`
+- `frontend/src/components/navigation/app-shell.tsx` — removed settings bar + unused imports
+- `frontend/src/app/(app)/setup/page.tsx` — settings gear in header, stacked tab headers, week plans error state
+- `frontend/src/components/mealframe/day-template-editor.tsx` — onOpenAutoFocus, responsive slots, overflow-x-hidden
+- `frontend/src/app/(app)/page.tsx` — outline add-meal button, removed pull-to-refresh hint
+- `frontend/src/lib/api.ts` — two-pass compression with size check, error propagation
+
+### Decisions
+- **Settings gear in Setup only**: cleaner than a global bar; desktop sidebar already has settings link
+- **Image compression two-pass**: first pass at 1600px/0.80, re-compress at 1280px/0.70 if >8MB. Covers even 48MP phone cameras
+- **No pull-to-refresh text**: iOS users expect native pull-to-refresh without a visible hint
+
+### Blockers
+- None
+
+### Next
+- ADR-013 Session 3: Frontend deviated meal display + history (captured meals in meal library, source badge)
+
+---
+
 ## Session: 2026-03-08
 
 **Role**: frontend + debugging

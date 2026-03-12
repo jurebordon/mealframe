@@ -429,22 +429,14 @@ export default function TodayView() {
 
             {/* Add Meal Button */}
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={() => setShowAddMealSheet(true)}
-              className="mt-4 w-full gap-2 text-muted-foreground hover:text-foreground"
+              className="mt-4 w-full gap-2"
             >
               <Plus className="h-4 w-4" />
               Add meal
             </Button>
           </section>
-        )}
-
-        {/* Pull to Refresh Hint */}
-        {hasSlots && (
-          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <RefreshCw className="h-3 w-3" />
-            <span>Pull down to refresh</span>
-          </div>
         )}
       </div>
 

@@ -33,7 +33,7 @@ export function BottomNav() {
               className={`flex min-h-[64px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 transition-colors active:scale-95 ${
                 isActive
                   ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                  : 'text-muted-foreground md:hover:text-foreground'
               }`}
               aria-label={`${item.label}${isActive ? ', current tab' : ''}`}
               aria-current={isActive ? 'page' : undefined}
