@@ -23,6 +23,8 @@ interface AuthActions {
   /** Get a valid access token, refreshing if needed */
   getAccessToken: () => Promise<string | null>
   clearAuth: () => void
+  /** Handle OAuth callback — set token from redirect and fetch user profile */
+  handleOAuthCallback: (accessToken: string) => Promise<void>
   verifyEmail: (token: string) => Promise<string>
   forgotPassword: (email: string) => Promise<string>
   resetPassword: (token: string, password: string) => Promise<string>
@@ -145,6 +147,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   clearAuth: () => {
     set({ user: null, accessToken: null })
+  },
+
+  handleOAuthCallback: async (accessToken: string) => {
+    set({ isLoading: true, accessToken })
+    try {
+      const user = await authFetch<AuthUser>('/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      set({ user, isLoading: false, isInitialized: true })
+    } catch (error) {
+      set({ user: null, accessToken: null, isLoading: false })
+      throw error
+    }
   },
 
   verifyEmail: async (token: string) => {

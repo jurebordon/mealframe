@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,28 +11,36 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuthStore } from '@/lib/auth-store'
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
 })
 
-type LoginForm = z.infer<typeof loginSchema>
+type LoginFormData = z.infer<typeof loginSchema>
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const login = useAuthStore((s) => s.login)
   const [error, setError] = useState<string | null>(null)
+
+  // Show error from OAuth redirect
+  useEffect(() => {
+    const oauthError = searchParams.get('error')
+    if (oauthError) setError(oauthError)
+  }, [searchParams])
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({
+  } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
 
-  const onSubmit = async (data: LoginForm) => {
+  const onSubmit = async (data: LoginFormData) => {
     setError(null)
     try {
       await login(data.email, data.password)
@@ -87,6 +95,7 @@ export default function LoginPage() {
           <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </Button>
+          <GoogleSignInButton />
           <Link
             href="/forgot-password"
             className="text-sm text-muted-foreground hover:text-primary hover:underline"
@@ -102,5 +111,13 @@ export default function LoginPage() {
         </CardFooter>
       </form>
     </Card>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

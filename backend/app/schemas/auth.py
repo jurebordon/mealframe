@@ -61,3 +61,9 @@ class MessageResponse(BaseSchema):
     """Generic message response."""
 
     message: str
+
+
+class GoogleOAuthEnabledResponse(BaseSchema):
+    """Response for GET /auth/google/enabled."""
+
+    enabled: bool

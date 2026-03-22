@@ -26,6 +26,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://mealframe:${DB_PASSWORD:-password}@db:5432/mealframe
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     ports:
       - "8003:8003"
     depends_on:

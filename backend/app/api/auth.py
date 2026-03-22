@@ -1,5 +1,8 @@
 """Authentication API endpoints (ADR-014)."""
-from fastapi import APIRouter, Cookie, Depends, Request, Response
+import logging
+
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -10,6 +13,7 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.auth import (
     ForgotPasswordRequest,
+    GoogleOAuthEnabledResponse,
     LoginRequest,
     MessageResponse,
     RegisterRequest,
@@ -29,6 +33,14 @@ from app.services.auth import (
     revoke_refresh_token,
     verify_email,
 )
+from app.services.oauth import (
+    build_authorization_url,
+    exchange_code_for_user_info,
+    get_or_create_google_user,
+    google_oauth_enabled,
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -103,8 +115,6 @@ async def refresh(
 ):
     """Rotate refresh token and issue a new access token."""
     if not refresh_token:
-        from fastapi import HTTPException, status
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No refresh token provided",
@@ -190,3 +200,84 @@ async def reset_password_endpoint(
     return MessageResponse(
         message="Password reset successfully. Please log in with your new password."
     )
+
+
+# ---------------------------------------------------------------------------
+# Google OAuth (ADR-014 Session 6)
+# ---------------------------------------------------------------------------
+
+# State tokens stored in-memory (short-lived, cleared on use).
+# For a single-server deployment this is sufficient.
+_oauth_states: dict[str, bool] = {}
+
+
+@router.get("/google/enabled", response_model=GoogleOAuthEnabledResponse)
+async def google_enabled():
+    """Check if Google OAuth is configured. Frontend uses this to show/hide button."""
+    return GoogleOAuthEnabledResponse(enabled=google_oauth_enabled())
+
+
+@router.get("/google/authorize")
+async def google_authorize(request: Request):
+    """Redirect user to Google consent screen."""
+    if not google_oauth_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Google OAuth is not configured",
+        )
+
+    # Build callback URL from the current request
+    redirect_uri = str(request.url_for("google_callback"))
+    authorization_url, state = await build_authorization_url(redirect_uri)
+
+    # Store state for CSRF validation
+    _oauth_states[state] = True
+
+    return RedirectResponse(url=authorization_url, status_code=302)
+
+
+@router.get("/google/callback")
+async def google_callback(
+    request: Request,
+    code: str = Query(...),
+    state: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle Google OAuth callback. Exchanges code, creates/links user, redirects to frontend."""
+    # Validate CSRF state
+    if not _oauth_states.pop(state, False):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OAuth state parameter",
+        )
+
+    redirect_uri = str(request.url_for("google_callback"))
+
+    try:
+        google_info = await exchange_code_for_user_info(code, redirect_uri)
+    except Exception:
+        logger.exception("Google OAuth code exchange failed")
+        # Redirect to frontend with error
+        return RedirectResponse(
+            url=f"{settings.frontend_url}/oauth/callback?error=exchange_failed",
+            status_code=302,
+        )
+
+    user = await get_or_create_google_user(db, google_info)
+
+    if not user.is_active:
+        return RedirectResponse(
+            url=f"{settings.frontend_url}/oauth/callback?error=account_disabled",
+            status_code=302,
+        )
+
+    # Issue tokens
+    access_token, raw_refresh = await issue_tokens(db, user)
+
+    # Redirect to frontend callback page with access token
+    response = RedirectResponse(
+        url=f"{settings.frontend_url}/oauth/callback?token={access_token}",
+        status_code=302,
+    )
+    _set_refresh_cookie(response, raw_refresh)
+    return response

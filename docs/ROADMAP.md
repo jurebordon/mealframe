@@ -1,138 +1,83 @@
 # Roadmap
 
-**Last Updated**: 2026-03-12
+**Last Updated**: 2026-03-22
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
 
-<!-- ONE task in progress at a time -->
+<!-- Tag each task with [feature: name] -->
 
-| Feature | ADR | Branch | Sessions | Status |
-|---------|-----|--------|----------|--------|
-| AI meal capture (image MVP) | ADR-013 | main | ~2 remaining | Session 2 (frontend capture UI) complete |
+| Feature | ADR | Branch | Status |
+|---------|-----|--------|--------|
+| AI meal capture — deviated meal display + history | ADR-013 | main | Next up (Session 3) |
 
-**Remaining AI capture work:**
-- Session 3: Frontend deviated meal display + history (captured meals in library, source badge)
-- Session 4 (optional): User meal context injection into vision prompt
+**Remaining AI capture work [feature: ai-capture]:**
+- [ ] Session 3: Frontend deviated meal display + history (captured meals in library, source badge) [feature: ai-capture]
+- [ ] Session 4 (optional): User meal context injection into vision prompt [feature: ai-capture]
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
 
-**Deferred auth work:**
-- ADR-014 Session 6: Google OAuth (requires Google Cloud Console setup)
-
-**Phase 2 — Wave 4 (after AI capture):**
-
-| Feature | ADR | PRD | Branch | Sessions | Depends on |
-|---------|-----|-----|--------|----------|------------|
-
-**Phase 2 — Wave 4 (after AI capture):**
-
-| Feature | ADR | PRD | Branch | Sessions | Depends on |
-|---------|-----|-----|--------|----------|------------|
-| Grocery list from weekly plan | ADR-008 | [Grocery List PRD](docs/features/grocery_list/Mealframe_GroceryList_PRD.md) | `feat/grocery-list-*` | ~3 (db+backend+frontend) | ADR-013 (LLM infrastructure), ADR-014 (auth) ✅ |
-
-Session breakdown:
-- Session 1: `needs_groceries` DB foundation + template editor toggle (no LLM dependency)
-- Session 2: AI extraction service + grocery list API (uses ADR-013 LLM infra)
-- Session 3: Frontend grocery list page + navigation
+1. [ ] Grocery list from weekly plan — Session 1: `needs_groceries` DB foundation + template editor toggle [feature: grocery-list]
+3. [ ] Grocery list — Session 2: AI extraction service + grocery list API [feature: grocery-list]
+4. [ ] Grocery list — Session 3: Frontend grocery list page + navigation [feature: grocery-list]
 
 ## Later (Backlog)
 
 <!-- Ideas and future work, not prioritized -->
-- AI meal capture Phase 2: voice dictation via Whisper (ADR-013 Phase 2)
-- Push notification reminders (requires native app consideration)
-- Adherence-weighted round-robin (deprioritize skipped meals)
-- Watch complications for "next meal"
-- Template export/import for sharing
-- Public template library
+
+- AI meal capture Phase 2: voice dictation via Whisper (ADR-013 Phase 2) [feature: ai-capture]
+- Push notification reminders (requires native app consideration) [feature: infrastructure]
+- Adherence-weighted round-robin (deprioritize skipped meals) [feature: infrastructure]
+- Watch complications for "next meal" [feature: infrastructure]
+- Template export/import for sharing [feature: infrastructure]
+- Public template library [feature: infrastructure]
+- Per-slot reassignment UI polish (ADR-011) [feature: meal-reassignment]
 
 ## Done (Recent)
 
 <!-- Recently completed, for context -->
-- [x] Mobile UI polish: 9 fixes — chart x-axis, nav hover, settings gear, template editor overflow/autofocus, week plans layout, add-meal visibility, image compression (2026-03-12)
-- [x] ADR-013 Session 2: Frontend capture UI — AddMealSheet, AiCaptureSheet, iOS Safari gesture fix, client-side compression (2026-03-08)
-- [x] ADR-013 Session 1: OpenAI GPT-4o vision, DB migration, ai-capture endpoint, image storage, round-robin exclusion (2026-03-05)
-- [x] Resend email service setup — domain verification, DNS records, production config (2026-03-03)
-- [x] Fix: deploy.sh container rename conflict — split build/down/up (2026-03-03)
-- [x] Fix: auth form "Required" validation bug — shadcn Input missing forwardRef for React 18 (2026-03-03)
-- [x] Auth session 5: email verification, password reset, rate limiting, account lockout (2026-03-01)
-- [x] Privacy policy page for waitlist landing (2026-02-25)
-- [x] Track C: Waitlist landing page + self-hosted pageview analytics (2026-02-25)
-- [x] Fix: MealPicker empty state (page_size 422), iOS keyboard overlap, sheet resizing (2026-02-24)
-- [x] Track A: Revised completion statuses — ADR-012 (backend + frontend + stats) (2026-02-23)
-- [x] Track B: Per-slot meal reassignment — ADR-011 (backend + frontend) (2026-02-23)
-- [x] ADR-011 through ADR-014 written — Phase 2 feature planning (2026-02-20)
-- [x] Fix: Card text selection on tap — added select-none to Card component (2026-02-20)
-- [x] Soft limits frontend: template editor limits, list previews, Stats over-limit card + breakdown (2026-02-18)
-- [x] Fix: test_weekly_api.py MultipleResultsFound due to seed data conflict (2026-02-18)
-- [x] Soft limits backend: migration, CRUD, over-limit stats calculation (2026-02-18)
-- [x] Fix: Streak inconsistency between Today View and Stats page (2026-02-18)
-- [x] Ad-hoc meals frontend: MealPicker, Add Meal button, ad-hoc indicators, remove flow (2026-02-18)
-- [x] Ad-hoc meals backend: is_adhoc column, POST /today/slots, DELETE /slots/{id} (2026-02-12)
-- [x] Fix: Swipe cascading bug, clear status, meal ordering, sheet cutoff (2026-02-09)
-- [x] Extended macro display + daily totals + avg daily stats (2026-02-08)
-- [x] CSV import: auto-create missing meal types (2026-02-07)
-- [x] "Yesterday Review" modal on morning open (2026-02-03)
-- [x] Enable SSH-based auto-deployment from GitHub Actions (2026-02-02)
-- [x] Homelab deployment to Proxmox VM with NPM reverse proxy and SSL (2026-02-02)
-- [x] Fix backend API connectivity through NPM (expose API port 8003, configure proxy) (2026-02-02)
-- [x] Configure split DNS in OPNsense to avoid DNS rebind warnings (2026-02-02)
-- [x] Fix: Undo action for completed meals (tap to change status, "Current" badge) (2026-02-01)
-- [x] Template picker modal mobile UX (fullscreen, scroll prevention, "No Plan" visible) (2026-01-30)
-- [x] Week selector with navigation (arrow-based week switching, smart regeneration) (2026-01-30)
-- [x] Deployment setup (Docker Compose production config, Nginx, multi-stage builds) (2026-01-30)
-- [x] End-to-end testing with Playwright (daily flows, weekly generation, offline) (2026-01-27)
-- [x] Build Stats view (adherence, streaks, daily chart, meal type breakdown) (2026-01-27)
-- [x] Implement offline support (service worker, cache strategy, completion sync) (2026-01-26)
-- [x] Build Setup screens (Meal Types, Day Templates, Week Plans) with full CRUD (2026-01-26)
-- [x] Build Meals Library with full CRUD, search, and type filtering (2026-01-26)
-- [x] Implement CSV meal import functionality (2026-01-26)
-- [x] Build Week View with API integration and template switching (2026-01-26)
-- [x] Seed initial data (Meal Types, Day Templates, Week Plan, Sample Meals) (2026-01-26)
-- [x] Build Today View with API integration and completion flow (2026-01-26)
-- [x] Set up frontend foundation with v0 design system (2026-01-24)
-- [x] Build API endpoints for weekly planning (generate, template switching) (2026-01-24)
-- [x] Build API endpoints for daily use (GET /today, POST /slots/{id}/complete) (2026-01-24)
-- [x] Build Pydantic schemas for API requests/responses (2026-01-24)
-- [x] Implement round-robin meal selection algorithm (2026-01-22)
-- [x] Implement database schema and migrations (Alembic) (2026-01-20)
-- [x] Set up backend foundation (FastAPI + PostgreSQL + Docker) (2026-01-20)
-- [x] Set up project structure and development environment (2026-01-19)
-- [x] Created PRD and Tech Spec (2026-01-19)
-- [x] Initialized SpecFlow documentation structure (2026-01-19)
+
+- [x] ADR-014 Session 6: Google OAuth — authlib OIDC flow, auto-link accounts, conditional UI (2026-03-22) [feature: auth]
+- [x] Mobile UI polish: 9 fixes from real-device iOS testing (2026-03-12) [feature: infrastructure]
+- [x] ADR-013 Session 2: Frontend capture UI — AddMealSheet, AiCaptureSheet, iOS Safari gesture fix, client-side compression (2026-03-08) [feature: ai-capture]
+- [x] ADR-013 Session 1: OpenAI GPT-4o vision, DB migration, ai-capture endpoint, image storage, round-robin exclusion (2026-03-05) [feature: ai-capture]
+- [x] Resend email service setup — domain verification, DNS records, production config (2026-03-03) [feature: auth]
+- [x] Auth session 5: email verification, password reset, rate limiting, account lockout (2026-03-01) [feature: auth]
+- [x] Privacy policy page for waitlist landing (2026-02-25) [feature: landing]
+- [x] Track C: Waitlist landing page + self-hosted pageview analytics (2026-02-25) [feature: landing]
+- [x] Track A: Revised completion statuses — ADR-012 (backend + frontend + stats) (2026-02-23) [feature: completion-statuses]
+- [x] Track B: Per-slot meal reassignment — ADR-011 (backend + frontend) (2026-02-23) [feature: meal-reassignment]
+- [x] ADR-014 (Auth) sessions 1-4: users table, JWT/refresh tokens, frontend auth pages, settings, data migration (2026-02-23) [feature: auth]
+- [x] Phase 1 MVP — fully deployed to meals.bordon.family (2026-02-02) [feature: infrastructure]
 
 ## Blockers
 
 <!-- Anything preventing progress -->
 
-None
+- None
 
 ---
 
 ## Dependency Graph
 
 ```
-Wave 1:
-  ✅ Track A: ADR-012 (Completion Statuses) ── merged
-  ✅ Track B: ADR-011 (Meal Reassignment) ──── merged
-  ✅ Track C: Waitlist Page + Analytics ──────── merged
+Wave 1 ✅:
+  Track A: ADR-012 (Completion Statuses) ── merged
+  Track B: ADR-011 (Meal Reassignment) ──── merged
+  Track C: Waitlist Page + Analytics ──────── merged
 
-Wave 2 (after Wave 1):
-  └─→ ADR-014 (Auth) ──────────────────────────────┐
-       users table → middleware → data migration    │
-       → frontend auth → settings page             │
-                                                    │
-Wave 3 (after auth):                                │
-       ADR-013 (AI Capture) ◄───────────────────────┘
-       needs: ADR-012 (deviated status) ✅
-       needs: ADR-014 (usage metering)
-                    │
+Wave 2 ✅:
+  ADR-014 (Auth) — users table → middleware → data migration
+                 → frontend auth → settings page
+
+Wave 3 (in progress):
+  ADR-013 (AI Capture) ◄── needs ADR-012 ✅, ADR-014 ✅
+  Session 1 ✅ | Session 2 ✅ | Session 3 → next
+
 Wave 4 (after AI capture):
-       ADR-008 (Grocery List) ◄─────────────────────┘
-       needs: ADR-013 (LLM infrastructure)
-       needs: ADR-014 (auth) ✅
+  ADR-008 (Grocery List) ◄── needs ADR-013 ✅ LLM infra, ADR-014 ✅ auth
 ```
 
 ## Notes
@@ -140,26 +85,6 @@ Wave 4 (after AI capture):
 - Tasks should be small enough to complete in 1-2 sessions
 - Move items between sections as priorities change
 - Add blockers immediately when encountered
-- Reference tasks by ID in SESSION_LOG entries
-- MVP scope defined in docs/frozen/PRD_v0.md
-- PRDs for Phase 2 features in docs/features/
-
----
-
-## Design Assets
-
-Pre-built v0 design system in `v0_design/` folder:
-
-| Resource | Path | Description |
-|----------|------|-------------|
-| Design prompts | `docs/frozen/V0_DESIGN_PROMPTS.md` | Prompts used to generate v0 designs |
-| Apple HIG audit | `docs/frozen/V0_APPLE_COMPLIANCE_PROMPT.md` | Apple Human Interface Guidelines compliance |
-| Components (79) | `v0_design/components/` | Radix UI primitives + MealFrame components |
-| MealFrame components | `v0_design/components/mealframe/` | Domain-specific: MealCard, CompletionSheet, etc. |
-| UI primitives | `v0_design/components/ui/` | Button, Card, Sheet, Dialog, etc. |
-| Navigation | `v0_design/components/navigation/` | AppShell, BottomNav, Sidebar |
-| Landing page | `v0_design/app/(landing)/` | Waitlist page + form component |
-| Pages | `v0_design/app/(app)/` | Today, Week, Library, Stats, Settings |
-| Global styles | `v0_design/app/globals.css` | Tailwind config with design tokens |
-
-**Usage**: Copy components and styles from `v0_design/` into `frontend/` when implementing UI features. Adapt imports and connect to real API data.
+- **Feature tagging**: Every task must be tagged with `[feature: name]`
+  - Use `[feature: infrastructure]` for project-wide work
+  - AI agents use feature tags to filter tasks when planning sessions

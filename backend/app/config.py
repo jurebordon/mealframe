@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""  # Override via OPENAI_API_KEY env var
     captures_dir: str = "/data/captures"  # Local volume mount for food photos
 
+    # Google OAuth (ADR-014 Session 6)
+    google_client_id: str = ""  # Override via GOOGLE_CLIENT_ID env var
+    google_client_secret: str = ""  # Override via GOOGLE_CLIENT_SECRET env var
+
     # Rate limiting
     login_rate_limit: str = "5/minute"
     register_rate_limit: str = "3/minute"

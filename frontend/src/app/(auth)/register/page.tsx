@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuthStore } from '@/lib/auth-store'
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { Mail } from 'lucide-react'
 
 const registerSchema = z
@@ -156,6 +157,7 @@ export default function RegisterPage() {
           <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
             {isSubmitting ? 'Creating account...' : 'Create account'}
           </Button>
+          <GoogleSignInButton />
           <p className="text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link href="/login" className="text-primary hover:underline">
