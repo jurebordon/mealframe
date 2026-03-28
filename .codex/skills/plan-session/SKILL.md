@@ -1,0 +1,151 @@
+---
+name: plan-session
+description: >-
+  Plan the next development session. Detects current feature from git branch,
+  reads project context (ROADMAP, SESSION_LOG, CUSTOM), filters tasks by feature
+  tag, and creates a structured implementation plan. Use at the start of any
+  coding session.
+compatibility: Works with Claude Code, Codex CLI, and other Agent Skills-compatible tools
+metadata:
+  author: specflow
+---
+# Plan Session
+
+> Quick session planning: detect feature, read context, pick a task, create plan.
+
+---
+
+## Step 0: Context Check
+
+If this conversation has significant prior history (multiple tool calls, long outputs, prior implementation work), suggest to the user:
+
+> **Tip:** This session has existing context. For a clean planning slate, run `/clear` first, then re-run `/plan-session`.
+
+If the conversation is fresh (no prior messages or only a greeting), skip this step silently.
+
+### Plan Mode (Claude Code)
+
+If you have the `EnterPlanMode` tool available and plan mode is NOT already active:
+- Call `EnterPlanMode` to enter read-only planning mode.
+- If the user declines or the tool is unavailable, continue with inline planning below.
+
+If plan mode is already active (you see a system reminder about plan mode), skip this — note the plan file path from the system reminder.
+
+---
+
+## Step 1: Detect Feature Context
+
+```bash
+git branch --show-current
+```
+
+Extract feature from branch name:
+- `feat/user-auth` → `user-auth`
+- `feature/api-v2` → `api-v2`
+- `PROJ-123-payment` → `payment`
+- `main` or `master` → Ask user which feature
+
+---
+
+## Step 2: Read Context Files
+
+**Required**:
+- `CLAUDE.md` - Project overview
+- `docs_specflow/ROADMAP.md` - All tasks
+- `docs_specflow/SESSION_LOG.md` - Last 2-3 entries only
+- `docs_specflow/CUSTOM.md` - Project-specific context (if exists)
+
+**If feature detected**:
+- `docs_specflow/feature_docs//SPEC.md` - Requirements
+
+**Optional** (only if unclear):
+- `docs_specflow/OVERVIEW.md` - Architecture
+- `docs_specflow/WORKFLOW.md` - Commands
+
+---
+
+## Step 3: Filter & Pick Task
+
+Find tasks in ROADMAP.md tagged `[feature: ]`:
+- Pick first unchecked task from "Now" section
+- If "Now" is empty, pick first from "Next" section
+
+Show user:
+```markdown
+**Detected Feature**: 
+**Next Task**: [task description from ROADMAP]
+```
+
+---
+
+## Step 4: Create Implementation Plan
+
+**For complex architectural tasks**, consider using an architecture-specialist agent if one is installed in `.claude/agents/`.
+
+Use this structure for the plan:
+
+```markdown
+## Session Plan: 
+
+**Feature**: 
+**Branch**: 
+
+### Steps
+1. [Specific action 1]
+2. [Specific action 2]
+3. [Specific action 3]
+
+### Files to Modify
+- [file paths]
+
+### Tests to Add/Update
+- [test descriptions]
+
+### Success Criteria
+- [ ] Implementation complete
+- [ ] Tests pass: # Detected by /init-specflow
+- [ ] [Other criteria]
+
+### Questions
+[Any blockers or unclear requirements]
+```
+
+**If in plan mode**: Write the plan to the plan file (path from system reminder). Explore the codebase using read-only tools to inform the plan before writing it.
+
+**If NOT in plan mode**: Present the plan as inline markdown in the conversation.
+
+---
+
+## Step 5: Get Approval
+
+**STOP - Do not implement yet.**
+
+**If in plan mode**: Call `ExitPlanMode` to present the plan for user approval. Do NOT also ask "Approve this plan?" — ExitPlanMode handles approval. If rejected, revise the plan file and call ExitPlanMode again.
+
+**If NOT in plan mode**: Ask "Approve this plan to start implementation?"
+- **Yes** → User runs `/start-session`
+- **No** → Revise plan or pick different task
+
+---
+
+## Notes
+
+- Keep plans focused: 1 task = 1 session
+- If task is too large, suggest breaking it down in ROADMAP
+- Feature detection is automatic - zero configuration
+- Tasks without `[feature: name]` tags won't be filtered
+
+## Specialist Agents
+
+If you have agents installed in `.claude/agents/`, consider using them during implementation:
+
+| Task Type | Look for an agent that... |
+|-----------|--------------------------|
+| Complex design decisions | Specializes in architecture review |
+| Build/test failures | Specializes in build diagnostics |
+| Test coverage gaps | Specializes in testing/QA |
+| Auth, data handling, secrets | Specializes in security auditing |
+| Dead code, complexity | Specializes in refactoring |
+| Backend/frontend patterns | Specializes in the relevant domain |
+
+> No agents installed? Install community agents: https://github.com/VoltAgent/awesome-claude-code-subagents

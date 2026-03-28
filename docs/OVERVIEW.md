@@ -1,328 +1,102 @@
 # System Overview
 
-**Last Updated**: 2026-02-04
+**Last Updated**: 2026-03-17
 
-## Architecture
+## 1. What This Product Does
 
-### High-Level Structure
+MealFrame is a mobile-first meal planning PWA that eliminates decision fatigue by automating weekly meal assignments. Users define meal types, day templates, and a weekly plan once — then the app generates weekly meal schedules via round-robin rotation and tracks daily completion.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         CLIENT                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              Next.js PWA (Mobile-First)                  │   │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐    │   │
-│  │  │ Today   │  │ Week    │  │ Meals   │  │ Setup   │    │   │
-│  │  │ View    │  │ View    │  │ Library │  │ Screens │    │   │
-│  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘    │   │
-│  │                      │                                   │   │
-│  │              Service Worker (Offline Cache)              │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ HTTPS / REST API
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         SERVER                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    FastAPI Backend                       │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │   │
-│  │  │ API Routes  │  │ Services    │  │ Round-Robin │     │   │
-│  │  │ (Pydantic)  │  │ (Business)  │  │ Algorithm   │     │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘     │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                   │
-│                              │ SQLAlchemy / asyncpg             │
-│                              ▼                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                    PostgreSQL                            │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-```
+## 2. Core User Journeys
 
-### Technology Stack
+- **UJ1 (Daily)**: Open Today View → see next meal with exact portions → mark meals complete as the day progresses
+- **UJ2 (Weekly)**: Every Sunday, generate next week → review assigned meals → optionally switch day templates if schedule changes
+- **UJ3 (Setup)**: Create meal library (CSV import or manual) → define meal types → build day templates → configure weekly plan
+- **UJ4 (Deviation)**: Mark meal as "deviated" → capture photo via AI capture → AI estimates macros → meal logged in library
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Frontend** | Next.js 14+ (React) | PWA support, SSR, TypeScript |
-| **Backend** | FastAPI (Python) | Async API, automatic OpenAPI docs |
-| **Database** | PostgreSQL 15+ | JSONB flexibility, UUID support |
-| **Deployment** | Docker Compose | Simple single-host deployment |
-| **PWA** | next-pwa | Service worker, offline support |
-| **State** | Zustand + TanStack Query | Client state + server cache |
-| **Styling** | Tailwind CSS | Utility-first, mobile-first |
+## 3. Architecture at 10,000 ft
 
-## Data Model
+### Backend
 
-### Core Abstractions
+- **Stack**: FastAPI (Python), SQLAlchemy async, Alembic migrations, PostgreSQL 15+
+- **Structure**:
+  ```
+  backend/
+  ├── app/
+  │   ├── main.py              # FastAPI app entry point
+  │   ├── config.py            # Pydantic settings
+  │   ├── database.py          # Async SQLAlchemy session
+  │   ├── models/              # SQLAlchemy ORM models
+  │   ├── schemas/             # Pydantic request/response schemas
+  │   ├── api/                 # Route handlers (auth, meals, today, weekly, etc.)
+  │   └── services/            # Business logic (round-robin, ai_capture, oauth)
+  ├── alembic/                 # DB migrations
+  ├── tests/                   # pytest test suite (async)
+  └── Dockerfile
+  ```
+- **Main modules**: `api/auth.py`, `api/meals.py`, `api/today.py`, `api/weekly.py`, `api/setup.py`, `services/ai_capture.py`
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        PLANNING LAYER                           │
-│  (Configured once, reused weekly)                               │
-│                                                                 │
-│  ┌──────────┐    ┌──────────────┐    ┌───────────┐             │
-│  │ Meal     │───▶│ Day          │───▶│ Week      │             │
-│  │ Type     │    │ Template     │    │ Plan      │             │
-│  └──────────┘    └──────────────┘    └───────────┘             │
-│       │                                                         │
-│       │ assigned to                                             │
-│       ▼                                                         │
-│  ┌──────────┐                                                   │
-│  │ Meal     │ (with portions + macros)                         │
-│  └──────────┘                                                   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ generates
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       EXECUTION LAYER                           │
-│  (Generated weekly, consumed daily)                             │
-│                                                                 │
-│  ┌────────────────────┐    ┌─────────────────┐                 │
-│  │ Weekly Plan        │───▶│ Daily Slots     │                 │
-│  │ Instance           │    │ (with meals)    │                 │
-│  └────────────────────┘    └─────────────────┘                 │
-│                                   │                             │
-│                                   │ tracked via                 │
-│                                   ▼                             │
-│                            ┌─────────────────┐                 │
-│                            │ Completion      │                 │
-│                            │ Status          │                 │
-│                            └─────────────────┘                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Frontend
 
-### Key Tables
+- **Stack**: Next.js 14+ (App Router), React, TypeScript, Tailwind CSS, Zustand + TanStack Query, next-pwa
+- **Structure**:
+  ```
+  frontend/src/
+  ├── app/
+  │   ├── (app)/               # Authenticated app pages (today, week, meals, setup, stats)
+  │   ├── (auth)/              # Login/register/verify pages
+  │   ├── (landing)/           # Waitlist landing page
+  │   └── oauth/               # Google OAuth callback
+  ├── components/
+  │   ├── mealframe/           # Domain components (MealCard, CompletionSheet, AiCaptureSheet, etc.)
+  │   ├── auth/                # Auth form components
+  │   ├── navigation/          # AppShell, BottomNav, Sidebar
+  │   └── ui/                  # Radix UI primitives (Button, Card, Sheet, etc.)
+  ├── lib/                     # API client, types, auth-store (Zustand), query hooks
+  └── hooks/                   # Custom React hooks
+  ```
 
-| Table | Purpose |
-|-------|---------|
-| `meal_type` | Functional eating slots (e.g., "Pre-Workout Snack") |
-| `meal` | Specific foods with exact portions and macros |
-| `meal_to_meal_type` | Many-to-many: meals assigned to meal types |
-| `day_template` | Reusable day patterns (e.g., "Morning Workout Workday") |
-| `day_template_slot` | Ordered meal type slots within a template |
-| `week_plan` | Mapping of day templates to weekdays |
-| `week_plan_day` | Days within a week plan |
-| `weekly_plan_instance` | Generated week (specific dates) |
-| `weekly_plan_instance_day` | Day within generated week (supports template switching) |
-| `weekly_plan_slot` | Individual meal slots with completion tracking |
-| `round_robin_state` | Tracks rotation state per meal type |
-| `app_config` | Single-row configuration |
+### Data
 
-## Core Algorithms
+- **Primary database**: PostgreSQL 15+
+- **Key entities**:
+  - `users` — email/password + Google OAuth users with JWT/refresh token auth
+  - `meal` — foods with exact portions and macros (calories, protein, carbs, fat, sugar, sat_fat, fiber); supports `source` (manual/ai_capture), `processing_status`, `confidence_score`
+  - `meal_type` — functional eating slots (e.g., "Pre-Workout Snack")
+  - `day_template` / `day_template_slot` — reusable day patterns
+  - `week_plan` / `week_plan_day` — mapping of templates to weekdays
+  - `weekly_plan_instance` / `weekly_plan_slot` — generated week with completion tracking and `is_manual_override` flag
+  - `round_robin_state` — tracks last-used meal per meal type
+  - `refresh_tokens` — HTTP-only cookie-based session management
+  - `openai_usage` — per-user AI API cost tracking
 
-### Round-Robin Meal Selection
+### Integrations
 
-**Purpose**: Provide variety without requiring decisions.
+- **OpenAI GPT-4o** — AI meal capture: food photo → macro estimation
+- **Resend** — transactional email (verification, password reset)
+- **Google OAuth** — social login via `authlib` OIDC flow
+- **GitHub Actions** — SSH-based auto-deployment to Proxmox homelab VM
 
-**How it works**:
-1. Meals for a Meal Type are ordered by `(created_at ASC, id ASC)` for determinism
-2. System tracks the last-used meal ID for each Meal Type
-3. On generation, next meal = `meals[(last_index + 1) % total_meals]`
-4. State is updated after each assignment
+## 4. External Contracts
 
-**Properties**:
-- Deterministic (same inputs → same outputs)
-- Fair (every meal gets equal rotation)
-- Extensible (new meals appended to rotation)
-- Resilient (deleted meals don't break state)
+### API
 
-### Week Generation
+- REST API at `/api/v1/` with automatic OpenAPI docs at `/docs`
+- Primary endpoints: `/today`, `/weekly-plans/*`, `/meals/*`, `/auth/*`, `/slots/*`
+- Auth: JWT access token (15 min) in `Authorization` header; refresh token in HTTP-only cookie
 
-**Trigger**: Manual (user clicks "Generate Next Week")
+### Events
 
-**Process**:
-1. Create `weekly_plan_instance` record
-2. For each day (Mon-Sun):
-   - Get day template from week plan
-   - Create `weekly_plan_instance_day` record
-   - For each slot in template:
-     - Get next meal via round-robin
-     - Create `weekly_plan_slot` record with meal assignment
+- Not applicable (no event bus)
 
-**Result**: Complete week with concrete meal assignments
+### Data
 
-### Day Template Switching
+- Alembic migrations in `backend/alembic/versions/`
+- Key invariant: all data rows have `user_id` NOT NULL FK to `users`
 
-**Use case**: Schedule change (e.g., workout cancelled)
+## 5. Invariants
 
-**Process**:
-1. Delete existing slots for that day
-2. Update `weekly_plan_instance_day` with new template
-3. Generate new slots with round-robin meals
-4. Completion statuses are lost (intentional - new plan)
-
-## API Design
-
-### Primary Endpoints (Daily Use)
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/today` | GET | Today's meal plan with completion status |
-| `/yesterday` | GET | Yesterday's plan for review/catch-up |
-| `/slots/{id}/complete` | POST | Mark slot complete with status |
-| `/slots/{id}/complete` | DELETE | Undo completion |
-| `/stats` | GET | Adherence statistics |
-
-### Weekly Planning Endpoints
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/weekly-plans/current` | GET | Current week's plan |
-| `/weekly-plans/generate` | POST | Generate new week |
-| `/weekly-plans/current/days/{date}/template` | PUT | Switch day's template |
-| `/weekly-plans/current/days/{date}/override` | PUT | Mark day as "no plan" |
-
-### Setup Endpoints
-
-| Resource | Methods | Purpose |
-|----------|---------|---------|
-| `/meals` | GET, POST, PUT, DELETE | Meal library CRUD |
-| `/meals/import` | POST | CSV meal import |
-| `/meal-types` | GET, POST, PUT, DELETE | Meal type CRUD |
-| `/day-templates` | GET, POST, PUT, DELETE | Day template CRUD |
-| `/week-plans` | GET, POST, PUT, DELETE | Week plan CRUD |
-
-## Frontend Architecture
-
-### Screen Hierarchy
-
-```
-App
-├── Today View (/)                    [PRIMARY - Mobile First]
-│   ├── Header (date, streak, progress)
-│   ├── Next Meal Card (prominent)
-│   ├── Meal List (remaining slots)
-│   └── Yesterday Review Modal (morning prompt for unmarked meals)
-│
-├── Week View (/week)                 [Secondary]
-│   ├── Week Header (date range, generate button)
-│   ├── Day Cards (7 days)
-│   └── Template Picker Modal
-│
-├── Meals Library (/meals)            [Setup - Desktop]
-│   ├── Search/Filter Bar
-│   ├── Meal List
-│   ├── Meal Editor Modal
-│   └── CSV Import Modal
-│
-├── Setup (/setup)                    [Setup - Desktop]
-│   ├── Meal Types Tab
-│   ├── Day Templates Tab
-│   └── Week Plan Tab
-│
-└── Stats (/stats)                    [Secondary]
-    ├── Overall Adherence
-    ├── Streak History
-    └── By Meal Type Breakdown
-```
-
-### Offline Strategy
-
-**Cached (Service Worker)**:
-- App shell (HTML, CSS, JS)
-- `/api/v1/today` response (refreshed on visit)
-- Static assets
-
-**Network-first**:
-- `/api/v1/weekly-plans/*`
-- All write operations
-
-**Offline behavior**:
-- Today View readable from cache
-- Completion actions queued for sync when online
-- Clear "offline" indicator in UI
-
-## Deployment
-
-### Production Architecture (Homelab)
-
-```
-Browser → meals.bordon.family
-  ↓ (DNS: local=192.168.1.50, external=public IP)
-  ↓
-Nginx Proxy Manager (192.168.1.50) - SSL termination, reverse proxy
-  ↓
-  ├─→ Web: 192.168.1.100:3000 (Next.js standalone)
-  └─→ API: 192.168.1.100:8003 (FastAPI/Gunicorn)
-        ↓
-      PostgreSQL (internal)
-```
-
-### Docker Compose Services
-
-```yaml
-services:
-  db:           # PostgreSQL 15
-  api:          # FastAPI backend (Gunicorn + Uvicorn workers)
-  web:          # Next.js frontend (standalone output)
-```
-
-### Auto-Deployment
-
-GitHub Actions triggers SSH-based deployment on push to main:
-1. SSH into deployment VM
-2. Pull latest code
-3. Rebuild and restart containers
-4. Migrations run automatically via entrypoint
-
-### Environment Variables
-
-| Variable | Service | Description |
-|----------|---------|-------------|
-| `DB_PASSWORD` | db, api | PostgreSQL password |
-| `DATABASE_URL` | api | Full connection string |
-| `CORS_ORIGINS` | api | Allowed origins |
-| `NEXT_PUBLIC_API_URL` | web | API base URL |
-
-## Design Principles
-
-1. **Single-user MVP, multi-user ready** - No auth in MVP, but all tables include `user_id` as nullable FK
-2. **Offline-first for consumption** - Today View must work without network
-3. **API-first** - All business logic exposed via REST API; frontend is a consumer
-4. **Deterministic generation** - Same inputs produce identical weekly plans
-5. **Mobile-first consumption** - Desktop for setup, mobile for daily use
-
-## File Structure
-
-```
-mealframe/
-├── docker-compose.yml
-├── backend/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── alembic/                 # DB migrations
-│   └── app/
-│       ├── main.py              # FastAPI app
-│       ├── config.py
-│       ├── database.py
-│       ├── models/              # SQLAlchemy models
-│       ├── schemas/             # Pydantic schemas
-│       ├── api/                 # Route handlers
-│       └── services/            # Business logic
-├── frontend/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── next.config.js
-│   ├── public/
-│   │   └── manifest.json
-│   └── src/
-│       ├── app/                 # Next.js App Router
-│       ├── components/
-│       ├── lib/
-│       └── hooks/
-└── docs/                        # SpecFlow documentation
-```
-
-## Key Invariants
-
-- **Portion descriptions are mandatory** - Every meal must have exact portions
-- **Round-robin is deterministic** - Same inputs always produce same meal assignments
-- **No in-meal editing** - Users can only switch day templates, not individual meals
-- **Completion tracking is optional** - Unmarked meals are valid, not errors
-- **Single-user for MVP** - No auth, but data model is multi-user ready
-
----
-
-*This overview provides the mental model for working on MealFrame. See ADR.md for specific technical decisions.*
+- **Portion descriptions are mandatory** — Every meal must have exact portions (e.g., "2 eggs + 1 slice toast")
+- **Round-robin is deterministic** — Same inputs always produce same meal assignments; meals ordered by `(created_at ASC, id ASC)`
+- **Completion tracking is optional** — Unmarked meals are valid, excluded from adherence stats, not errors
+- **All API endpoints require authentication** — `get_current_user` dependency on all routes; `user_id` scopes all queries
+- **Mobile-first Today View** — Must load from offline cache; completion status actions work without network

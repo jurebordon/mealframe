@@ -1,0 +1,197 @@
+---
+name: explore-project
+description: >-
+  For Adoption mode: scan an existing codebase to understand structure, tech
+  stack, and patterns. Identifies directory structure, tech stack, existing
+  documentation, and code organization patterns. Generates OVERVIEW.md and
+  WORKFLOW.md.
+compatibility: Works with Claude Code, Codex CLI, and other Agent Skills-compatible tools
+metadata:
+  author: specflow
+---
+# Explore Project
+
+> For Adoption mode: Scan the codebase to understand structure, tech stack, and existing patterns.
+
+---
+
+## Step 1: Confirm Purpose
+
+This command helps you get acquainted with an existing codebase by:
+- Identifying tech stack and build tools
+- Understanding directory structure
+- Finding existing documentation
+- Discovering patterns and conventions
+
+Proceed? (yes to continue)
+
+---
+
+## Step 2: Scan Directory Structure
+
+```bash
+# Get high-level structure
+find . -maxdepth 3 -type d -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' | head -50
+
+# Count files by extension
+find . -type f -not -path '*/\.*' -not -path '*/node_modules/*' | sed 's/.*\.//' | sort | uniq -c | sort -rn | head -20
+```
+
+Document findings:
+- Main source directories
+- Test directories
+- Config directories
+- Build output directories
+
+---
+
+## Step 3: Identify Tech Stack
+
+Look for indicator files:
+```bash
+# Check for common tech stack files
+ls -la | grep -E "(package\.json|requirements\.txt|Gemfile|go\.mod|Cargo\.toml|pom\.xml|build\.gradle|dbt_project\.yml)"
+```
+
+Document:
+- Primary language(s)
+- Frameworks detected
+- Package managers
+- Build tools
+
+---
+
+## Step 4: Find Existing Documentation
+
+```bash
+# Look for documentation files
+find . -maxdepth 3 -type f -name "README*" -o -name "CONTRIBUTING*" -o -name "ARCHITECTURE*" -o -name "*.md" | grep -v node_modules
+```
+
+Read key files:
+- README.md
+- CONTRIBUTING.md
+- Any architecture/design docs
+- Any existing ADRs
+- `docs_specflow/CUSTOM.md` - Project-specific context (if exists)
+
+---
+
+## Step 5: Identify Patterns
+
+### Code Organization
+- Naming conventions (camelCase, snake_case, kebab-case)
+- File organization patterns
+- Module/package structure
+
+### Development Workflow
+- Test location and naming
+- Build scripts (package.json, Makefile, etc.)
+- CI/CD configuration (.github/, .gitlab-ci.yml, etc.)
+
+### Dependencies
+```bash
+# Check dependency files based on tech stack
+```
+
+---
+
+## Step 6: Generate OVERVIEW.md
+
+Create `docs_specflow/OVERVIEW.md` with findings:
+
+```markdown
+# Project Overview
+
+## Tech Stack
+- **Primary Language**: [language]
+- **Frameworks**: [frameworks]
+- **Build Tool**: [tool]
+- **Package Manager**: [manager]
+
+## Directory Structure
+\```
+[key directories and their purposes]
+\```
+
+## Key Patterns
+- **Code Organization**: [pattern]
+- **Naming Conventions**: [conventions]
+- **Test Location**: [pattern]
+
+## Existing Documentation
+- [List of existing docs with brief descriptions]
+
+## Dependencies
+- [Key dependencies and their purposes]
+
+## Development Workflow
+- **Tests**: # Detected by /init-specflow
+- **Build**: # Detected by /init-specflow
+- **Lint**: # Detected by /init-specflow
+```
+
+---
+
+## Step 7: Generate WORKFLOW.md
+
+Create `docs_specflow/WORKFLOW.md` based on discovered patterns:
+
+```markdown
+# Development Workflow
+
+## Getting Started
+[Based on README or inferred from project structure]
+
+## Running Tests
+\```bash
+# Detected by /init-specflow
+\```
+
+## Building
+\```bash
+# Detected by /init-specflow
+\```
+
+## Linting
+\```bash
+# Detected by /init-specflow
+\```
+
+## Project-Specific Commands
+[List any custom scripts or Make targets found]
+```
+
+---
+
+## Step 8: Suggest Next Steps
+
+Present to user:
+
+```
+Exploration complete! Here's what I found:
+
+**Tech Stack**: Unknown
+**Main Directories**: [list]
+**Existing Docs**: [list]
+
+**Generated**:
+- docs_specflow/OVERVIEW.md - System architecture and patterns
+- docs_specflow/WORKFLOW.md - Development commands and workflow
+
+**Next Steps**:
+1. Review the generated OVERVIEW.md and WORKFLOW.md
+2. Run `/new-feature [name]` to start planning your first feature
+3. Or update ROADMAP.md manually with initial tasks
+
+Would you like me to suggest a feature breakdown based on the codebase structure?
+```
+
+---
+
+## Notes
+
+- This command is for **understanding** only - it doesn't modify code
+- Focus on high-level patterns, not exhaustive cataloging
+- Existing docs take precedence over inferred patterns
+- If project is large, focus on most active/recent areas

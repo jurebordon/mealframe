@@ -80,3 +80,7 @@ Thumbs.db
 # imports
 v0_design/
 .claude/settings.json
+
+# SpecFlow documentation (personal)
+docs//
+data/sample_photos/

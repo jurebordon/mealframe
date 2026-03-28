@@ -1,3 +1,13 @@
+---
+name: pivot-session
+description: >-
+  Reassess project direction and realign documentation. Reviews current state of
+  all SpecFlow docs, identifies drift between docs and reality, proposes and
+  applies updates to strategic, tactical, and operational documentation.
+compatibility: Works with Claude Code, Codex CLI, and other Agent Skills-compatible tools
+metadata:
+  author: specflow
+---
 # Pivot Session
 
 This is a pivot session to reassess project direction and realign documentation.
@@ -6,26 +16,26 @@ This is a pivot session to reassess project direction and realign documentation.
 
 Read and assess these documents:
 
-**docs/ROADMAP.md**
+**docs_specflow/ROADMAP.md**
 - Are tasks in "Now" actually current?
 - Is "Next" prioritized correctly?
 - Any stale items in "Later"?
 - Are blockers still relevant?
 
-**docs/SESSION_LOG.md** (last 5-10 entries)
+**docs_specflow/SESSION_LOG.md** (last 5-10 entries)
 - Any patterns in recent work?
 - Recurring blockers?
 - Scope creep?
 
-**docs/VISION.md**
+**docs_specflow/VISION.md**
 - Is the stated direction still valid?
 - Have priorities shifted?
 
-**docs/OVERVIEW.md**
+**docs_specflow/OVERVIEW.md**
 - Does this match the actual system?
 - Any drift from reality?
 
-**docs/ADR.md**
+**docs_specflow/ADR.md**
 - Any decisions being ignored?
 - Any decisions that should be revisited?
 
@@ -50,7 +60,11 @@ For each issue identified, propose:
 ### VISION.md
 If product direction changed:
 - Update relevant sections
-- Add entry to change history if major pivot
+- Add entry to Pivot History:
+```markdown
+- [DATE] [Brief description of pivot]
+  - [Why the change was made]
+```
 
 ### ADR.md
 If technical direction changed:
@@ -76,13 +90,13 @@ If technical direction changed:
 
 ## 6. Update Operational Docs (if needed)
 
-### .claude/commands/
+### .claude/skills/
 Regenerate if:
 - Tech stack changed
 - Git workflow changed
 - Integrations changed
 
-### .ai/agents/
+### .claude/agents/
 Update if:
 - Patterns changed
 - New conventions established
@@ -90,7 +104,7 @@ Update if:
 
 ## 7. Document the Pivot
 
-Add to docs/SESSION_LOG.md:
+Add to docs_specflow/SESSION_LOG.md:
 ```markdown
 ## Session: [DATE] (Pivot)
 

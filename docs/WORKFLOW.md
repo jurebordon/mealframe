@@ -8,8 +8,8 @@
 |-------|-----------|------------------|
 | **Strategic** | VISION.md, ADR.md | Rarely (pivots, major decisions) |
 | **Tactical** | OVERVIEW.md, ROADMAP.md, WORKFLOW.md | Per milestone/feature |
-| **Operational** | SESSION_LOG.md, .ai/agents/* | Every session |
-| **Frozen** | docs/frozen/* | Never (historical baseline) |
+| **Operational** | SESSION_LOG.md, .claude/skills/* | Every session |
+| **Frozen** | feature_docs/*/SPEC.md | Never (feature north star) |
 
 ## Session Lifecycle
 
@@ -22,19 +22,18 @@
 
 ### During Work
 
-- [ ] Create feature branch: `type/description`
-  - Types: `feat/`, `fix/`, `refactor/`, `docs/`
+- [ ] Create feature branch: `feat/description`
 - [ ] Stay within scope of chosen task
 - [ ] Commit frequently with clear messages
 - [ ] Note any decisions made for later documentation
 
 ### After Work
 
-- [ ] Run tests (when test suite is set up)
+- [ ] Run tests: `cd backend && pytest` and `cd frontend && npm run lint`
 - [ ] Update `ROADMAP.md` (mark done, adjust Next)
 - [ ] Append entry to `SESSION_LOG.md`
 - [ ] If architecture changed: update `OVERVIEW.md` and/or `ADR.md`
-- [ ] Merge to main and delete feature branch
+- [ ] Merge feature branch to main locally
 
 ## Git Workflow
 
@@ -47,24 +46,10 @@ main ←── feature/branch
 
 - Branch from main: `git checkout -b type/description`
 - Work and commit on branch
-- When done: merge directly to main
+- When done: merge directly to main locally
 - Branch naming: `feat/`, `fix/`, `refactor/`, `docs/`
 
-### Example Flow
 
-```bash
-# Start work
-git checkout main && git pull
-git checkout -b feat/my-feature
-# ... code ...
-
-# End work
-# ... run tests when available ...
-git add . && git commit -m "feat: description"
-git checkout main
-git merge feat/my-feature
-git branch -d feat/my-feature
-```
 
 ## Documentation Update Rules
 
@@ -84,10 +69,7 @@ git branch -d feat/my-feature
 
 ### Never Update
 
-- `docs/frozen/PRD_v0.md` - Historical baseline
-- `docs/frozen/TECH_SPEC_v0.md` - Historical baseline
-- `docs/frozen/SEED_DATA.md` - Historical baseline
-- `docs/frozen/MEAL_IMPORT_GUIDE.md` - Historical baseline
+- `feature_docs/*/SPEC.md` - Feature north star (frozen after creation)
 
 ## Metrics Policy
 
@@ -110,7 +92,7 @@ If metrics are needed, they must be:
 | `/end-session` | Wrapping up, merging |
 | `/pivot-session` | Reassessing direction |
 
-Commands are in `.claude/commands/`.
+Skills are in `.claude/skills/` ([Agent Skills](https://agentskills.io) standard, also output to `.codex/skills/`).
 
 ## Quick Reference
 
@@ -121,11 +103,9 @@ git checkout -b feat/my-feature
 # ... code ...
 
 # End work
-# Run tests when available
+cd backend && pytest && cd ../frontend && npm run lint
 git add . && git commit -m "feat: description"
-git checkout main
-git merge feat/my-feature
-git branch -d feat/my-feature
+git checkout main && git merge feat/my-feature && git branch -d feat/my-feature
 ```
 
 ## Getting Help
@@ -134,5 +114,3 @@ git branch -d feat/my-feature
 - Current priorities → Check `ROADMAP.md`
 - Recent context → Check `SESSION_LOG.md`
 - System understanding → Check `OVERVIEW.md`
-- Original requirements → Check `docs/frozen/PRD_v0.md`
-- Original tech design → Check `docs/frozen/TECH_SPEC_v0.md`

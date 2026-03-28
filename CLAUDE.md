@@ -4,11 +4,11 @@
 
 ## Project Overview
 
-Meal planning app that eliminates decision fatigue with authoritative, pre-planned meals. Provides exact portions and clear instructions on what to eat, removing in-the-moment decisions that lead to overconsumption.
+Meal planning app that eliminates decision fatigue with authoritative, pre-planned meals with exact portions and automated round-robin rotation.
 
 ## Quick Context
 
-- **Type**: greenfield
+- **Type**: adoption
 - **Stack**: FastAPI (Python) + Next.js 14+ (React/TypeScript) + PostgreSQL 15+
 - **Git Workflow**: solo (direct merge to main)
 
@@ -23,15 +23,10 @@ Read these before making changes:
 | 3 | [OVERVIEW.md](docs/OVERVIEW.md) | System architecture |
 | 4 | [ADR.md](docs/ADR.md) | Architecture decisions |
 | 5 | [VISION.md](docs/VISION.md) | Product direction |
+| 6 | [LEARNED_PATTERNS.md](docs/LEARNED_PATTERNS.md) | Discovered patterns and conventions |
+| 7 | [AGENTS.md](docs/AGENTS.md) | Agent orchestration guide |
 
-## Frozen Specs (Reference Only)
-
-These are historical baselines - do not modify:
-
-- [PRD_v0.md](docs/frozen/PRD_v0.md) - Original product requirements
-- [TECH_SPEC_v0.md](docs/frozen/TECH_SPEC_v0.md) - Original technical specification
-- [SEED_DATA.md](docs/frozen/SEED_DATA.md) - Seed data specification
-- [MEAL_IMPORT_GUIDE.md](docs/frozen/MEAL_IMPORT_GUIDE.md) - Meal import guide
+> **LEARNED_PATTERNS.md**: Append codebase patterns, anti-patterns, and conventions you discover during sessions. The continuous-learning hook will periodically remind you to capture insights. Check this file at session start to avoid re-discovering known patterns.
 
 ## Session Commands
 
@@ -40,69 +35,78 @@ Use these commands to structure your work:
 - `/plan-session` - Prepare for implementation
 - `/start-session` - Begin coding
 - `/end-session` - Wrap up and merge
-- `/pivot-session` - Reassess direction
+- `/verify` - Validate docs consistency and project health
 
-Commands are in `.claude/commands/`.
+Skills are in `.claude/skills/` ([Agent Skills](https://agentskills.io) standard, also output to `.codex/skills/`).
+
+## Technical Enforcement
+
+### Hooks (`.claude/hooks/`)
+Automated behaviors at session lifecycle points:
+- **SessionStart**: Auto-loads ROADMAP, SESSION_LOG, and feature SPEC into context
+- **PreToolUse**: Blocks edits to frozen docs (VISION.md, SPEC.md requirements)
+- **PostToolUse**: Auto-formats code after edits, suggests /compact at high context usage, reminds to capture learned patterns, suggests specialist agents based on changed files
+- **Stop**: Reminds to push unpushed commits
+- **SessionEnd**: Saves session state snapshot for continuity
+
+### Rules (`.claude/rules/`)
+Always-loaded coding guidelines:
+- `coding-style.md` — Language-specific style and patterns
+- `git-workflow.md` — Branch, commit, and merge conventions
+- `security.md` — Secret protection and secure coding
+- `testing.md` — Test commands and quality standards
+- `documentation.md` — SpecFlow documentation conventions
+
+### Statusline
+Real-time display: context usage %, current feature, TODO progress, git status.
+
+## Agents
+
+Install specialist agents in `.claude/agents/` for focused expertise during implementation.
+Recommended: [VoltAgent community agents](https://github.com/VoltAgent/awesome-claude-code-subagents) — 100+ battle-tested agents for backend, frontend, security, architecture, and more.
+
+See [AGENTS.md](docs/AGENTS.md) for orchestration patterns and installation instructions.
 
 ## Key Patterns
 
 ### Backend (FastAPI/Python)
-
-- See `.ai/agents/backend.md` for patterns
-- Structure: FastAPI routes → Services → Models
-- ORM: SQLAlchemy with async support
-- Validation: Pydantic schemas
-- Migrations: Alembic
+- Route handlers in `backend/app/api/` → service functions in `backend/app/services/` → SQLAlchemy models in `backend/app/models/`
+- All services accept `user_id: UUID` as first param; all queries filter by user_id
+- Pydantic schemas in `backend/app/schemas/` — `Decimal` fields serialize as strings in JSON; wrap with `Number()` in frontend
+- Alembic migrations in `backend/alembic/versions/` — naming: `YYYYMMDD_description.py`
+- Tests override `get_current_user` via `app.dependency_overrides` — never use real JWT in tests
+- pytest with asyncio_mode=auto; run with `cd backend && pytest`
 
 ### Frontend (Next.js/React)
-
-- See `.ai/agents/frontend.md` for patterns
-- Structure: App Router (Next.js 14+)
-- State: Zustand + TanStack Query
-- Styling: Tailwind CSS
-- PWA: next-pwa for offline support
+- Route groups: `(app)` for authenticated app, `(auth)` for login/register, `(landing)` for public pages
+- Auth state in Zustand (`auth-store.ts`), access token in memory only (not localStorage)
+- API calls via `fetchApi()` in `lib/api.ts` — handles Bearer token injection and 401 refresh retry
+- `Number()` wrapping required for all Pydantic `Decimal` fields from API (protein_g, fat_g, etc.)
+- Page size for `/meals` max is 100 (backend hard limit); always use `pageSize: 100` or less
+- iOS Safari: file input `.click()` must be synchronous in a user gesture handler (`forwardRef` + `useImperativeHandle` pattern)
 
 ## Invariants
 
 These rules must always hold:
 
-- **Portion descriptions are mandatory** - Every meal must have exact portions (e.g., "2 eggs + 1 slice toast")
-- **Round-robin is deterministic** - Same inputs always produce same meal assignments
-- **No in-meal editing** - Users can only switch day templates, not individual meals
-- **Completion tracking is optional** - Unmarked meals are valid, not errors
-- **Single-user for MVP** - No auth, but data model is multi-user ready (nullable user_id)
-- **Mobile-first consumption** - Today View must work offline and load instantly
-- **Desktop for setup** - Meal library and templates are desktop workflows
+- **All API endpoints require authentication** — `get_current_user` dependency on all routes; `user_id` scopes all queries
+- **Portion descriptions are mandatory** — Every meal must have exact portions (e.g., "2 eggs + 1 slice toast")
+- **Round-robin is deterministic** — Same inputs always produce same meal assignments; meals ordered by `(created_at ASC, id ASC)`
+- **Completion tracking is optional** — Unmarked meals are valid, not errors
+- **Mobile-first Today View** — Must load from offline cache; completion actions work without network
 
 ## Git Workflow
 
-### Solo Developer Flow
-
-- Work on feature branches: `type/description`
-- Branch types: `feat/`, `fix/`, `refactor/`, `docs/`
-- Merge directly to main when tests pass
-- No PR required (solo developer)
-
-### Typical Flow
-
-```bash
-git checkout main && git pull
-git checkout -b feat/my-feature
-# ... work ...
-# ... test ...
-git add . && git commit -m "feat: description"
-git checkout main
-git merge feat/my-feature
-git branch -d feat/my-feature
-```
+- Work on feature branches: `feat/description`, `fix/description`, etc.
+- Merge directly to main when tests pass (solo workflow)
+- Delete branches after merging
 
 ## Working Agreements
 
 1. **One task per session** - Don't mix unrelated changes
 2. **Update docs** - SESSION_LOG.md after every session, ROADMAP.md when tasks change
-3. **Ask when unclear** - Don't invent requirements (reference frozen specs)
+3. **Ask when unclear** - Don't invent requirements
 4. **No manual metrics** - Automated or nothing
-5. **Respect frozen specs** - PRD and Tech Spec are baseline truth
 
 ## Getting Started
 
