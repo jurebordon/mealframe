@@ -33,6 +33,7 @@ from ..services.meals import (
 )
 from ..services.ai_capture import (
     analyze_food_image,
+    get_meal_context_for_prompt,
     AICaptureFailed,
     AITimeoutError,
     FoodNotDetected,
@@ -117,9 +118,10 @@ async def ai_capture_meal(
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Image file is empty.")
 
-    # Fetch user's meal type names for the vision prompt
+    # Fetch user's meal type names and meal library for the vision prompt
     meal_type_rows = await list_meal_types(db, user_id=user.id)
     meal_type_names = [row["meal_type"].name for row in meal_type_rows]
+    user_meals = await get_meal_context_for_prompt(db, user.id)
 
     try:
         analysis = await analyze_food_image(
@@ -128,6 +130,7 @@ async def ai_capture_meal(
             db=db,
             captured_at=datetime.now(timezone.utc),
             meal_type_names=meal_type_names or None,
+            user_meals=user_meals or None,
         )
     except FoodNotDetected as e:
         raise HTTPException(status_code=400, detail=str(e))

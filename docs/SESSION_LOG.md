@@ -7,6 +7,38 @@
 
 ## [ai-capture] 2026-03-29
 
+**Task**: ADR-013 Session 4 — User meal context injection into vision prompt [feature: ai-capture]
+**Branch**: feat/ai-capture-session-4
+
+### Summary
+- Added `get_meal_context_for_prompt()` — lightweight query fetching user's 30 most recent meals (name + portion_description only)
+- Extended `build_vision_prompt()` to inject user meal library as context block with instruction to prefer user's naming
+- Added rule: "If the food matches a meal from the user's library, use their exact meal_name and adjust portions to what you see in the photo"
+- Threaded `user_meals` parameter through `analyze_food_image()` and the `/ai-capture` route handler
+- Created `test_ai_capture.py` with 11 tests (6 unit for prompt builder, 5 integration for DB query)
+- Fixed test DB schema — applied missing `source`, `confidence_score`, `image_path`, `ai_model_version` columns and stamped alembic
+
+### Files Changed
+- `backend/app/services/ai_capture.py` — `get_meal_context_for_prompt()`, extended `build_vision_prompt()` and `analyze_food_image()`
+- `backend/app/api/meals.py` — fetch meal context in route handler, pass to service
+- `backend/tests/test_ai_capture.py` — new test file (11 tests)
+
+### Decisions
+- 30 meal limit: ~1500 extra prompt tokens, negligible for GPT-4o 128k context
+- Most recent ordering (`created_at DESC`): recent meals more likely to be re-eaten
+- Name + portion only: macros would bloat prompt without helping visual recognition
+- No meal type filtering: can't know meal type before analysis
+
+### Blockers
+- None
+
+### Next
+- ADR-008 (Grocery List) Session 1: `needs_groceries` DB foundation + template editor toggle
+
+---
+
+## [ai-capture] 2026-03-29
+
 **Task**: ADR-013 Session 3 — Frontend deviated meal display + history [feature: ai-capture]
 **Branch**: feat/ai-capture-session-3
 

@@ -11,9 +11,11 @@ from uuid import UUID, uuid4
 
 from openai import AsyncOpenAI, APIError, APITimeoutError
 from pydantic import ValidationError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
+from ..models.meal import Meal
 from ..models.openai_usage import OpenAIUsage
 from ..schemas.meal import AICaptureAnalysis, IdentifiedItem
 
@@ -26,11 +28,34 @@ REQUEST_TIMEOUT = 15.0  # seconds
 _COST_PER_INPUT_TOKEN = 0.000005   # $5 per 1M input tokens
 _COST_PER_OUTPUT_TOKEN = 0.000015  # $15 per 1M output tokens
 
+async def get_meal_context_for_prompt(
+    db: AsyncSession,
+    user_id: UUID,
+    limit: int = 30,
+) -> list[dict]:
+    """Fetch a lightweight summary of the user's meals for vision prompt context.
+
+    Returns up to `limit` most recent meals as [{"name": ..., "portion": ...}].
+    """
+    stmt = (
+        select(Meal.name, Meal.portion_description)
+        .where(Meal.user_id == user_id)
+        .order_by(Meal.created_at.desc())
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    return [
+        {"name": row.name, "portion": row.portion_description}
+        for row in result.all()
+    ]
+
+
 def build_vision_prompt(
     captured_at: datetime,
     meal_type_names: list[str] | None = None,
+    user_meals: list[dict] | None = None,
 ) -> str:
-    """Build the vision prompt with current date/time context and meal type names injected."""
+    """Build the vision prompt with current date/time context, meal type names, and user meal history."""
     time_str = captured_at.strftime("%A, %B %d %Y, %H:%M")
 
     if meal_type_names:
@@ -40,10 +65,21 @@ def build_vision_prompt(
         types_str = "breakfast, lunch, dinner, snack"
         example_type = "breakfast"
 
+    meal_context = ""
+    if user_meals:
+        lines = []
+        for m in user_meals:
+            lines.append(f"- {m['name']}: {m['portion']}")
+        meal_list = "\n".join(lines)
+        meal_context = f"""
+The user has these meals in their library — if the photo matches one, prefer their naming and portion format:
+{meal_list}
+"""
+
     return f"""You are a food nutrition analyzer. Look at this photo and identify what food is shown.
 
 Context: photo taken on {time_str} in Europe. Use this to inform suggested_meal_type and portion size norms.
-
+{meal_context}
 Return ONLY valid JSON matching this exact structure — no extra text, no markdown:
 {{
   "meal_name": "Descriptive name of the meal",
@@ -69,7 +105,8 @@ Rules:
 - sugar_g is a subset of carbs_g; saturated_fat_g is a subset of fat_g
 - If you cannot identify food clearly, still return your best guess with confidence_score below 0.3
 - Never return null values; use 0 for unknown numeric fields
-- calories_kcal must be an integer"""
+- calories_kcal must be an integer
+- If the food matches a meal from the user's library, use their exact meal_name and adjust portions to what you see in the photo"""
 
 
 class AICaptureFailed(Exception):
@@ -93,6 +130,7 @@ async def analyze_food_image(
     db: AsyncSession,
     captured_at: datetime | None = None,
     meal_type_names: list[str] | None = None,
+    user_meals: list[dict] | None = None,
 ) -> AICaptureAnalysis:
     """
     Call GPT-4o vision API synchronously and return structured meal data.
@@ -113,6 +151,7 @@ async def analyze_food_image(
     prompt = build_vision_prompt(
         captured_at or datetime.now(timezone.utc),
         meal_type_names=meal_type_names,
+        user_meals=user_meals,
     )
 
     try:

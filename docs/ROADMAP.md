@@ -9,11 +9,9 @@
 
 | Feature | ADR | Branch | Status |
 |---------|-----|--------|--------|
-| AI meal capture — user context injection | ADR-013 | main | Next up (Session 4, optional) |
-
 **Remaining AI capture work [feature: ai-capture]:**
 - [x] Session 3: Frontend deviated meal display + history (captured meals in library, source badge) [feature: ai-capture]
-- [ ] Session 4 (optional): User meal context injection into vision prompt [feature: ai-capture]
+- [x] Session 4 (optional): User meal context injection into vision prompt [feature: ai-capture]
 
 ## Next (Queued)
 
@@ -39,6 +37,7 @@
 
 <!-- Recently completed, for context -->
 
+- [x] ADR-013 Session 4: User meal context injection into vision prompt — 30 most recent meals injected for naming consistency (2026-03-29) [feature: ai-capture]
 - [x] ADR-013 Session 3: Frontend deviated meal display + history — source badge, source filter, deviated flow with actual_meal linking (2026-03-29) [feature: ai-capture]
 - [x] ADR-014 Session 6: Google OAuth — authlib OIDC flow, auto-link accounts, conditional UI (2026-03-22) [feature: auth]
 - [x] Mobile UI polish: 9 fixes from real-device iOS testing (2026-03-12) [feature: infrastructure]
@@ -73,11 +72,11 @@ Wave 2 ✅:
   ADR-014 (Auth) — users table → middleware → data migration
                  → frontend auth → settings page
 
-Wave 3 (in progress):
+Wave 3 ✅:
   ADR-013 (AI Capture) ◄── needs ADR-012 ✅, ADR-014 ✅
-  Session 1 ✅ | Session 2 ✅ | Session 3 ✅ | Session 4 (optional)
+  Session 1 ✅ | Session 2 ✅ | Session 3 ✅ | Session 4 ✅
 
-Wave 4 (after AI capture):
+Wave 4 (next):
   ADR-008 (Grocery List) ◄── needs ADR-013 ✅ LLM infra, ADR-014 ✅ auth
 ```
 
