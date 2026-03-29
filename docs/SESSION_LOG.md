@@ -5,6 +5,40 @@
 
 ---
 
+## [ai-onboarding] 2026-03-29
+
+**Task**: ADR-015 — AI-Powered Onboarding feature planning and setup [feature: ai-onboarding]
+**Branch**: feat/ai-onboarding
+
+### Summary
+- Designed complete AI-powered onboarding feature through detailed requirements discussion
+- Created feature SPEC with frozen requirements, acceptance criteria, and success metrics
+- Added ADR-015 documenting architectural decisions: dual LLM provider (Claude Sonnet for reasoning, GPT-4o for vision), USDA+OFF for nutrition data, server-side state persistence, standard SSE streaming
+- Updated ROADMAP with 9 sessions on long-lived `feat/ai-onboarding` branch
+- Created feature branch `feat/ai-onboarding` from main
+
+### Files Changed
+- `docs/feature_docs/ai_onboarding/SPEC.md` — new feature SPEC
+- `docs/ADR.md` — ADR-015 entry
+- `docs/ROADMAP.md` — 9 onboarding sessions in "Now", dependency graph updated to Wave 4
+
+### Decisions
+- Claude Sonnet 4 (Anthropic SDK) for onboarding generation + chat; GPT-4o kept for vision only
+- USDA FoodData Central + Open Food Facts for real nutrition data, exposed as AI-callable tools
+- Server-side `onboarding_state` table with conversation memory, tool log, resume capability
+- Hybrid UX: structured intake cards (6 questions) → AI generation → summary review → chat-based meal import
+- Standard SSE (not Vercel-proprietary) for native mobile client portability
+- Single long-lived feature branch, merged to main only when complete
+- Vercel AI SDK `useChat` for frontend streaming chat
+
+### Blockers
+- None
+
+### Next
+- Session 1: DB foundation — `onboarding_state` table, Alembic migration, state CRUD API endpoints
+
+---
+
 ## [ai-capture] 2026-03-29
 
 **Task**: ADR-013 Session 4 — User meal context injection into vision prompt [feature: ai-capture]

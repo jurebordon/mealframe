@@ -185,4 +185,29 @@ Self-managed auth: email/password (Argon2id) + Google OAuth (authlib). JWT acces
 
 ---
 
+## ADR-015: AI-Powered Onboarding Wizard
+
+- **Date**: 2026-03-29
+- **Status**: Accepted
+
+### Decision
+
+Multi-phase AI onboarding wizard for new users. Hybrid flow: 6-step structured intake cards, then Claude Sonnet 4 (Anthropic SDK) generates personalized meal types, day templates, and week plan via tool calling. Conversational meal import uses Claude Sonnet with USDA FoodData Central + Open Food Facts as callable tools for real nutrition data. GPT-4o retained for image/vision capture only. Server-side `onboarding_state` table stores conversation memory, intake answers, generated setup preview, confirmed meals, and tool execution log for resume capability. Standard SSE streaming for chat endpoint (native-client compatible). Vercel AI SDK `useChat` on frontend. Always skippable; available as "Reset & reconfigure" from Settings for existing users.
+
+### Consequences
+
+- Dual LLM provider: Anthropic SDK (new dependency) for reasoning, OpenAI SDK for vision
+- New external API dependencies: USDA FoodData Central (free, 1000 req/hr), Open Food Facts (free)
+- `openai_usage` table may need provider column or rename to `llm_usage` for Anthropic cost tracking
+- Frontend gains Vercel AI SDK dependency (`ai`, `@ai-sdk/react`)
+- Onboarding bypasses manual setup — users may not learn the template system in depth
+
+### Related
+
+- `docs/feature_docs/ai_onboarding/SPEC.md`
+- `backend/app/services/onboarding_ai.py`, `backend/app/services/nutrition_lookup.py`
+- `frontend/src/app/(app)/onboarding/`
+
+---
+
 <!-- New ADRs must be appended below this line. Do not modify existing entries. -->

@@ -9,17 +9,26 @@
 
 | Feature | ADR | Branch | Status |
 |---------|-----|--------|--------|
-**Remaining AI capture work [feature: ai-capture]:**
-- [x] Session 3: Frontend deviated meal display + history (captured meals in library, source badge) [feature: ai-capture]
-- [x] Session 4 (optional): User meal context injection into vision prompt [feature: ai-capture]
+| AI-Powered Onboarding | ADR-015 | feat/ai-onboarding | In progress (Session 1) |
+
+**AI Onboarding sessions [feature: ai-onboarding]:**
+- [ ] Session 1: DB foundation — `onboarding_state` table + state CRUD API [feature: ai-onboarding]
+- [ ] Session 2: Nutrition lookup services — USDA FoodData Central + Open Food Facts API clients [feature: ai-onboarding]
+- [ ] Session 3: AI setup generation — Claude Sonnet tool calling for meal types, templates, week plan [feature: ai-onboarding]
+- [ ] Session 4: Meal chat backend — SSE streaming endpoint with nutrition tool calling [feature: ai-onboarding]
+- [ ] Session 5: Apply service — create all entities + generate first weekly plan [feature: ai-onboarding]
+- [ ] Session 6: Frontend intake — 6-step card questionnaire + onboarding routing [feature: ai-onboarding]
+- [ ] Session 7: Frontend review — summary cards with inline editing [feature: ai-onboarding]
+- [ ] Session 8: Frontend meal import — chat UI with Vercel AI SDK + photo capture [feature: ai-onboarding]
+- [ ] Session 9: Frontend apply — loading animation, welcome state, Settings reset [feature: ai-onboarding]
 
 ## Next (Queued)
 
 <!-- Priority ordered - top item is next -->
 
 1. [ ] Grocery list from weekly plan — Session 1: `needs_groceries` DB foundation + template editor toggle [feature: grocery-list]
-3. [ ] Grocery list — Session 2: AI extraction service + grocery list API [feature: grocery-list]
-4. [ ] Grocery list — Session 3: Frontend grocery list page + navigation [feature: grocery-list]
+2. [ ] Grocery list — Session 2: AI extraction service + grocery list API [feature: grocery-list]
+3. [ ] Grocery list — Session 3: Frontend grocery list page + navigation [feature: grocery-list]
 
 ## Later (Backlog)
 
@@ -37,7 +46,7 @@
 
 <!-- Recently completed, for context -->
 
-- [x] ADR-013 Session 4: User meal context injection into vision prompt — 30 most recent meals injected for naming consistency (2026-03-29) [feature: ai-capture]
+- [x] AI capture complete (Sessions 1-4) — vision, frontend, deviated flow, context injection (2026-03-29) [feature: ai-capture]
 - [x] ADR-013 Session 3: Frontend deviated meal display + history — source badge, source filter, deviated flow with actual_meal linking (2026-03-29) [feature: ai-capture]
 - [x] ADR-014 Session 6: Google OAuth — authlib OIDC flow, auto-link accounts, conditional UI (2026-03-22) [feature: auth]
 - [x] Mobile UI polish: 9 fixes from real-device iOS testing (2026-03-12) [feature: infrastructure]
@@ -76,8 +85,12 @@ Wave 3 ✅:
   ADR-013 (AI Capture) ◄── needs ADR-012 ✅, ADR-014 ✅
   Session 1 ✅ | Session 2 ✅ | Session 3 ✅ | Session 4 ✅
 
-Wave 4 (next):
-  ADR-008 (Grocery List) ◄── needs ADR-013 ✅ LLM infra, ADR-014 ✅ auth
+Wave 4 (in progress):
+  ADR-015 (AI Onboarding) ◄── needs ADR-013 ✅ LLM infra, ADR-014 ✅ auth
+  Sessions 1-9 on feat/ai-onboarding branch
+
+Wave 5 (after onboarding):
+  ADR-008 (Grocery List) ◄── needs ADR-015 ✅ meal library, ADR-013 ✅ LLM infra
 ```
 
 ## Notes
