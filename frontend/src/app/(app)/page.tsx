@@ -9,6 +9,7 @@ import { CompletionAnimation } from '@/components/mealframe/completion-animation
 import { YesterdayReviewModal } from '@/components/mealframe/yesterday-review-modal'
 import { MealPicker } from '@/components/mealframe/meal-picker'
 import { AddMealSheet } from '@/components/mealframe/add-meal-sheet'
+import { DeviatedMealSheet } from '@/components/mealframe/deviated-meal-sheet'
 import { AiCaptureSheet, type AiCaptureSheetHandle } from '@/components/mealframe/ai-capture-sheet'
 import { Toast } from '@/components/mealframe/toast'
 import { Button } from '@/components/ui/button'
@@ -50,22 +51,23 @@ export default function TodayView() {
   const aiCaptureRef = useRef<AiCaptureSheetHandle>(null)
   const [showReassignPicker, setShowReassignPicker] = useState(false)
   const [reassignSlot, setReassignSlot] = useState<WeeklyPlanSlotWithNext | null>(null)
+  const [showDeviatedSheet, setShowDeviatedSheet] = useState(false)
+  const [showDeviatedPicker, setShowDeviatedPicker] = useState(false)
+  const [showDeviatedCapture, setShowDeviatedCapture] = useState(false)
+  const deviatedCaptureRef = useRef<AiCaptureSheetHandle>(null)
+  const [deviatedSlot, setDeviatedSlot] = useState<WeeklyPlanSlotWithNext | null>(null)
 
   const handleMarkComplete = useCallback((slot: WeeklyPlanSlotWithNext) => {
     setSelectedSlot(slot)
     setShowCompletionSheet(true)
   }, [])
 
-  const handleCompletionSelect = useCallback((status: Exclude<CompletionStatus, 'pending'>) => {
-    if (!selectedSlot) return
-    const wasAlreadyCompleted = selectedSlot.completion_status !== null
-    setShowCompletionSheet(false)
-
-    completeSlotMutation.mutate({ slotId: selectedSlot.id, status })
+  const completeSlotWithAnimation = useCallback((slotId: string, status: CompletionStatus, wasAlreadyCompleted: boolean, actualMealId?: string) => {
+    completeSlotMutation.mutate({ slotId, status, actualMealId })
 
     setAnimationType(status)
     setShowAnimation(true)
-    setLastCompletedSlotId(selectedSlot.id)
+    setLastCompletedSlotId(slotId)
 
     setTimeout(() => {
       setShowAnimation(false)
@@ -73,7 +75,22 @@ export default function TodayView() {
       setToastMessage(wasAlreadyCompleted ? `Changed to ${label.toLowerCase()}` : `Marked as ${label.toLowerCase()}`)
       setShowToast(true)
     }, 1000)
-  }, [selectedSlot, completeSlotMutation])
+  }, [completeSlotMutation])
+
+  const handleCompletionSelect = useCallback((status: Exclude<CompletionStatus, 'pending'>) => {
+    if (!selectedSlot) return
+    setShowCompletionSheet(false)
+
+    // Intercept deviated: ask what user ate instead
+    if (status === 'deviated') {
+      setDeviatedSlot(selectedSlot)
+      setShowDeviatedSheet(true)
+      return
+    }
+
+    const wasAlreadyCompleted = selectedSlot.completion_status !== null
+    completeSlotWithAnimation(selectedSlot.id, status, wasAlreadyCompleted)
+  }, [selectedSlot, completeSlotWithAnimation])
 
   const handleQuickComplete = useCallback((slot: WeeklyPlanSlotWithNext) => {
     completeSlotMutation.mutate({ slotId: slot.id, status: 'followed' })
@@ -160,6 +177,42 @@ export default function TodayView() {
     )
     setReassignSlot(null)
   }, [reassignSlot, reassignSlotMutation])
+
+  // Deviated flow handlers
+  const handleDeviatedFromLibrary = useCallback(() => {
+    setShowDeviatedSheet(false)
+    setShowDeviatedPicker(true)
+  }, [])
+
+  const handleDeviatedCapturePhoto = useCallback(() => {
+    setShowDeviatedSheet(false)
+    setShowDeviatedCapture(true)
+    // Trigger file picker synchronously in the same user gesture to satisfy iOS Safari
+    deviatedCaptureRef.current?.triggerFilePicker()
+  }, [])
+
+  const handleDeviatedSkip = useCallback(() => {
+    if (!deviatedSlot) return
+    setShowDeviatedSheet(false)
+    const wasAlreadyCompleted = deviatedSlot.completion_status !== null
+    completeSlotWithAnimation(deviatedSlot.id, 'deviated', wasAlreadyCompleted)
+    setDeviatedSlot(null)
+  }, [deviatedSlot, completeSlotWithAnimation])
+
+  const handleDeviatedMealSelected = useCallback((meal: MealListItem) => {
+    if (!deviatedSlot) return
+    const wasAlreadyCompleted = deviatedSlot.completion_status !== null
+    completeSlotWithAnimation(deviatedSlot.id, 'deviated', wasAlreadyCompleted, meal.id)
+    setToastMessage(`Deviated — ${meal.name}`)
+    setDeviatedSlot(null)
+  }, [deviatedSlot, completeSlotWithAnimation])
+
+  const handleDeviatedMealCaptured = useCallback((mealId: string) => {
+    if (!deviatedSlot) return
+    const wasAlreadyCompleted = deviatedSlot.completion_status !== null
+    completeSlotWithAnimation(deviatedSlot.id, 'deviated', wasAlreadyCompleted, mealId)
+    setDeviatedSlot(null)
+  }, [deviatedSlot, completeSlotWithAnimation])
 
   // Loading state
   if (isLoading) {
@@ -331,6 +384,7 @@ export default function TodayView() {
               {nextSlot.is_adhoc && (
                 <div className="absolute -left-2 top-0 bottom-0 w-1 rounded-full bg-primary/40" />
               )}
+              {/* Note: next slot is never deviated (it's unmarked), but keeping for completeness */}
               <MealCardGesture
                 mealName={nextSlot.meal?.name ?? 'Unassigned'}
                 portionDescription={nextSlot.meal?.portion_description ?? ''}
@@ -422,6 +476,11 @@ export default function TodayView() {
                         Changed
                       </span>
                     )}
+                    {slot.completion_status === 'deviated' && slot.actual_meal && (
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        Actually ate: {slot.actual_meal.name}
+                      </span>
+                    )}
                   </div>
                 )
               })}
@@ -474,6 +533,31 @@ export default function TodayView() {
         open={showAiCaptureSheet}
         onOpenChange={setShowAiCaptureSheet}
         onMealSaved={handleAiMealSaved}
+      />
+
+      {/* Deviated Meal Sheet */}
+      <DeviatedMealSheet
+        open={showDeviatedSheet}
+        onOpenChange={setShowDeviatedSheet}
+        onSelectFromLibrary={handleDeviatedFromLibrary}
+        onCaptureWithPhoto={handleDeviatedCapturePhoto}
+        onSkip={handleDeviatedSkip}
+      />
+
+      {/* Meal Picker Sheet (Deviated) */}
+      <MealPicker
+        open={showDeviatedPicker}
+        onOpenChange={setShowDeviatedPicker}
+        onSelectMeal={handleDeviatedMealSelected}
+      />
+
+      {/* AI Capture Sheet (Deviated — create only, no adhoc slot) */}
+      <AiCaptureSheet
+        ref={deviatedCaptureRef}
+        open={showDeviatedCapture}
+        onOpenChange={setShowDeviatedCapture}
+        onMealSaved={handleDeviatedMealCaptured}
+        skipAdhocSlot
       />
 
       {/* Meal Picker Sheet (Reassign) */}

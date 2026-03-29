@@ -295,7 +295,8 @@ export async function getMeals(
   page = 1,
   pageSize = 20,
   search?: string,
-  mealTypeId?: string
+  mealTypeId?: string,
+  source?: string
 ): Promise<PaginatedResponse<MealListItem>> {
   const params = new URLSearchParams({
     page: String(page),
@@ -303,6 +304,7 @@ export async function getMeals(
   })
   if (search) params.set('search', search)
   if (mealTypeId) params.set('meal_type_id', mealTypeId)
+  if (source) params.set('source', source)
 
   return fetchApi<PaginatedResponse<MealListItem>>(`/meals?${params}`)
 }

@@ -9,14 +9,15 @@ interface UseMealsParams {
   pageSize?: number
   search?: string
   mealTypeId?: string
+  source?: 'manual' | 'ai_capture'
   /** When false, the query won't fire (useful for modals that aren't open yet) */
   enabled?: boolean
 }
 
-export function useMeals({ page = 1, pageSize = 50, search, mealTypeId, enabled = true }: UseMealsParams = {}) {
+export function useMeals({ page = 1, pageSize = 50, search, mealTypeId, source, enabled = true }: UseMealsParams = {}) {
   return useQuery<PaginatedResponse<MealListItem>>({
-    queryKey: ['meals', { page, pageSize, search, mealTypeId }],
-    queryFn: () => getMeals(page, pageSize, search, mealTypeId),
+    queryKey: ['meals', { page, pageSize, search, mealTypeId, source }],
+    queryFn: () => getMeals(page, pageSize, search, mealTypeId, source),
     staleTime: 1000 * 60 * 5, // 5 min — meals change more often than templates
     enabled,
   })

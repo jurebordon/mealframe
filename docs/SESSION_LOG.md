@@ -5,6 +5,47 @@
 
 ---
 
+## [ai-capture] 2026-03-29
+
+**Task**: ADR-013 Session 3 — Frontend deviated meal display + history [feature: ai-capture]
+**Branch**: feat/ai-capture-session-3
+
+### Summary
+- Added `source` field to frontend `MealListItem` and `MealResponse` types (aligned with backend schema)
+- Added "AI" badge on meal cards in Meals Library for `ai_capture` meals
+- Added Source filter dropdown (All / Manual / AI Captured) in Meals Library filter bar
+- Added `source` param to `getMeals()` API function and `useMeals` hook
+- Threaded `actualMealId` through `useCompleteSlot` mutation to support `actual_meal_id` on deviated completions
+- Added `skipAdhocSlot` prop to `AiCaptureSheet` — allows create-only mode without adding adhoc slot
+- Created `DeviatedMealSheet` component: "What did you eat instead?" with Pick from Library / Capture with Photo / Skip
+- Wired deviated flow in Today View: selecting "Deviated" now opens DeviatedMealSheet instead of immediately completing
+- Three deviated paths: library picker → actual_meal_id, AI capture → create meal + actual_meal_id, skip → deviated without linking
+- Added "Actually ate: {name}" annotation on deviated slots in Today View
+
+### Files Changed
+- `frontend/src/lib/types.ts` — source fields on MealListItem, MealResponse
+- `frontend/src/lib/api.ts` — source param in getMeals
+- `frontend/src/hooks/use-meals.ts` — source in UseMealsParams
+- `frontend/src/hooks/use-today.ts` — actualMealId in useCompleteSlot
+- `frontend/src/app/(app)/meals/page.tsx` — source badge + source filter
+- `frontend/src/app/(app)/page.tsx` — deviated flow orchestration + actual_meal annotation
+- `frontend/src/components/mealframe/ai-capture-sheet.tsx` — skipAdhocSlot prop
+- `frontend/src/components/mealframe/deviated-meal-sheet.tsx` — new component
+
+### Decisions
+- Deviated flow uses a separate `DeviatedMealSheet` rather than extending CompletionSheetAnimated — cleaner separation of concerns
+- Second `AiCaptureSheet` instance with `skipAdhocSlot` for deviated capture — avoids complex conditional logic in a single instance
+- iOS Safari file picker trigger pattern reused for deviated capture path (synchronous `.click()` in user gesture handler)
+
+### Blockers
+- None
+
+### Next
+- ADR-013 Session 4 (optional): User meal context injection into vision prompt
+- Or move to ADR-008 (Grocery List) Session 1
+
+---
+
 ## [auth] 2026-03-22
 
 **Task**: ADR-014 Session 6 — Google OAuth integration [feature: auth]

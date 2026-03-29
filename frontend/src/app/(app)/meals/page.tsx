@@ -15,10 +15,12 @@ export default function MealsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
+  const [selectedSource, setSelectedSource] = useState<'manual' | 'ai_capture' | null>(null)
   const [showEditor, setShowEditor] = useState(false)
   const [showImporter, setShowImporter] = useState(false)
   const [editingMeal, setEditingMeal] = useState<MealFormData | undefined>()
   const [showTypeFilter, setShowTypeFilter] = useState(false)
+  const [showSourceFilter, setShowSourceFilter] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleSearchChange = useCallback((value: string) => {
@@ -33,6 +35,7 @@ export default function MealsPage() {
     pageSize: 100,
     search: debouncedSearch || undefined,
     mealTypeId: selectedTypeId || undefined,
+    source: selectedSource || undefined,
   })
   const { data: mealTypes } = useMealTypes()
 
@@ -100,6 +103,7 @@ export default function MealsPage() {
   }
 
   const selectedTypeName = mealTypes?.find((mt) => mt.id === selectedTypeId)?.name
+  const sourceLabel = selectedSource === 'ai_capture' ? 'AI Captured' : selectedSource === 'manual' ? 'Manual' : null
 
   return (
     <main className="min-h-screen bg-background">
@@ -196,6 +200,70 @@ export default function MealsPage() {
               )}
             </div>
 
+            {/* Source Filter */}
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSourceFilter(!showSourceFilter)}
+                className="gap-2"
+              >
+                {sourceLabel || 'Source'}
+                {selectedSource && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                    1
+                  </span>
+                )}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+              {showSourceFilter && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowSourceFilter(false)}
+                  />
+                  <div className="absolute left-0 top-full z-20 mt-2 w-48 rounded-lg border border-border bg-card p-2 shadow-lg">
+                    {selectedSource && (
+                      <button
+                        onClick={() => {
+                          setSelectedSource(null)
+                          setShowSourceFilter(false)
+                        }}
+                        className="mb-1 w-full rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted"
+                        type="button"
+                      >
+                        Clear filter
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedSource('manual')
+                        setShowSourceFilter(false)
+                      }}
+                      className={`w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted ${
+                        selectedSource === 'manual' ? 'bg-muted font-semibold text-foreground' : 'text-foreground'
+                      }`}
+                      type="button"
+                    >
+                      Manual
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedSource('ai_capture')
+                        setShowSourceFilter(false)
+                      }}
+                      className={`w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted ${
+                        selectedSource === 'ai_capture' ? 'bg-muted font-semibold text-foreground' : 'text-foreground'
+                      }`}
+                      type="button"
+                    >
+                      AI Captured
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Count indicator */}
             {!isLoading && (
               <span className="text-sm text-muted-foreground">
@@ -226,7 +294,7 @@ export default function MealsPage() {
         )}
 
         {/* Empty State */}
-        {!isLoading && !error && meals.length === 0 && !debouncedSearch && !selectedTypeId && (
+        {!isLoading && !error && meals.length === 0 && !debouncedSearch && !selectedTypeId && !selectedSource && (
           <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
             <div className="mb-4 rounded-full bg-muted p-6">
               <Plus className="h-12 w-12 text-muted-foreground" />
@@ -249,7 +317,7 @@ export default function MealsPage() {
         )}
 
         {/* No Results (with active filter/search) */}
-        {!isLoading && !error && meals.length === 0 && (debouncedSearch || selectedTypeId) && (
+        {!isLoading && !error && meals.length === 0 && (debouncedSearch || selectedTypeId || selectedSource) && (
           <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
             <div className="mb-4 rounded-full bg-muted p-6">
               <Search className="h-12 w-12 text-muted-foreground" />
@@ -264,6 +332,7 @@ export default function MealsPage() {
                 setSearchQuery('')
                 setDebouncedSearch('')
                 setSelectedTypeId(null)
+                setSelectedSource(null)
               }}
             >
               Clear Filters
@@ -282,8 +351,8 @@ export default function MealsPage() {
                 type="button"
               >
                 <div className="rounded-xl border border-border bg-card p-4">
-                  {/* Meal Type Badges */}
-                  {meal.meal_types.length > 0 && (
+                  {/* Meal Type Badges + Source Badge */}
+                  {(meal.meal_types.length > 0 || meal.source === 'ai_capture') && (
                     <div className="mb-2 flex flex-wrap gap-2">
                       {meal.meal_types.map((mt) => (
                         <span
@@ -293,6 +362,11 @@ export default function MealsPage() {
                           {mt.name}
                         </span>
                       ))}
+                      {meal.source === 'ai_capture' && (
+                        <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                          AI
+                        </span>
+                      )}
                     </div>
                   )}
 

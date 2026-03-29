@@ -20,6 +20,8 @@ interface AiCaptureSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onMealSaved: (mealId: string) => void
+  /** When true, skip creating an adhoc slot — only create the meal and return its ID */
+  skipAdhocSlot?: boolean
 }
 
 function mapCaptureError(error: unknown): string {
@@ -39,6 +41,7 @@ export const AiCaptureSheet = forwardRef<AiCaptureSheetHandle, AiCaptureSheetPro
   open,
   onOpenChange,
   onMealSaved,
+  skipAdhocSlot = false,
 }, ref) {
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -136,7 +139,9 @@ export const AiCaptureSheet = forwardRef<AiCaptureSheetHandle, AiCaptureSheetPro
       }
 
       const meal = await createMeal(mealData)
-      await addAdhocSlot({ meal_id: meal.id })
+      if (!skipAdhocSlot) {
+        await addAdhocSlot({ meal_id: meal.id })
+      }
       queryClient.invalidateQueries({ queryKey: ['today'] })
       onMealSaved(meal.id)
       onOpenChange(false)
@@ -144,7 +149,7 @@ export const AiCaptureSheet = forwardRef<AiCaptureSheetHandle, AiCaptureSheetPro
       setErrorMessage('Failed to save meal. Please try again.')
       setIsSaving(false)
     }
-  }, [captureResult, selectedMealTypeId, queryClient, onMealSaved, onOpenChange])
+  }, [captureResult, selectedMealTypeId, skipAdhocSlot, queryClient, onMealSaved, onOpenChange])
 
   const showSheet = phase !== 'idle'
 

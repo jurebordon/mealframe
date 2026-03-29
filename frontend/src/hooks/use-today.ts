@@ -39,8 +39,8 @@ export function useCompleteSlot() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ slotId, status }: { slotId: string; status: CompletionStatus }) =>
-      completeSlot(slotId, { status }),
+    mutationFn: ({ slotId, status, actualMealId }: { slotId: string; status: CompletionStatus; actualMealId?: string }) =>
+      completeSlot(slotId, { status, actual_meal_id: actualMealId }),
     // Allow mutation to fire even when offline (for optimistic update)
     networkMode: 'always',
     onMutate: async ({ slotId, status }) => {

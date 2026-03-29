@@ -84,6 +84,10 @@ export interface MealResponse {
   saturated_fat_g: number | null
   fiber_g: number | null
   notes: string | null
+  source: 'manual' | 'ai_capture'
+  confidence_score: number | null
+  image_path: string | null
+  ai_model_version: string | null
   created_at: string
   updated_at: string
   meal_types: MealTypeCompact[]
@@ -100,6 +104,7 @@ export interface MealListItem {
   fat_g: number | null
   saturated_fat_g: number | null
   fiber_g: number | null
+  source: 'manual' | 'ai_capture'
   meal_types: MealTypeCompact[]
 }
 
