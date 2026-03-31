@@ -5,6 +5,31 @@
 
 ---
 
+## [infrastructure] 2026-03-31
+
+**Task**: Fix daily macro totals including skipped meals on Today View [feature: infrastructure]
+**Branch**: feat/ai-onboarding
+
+### Summary
+- Fixed bug where skipped meals were still counted in the daily macro totals on the Today View
+- Added `macroMeals` derived array that filters out skipped slots and uses `actual_meal` macros for deviated meals
+- Replaced all 7 inline reduce calls with the filtered calculation
+
+### Files Changed
+- `frontend/src/app/(app)/page.tsx` — macro total calculation now excludes skipped, uses actual_meal for deviated
+
+### Decisions
+- Deviated meals with `actual_meal` linked now show the actual meal's macros instead of the planned meal's
+- Skipped meals are fully excluded from all macro sums (calories, protein, carbs, sugar, fat, saturated fat, fiber)
+
+### Blockers
+- None
+
+### Next
+- Session 1: DB foundation — `onboarding_state` table + state CRUD API
+
+---
+
 ## [ai-onboarding] 2026-03-29
 
 **Task**: ADR-015 — AI-Powered Onboarding feature planning and setup [feature: ai-onboarding]

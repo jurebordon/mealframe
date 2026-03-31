@@ -251,6 +251,14 @@ export default function TodayView() {
 
   if (!data) return null
 
+  const macroMeals = data.slots
+    .filter(slot => slot.completion_status !== 'skipped')
+    .map(slot =>
+      slot.completion_status === 'deviated' && slot.actual_meal
+        ? slot.actual_meal
+        : slot.meal
+    )
+
   const nextSlot = data.slots.find((s) => s.is_next) ?? null
   const hasSlots = data.slots.length > 0
   const allComplete = hasSlots && !nextSlot
@@ -294,25 +302,25 @@ export default function TodayView() {
           {hasSlots && (
             <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
               <span className="font-semibold">
-                {data.slots.reduce((s, slot) => s + (Number(slot.meal?.calories_kcal) || 0), 0)} kcal
+                {macroMeals.reduce((s, meal) => s + (Number(meal?.calories_kcal) || 0), 0)} kcal
               </span>
               <span>
-                {Math.round(data.slots.reduce((s, slot) => s + (Number(slot.meal?.protein_g) || 0), 0))}g P
+                {Math.round(macroMeals.reduce((s, meal) => s + (Number(meal?.protein_g) || 0), 0))}g P
               </span>
               <span>
-                {Math.round(data.slots.reduce((s, slot) => s + (Number(slot.meal?.carbs_g) || 0), 0))}g C
+                {Math.round(macroMeals.reduce((s, meal) => s + (Number(meal?.carbs_g) || 0), 0))}g C
               </span>
               <span>
-                {Math.round(data.slots.reduce((s, slot) => s + (Number(slot.meal?.sugar_g) || 0), 0))}g sugar
+                {Math.round(macroMeals.reduce((s, meal) => s + (Number(meal?.sugar_g) || 0), 0))}g sugar
               </span>
               <span>
-                {Math.round(data.slots.reduce((s, slot) => s + (Number(slot.meal?.fat_g) || 0), 0))}g F
+                {Math.round(macroMeals.reduce((s, meal) => s + (Number(meal?.fat_g) || 0), 0))}g F
               </span>
               <span>
-                {Math.round(data.slots.reduce((s, slot) => s + (Number(slot.meal?.saturated_fat_g) || 0), 0))}g sat.F
+                {Math.round(macroMeals.reduce((s, meal) => s + (Number(meal?.saturated_fat_g) || 0), 0))}g sat.F
               </span>
               <span>
-                {Math.round(data.slots.reduce((s, slot) => s + (Number(slot.meal?.fiber_g) || 0), 0))}g fiber
+                {Math.round(macroMeals.reduce((s, meal) => s + (Number(meal?.fiber_g) || 0), 0))}g fiber
               </span>
             </div>
           )}
