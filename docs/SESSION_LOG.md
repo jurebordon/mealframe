@@ -5,6 +5,44 @@
 
 ---
 
+## [ai-onboarding] 2026-04-08
+
+**Task**: Session 1: DB foundation — `onboarding_state` table + state CRUD API [feature: ai-onboarding]
+**Branch**: feat/ai-onboarding
+
+### Summary
+- Created `onboarding_state` table with JSONB columns for intake answers, generated setup, chat messages, tool log, imported meals
+- Added CHECK constraint on status column (7 valid values) and partial unique index enforcing one active onboarding per user
+- Built full CRUD API with singleton resource pattern (no ID in URL — one active per user)
+- Service layer includes state machine transition validation (e.g., intake→generating allowed, intake→completed rejected)
+- 17 integration tests covering all 5 endpoints, state transitions, conflict handling, and abandon/recreate flow
+
+### Files Changed
+- `backend/app/models/onboarding_state.py` — new SQLAlchemy model
+- `backend/alembic/versions/20260407_add_onboarding_state.py` — new migration
+- `backend/app/schemas/onboarding.py` — response, update, status schemas
+- `backend/app/services/onboarding.py` — state CRUD with transition validation
+- `backend/app/api/onboarding.py` — 5 endpoints (GET/POST/PATCH/DELETE state + GET status)
+- `backend/tests/test_onboarding_state.py` — 17 integration tests
+- `backend/app/models/__init__.py` — registered OnboardingState
+- `backend/app/api/__init__.py` — registered onboarding_router
+- `backend/app/main.py` — included onboarding_router
+
+### Decisions
+- Singleton resource pattern: no `{id}` in URLs since only one active onboarding exists per user
+- State machine in service layer (not DB triggers): keeps logic testable and explicit
+- JSONB replace semantics (no deep merge): frontend sends full objects, simpler to reason about
+- `tool_log` excluded from API response (backend-only field for debugging)
+- Partial unique index (`WHERE status NOT IN ('completed', 'abandoned')`) allows onboarding history while preventing duplicates
+
+### Blockers
+- None
+
+### Next
+- Session 2: Nutrition lookup services — USDA FoodData Central + Open Food Facts API clients
+
+---
+
 ## [infrastructure] 2026-03-31
 
 **Task**: Fix daily macro totals including skipped meals on Today View [feature: infrastructure]

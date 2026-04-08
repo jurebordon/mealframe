@@ -14,6 +14,7 @@ from .weekly_plan import WeeklyPlanInstance, WeeklyPlanInstanceDay, WeeklyPlanSl
 from .round_robin import RoundRobinState
 from .app_config import AppConfig
 from .landing_pageview import LandingPageview
+from .onboarding_state import OnboardingState
 from .openai_usage import OpenAIUsage
 
 __all__ = [
@@ -34,5 +35,6 @@ __all__ = [
     "RoundRobinState",
     "AppConfig",
     "LandingPageview",
+    "OnboardingState",
     "OpenAIUsage",
 ]

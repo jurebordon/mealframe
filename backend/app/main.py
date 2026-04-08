@@ -25,6 +25,7 @@ from app.api import (
     stats_router,
     analytics_router,
     auth_router,
+    onboarding_router,
 )
 
 
@@ -78,6 +79,7 @@ app.include_router(week_plans_router)
 app.include_router(stats_router)
 app.include_router(analytics_router)
 app.include_router(auth_router)
+app.include_router(onboarding_router)
 
 
 @app.get("/")

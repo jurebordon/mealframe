@@ -9,6 +9,7 @@ from .week_plans import router as week_plans_router
 from .stats import router as stats_router
 from .analytics import router as analytics_router
 from .auth import router as auth_router
+from .onboarding import router as onboarding_router
 
 __all__ = [
     "today_router",
@@ -20,4 +21,5 @@ __all__ = [
     "stats_router",
     "analytics_router",
     "auth_router",
+    "onboarding_router",
 ]

@@ -9,10 +9,10 @@
 
 | Feature | ADR | Branch | Status |
 |---------|-----|--------|--------|
-| AI-Powered Onboarding | ADR-015 | feat/ai-onboarding | In progress (Session 1) |
+| AI-Powered Onboarding | ADR-015 | feat/ai-onboarding | In progress (Session 2) |
 
 **AI Onboarding sessions [feature: ai-onboarding]:**
-- [ ] Session 1: DB foundation — `onboarding_state` table + state CRUD API [feature: ai-onboarding]
+- [x] Session 1: DB foundation — `onboarding_state` table + state CRUD API [feature: ai-onboarding]
 - [ ] Session 2: Nutrition lookup services — USDA FoodData Central + Open Food Facts API clients [feature: ai-onboarding]
 - [ ] Session 3: AI setup generation — Claude Sonnet tool calling for meal types, templates, week plan [feature: ai-onboarding]
 - [ ] Session 4: Meal chat backend — SSE streaming endpoint with nutrition tool calling [feature: ai-onboarding]
