@@ -51,6 +51,9 @@ export default function TodayView() {
   const aiCaptureRef = useRef<AiCaptureSheetHandle>(null)
   const [showReassignPicker, setShowReassignPicker] = useState(false)
   const [reassignSlot, setReassignSlot] = useState<WeeklyPlanSlotWithNext | null>(null)
+  const [showChangeMealSheet, setShowChangeMealSheet] = useState(false)
+  const [showChangeMealCapture, setShowChangeMealCapture] = useState(false)
+  const changeMealCaptureRef = useRef<AiCaptureSheetHandle>(null)
   const [showDeviatedSheet, setShowDeviatedSheet] = useState(false)
   const [showDeviatedPicker, setShowDeviatedPicker] = useState(false)
   const [showDeviatedCapture, setShowDeviatedCapture] = useState(false)
@@ -161,7 +164,19 @@ export default function TodayView() {
   const handleReassignStart = useCallback((slot: WeeklyPlanSlotWithNext) => {
     setShowCompletionSheet(false)
     setReassignSlot(slot)
+    setShowChangeMealSheet(true)
+  }, [])
+
+  const handleChangeMealFromLibrary = useCallback(() => {
+    setShowChangeMealSheet(false)
     setShowReassignPicker(true)
+  }, [])
+
+  const handleChangeMealCapturePhoto = useCallback(() => {
+    setShowChangeMealSheet(false)
+    setShowChangeMealCapture(true)
+    // Trigger file picker synchronously in the same user gesture to satisfy iOS Safari
+    changeMealCaptureRef.current?.triggerFilePicker()
   }, [])
 
   const handleReassignMeal = useCallback((meal: MealListItem) => {
@@ -171,6 +186,20 @@ export default function TodayView() {
       {
         onSuccess: () => {
           setToastMessage(`Changed to ${meal.name}`)
+          setShowToast(true)
+        },
+      }
+    )
+    setReassignSlot(null)
+  }, [reassignSlot, reassignSlotMutation])
+
+  const handleChangeMealPhotoSaved = useCallback((mealId: string) => {
+    if (!reassignSlot) return
+    reassignSlotMutation.mutate(
+      { slotId: reassignSlot.id, mealId },
+      {
+        onSuccess: () => {
+          setToastMessage('Meal changed')
           setShowToast(true)
         },
       }
@@ -568,6 +597,17 @@ export default function TodayView() {
         skipAdhocSlot
       />
 
+      {/* Change Meal Action Sheet (chooser: library vs photo) */}
+      <AddMealSheet
+        open={showChangeMealSheet}
+        onOpenChange={setShowChangeMealSheet}
+        onSelectFromLibrary={handleChangeMealFromLibrary}
+        onCaptureWithPhoto={handleChangeMealCapturePhoto}
+        title="Change meal"
+        libraryDescription="Pick a different meal from your saved meals"
+        photoDescription="Take a photo to log what you ate instead"
+      />
+
       {/* Meal Picker Sheet (Reassign) */}
       <MealPicker
         open={showReassignPicker}
@@ -575,6 +615,15 @@ export default function TodayView() {
         onSelectMeal={handleReassignMeal}
         mode="reassign"
         mealTypeId={reassignSlot?.meal_type?.id}
+      />
+
+      {/* AI Capture Sheet (Change Meal — create only, then reassign slot) */}
+      <AiCaptureSheet
+        ref={changeMealCaptureRef}
+        open={showChangeMealCapture}
+        onOpenChange={setShowChangeMealCapture}
+        onMealSaved={handleChangeMealPhotoSaved}
+        skipAdhocSlot
       />
 
       {/* Completion Animation */}

@@ -5,6 +5,35 @@
 
 ---
 
+## [infrastructure] 2026-04-13
+
+**Task**: Today View quick fixes — safe-area bottom padding + change-meal photo-capture option [feature: infrastructure]
+**Branch**: feat/ai-onboarding
+
+### Summary
+- Fix 1: Extended `<main>` bottom padding in `app-shell.tsx` from `pb-16` to `pb-[calc(4rem+env(safe-area-inset-bottom))]` so the scroll buffer matches the fixed bottom nav, which has its own `pb-safe` home-indicator inset. Previously the last in-flow element (e.g. "Add meal" button on Today View) was occluded on iPhones.
+- Fix 2: The "Change meal" action from the completion sheet used to jump directly into the library `MealPicker`. Now it opens a chooser (library vs photo capture) matching the "Add meal" pattern. Photo path reuses `AiCaptureSheet` with `skipAdhocSlot`, then calls the existing `reassignSlotMutation` with the captured meal id.
+- Generalized `AddMealSheet` with optional `title` / label / description props so it renders both "Add meal" and "Change meal" flows from one component. Defaults preserve existing call-site behavior.
+
+### Files Changed
+- `frontend/src/components/navigation/app-shell.tsx` — main padding uses safe-area calc
+- `frontend/src/components/mealframe/add-meal-sheet.tsx` — optional title/label/description props
+- `frontend/src/app/(app)/page.tsx` — change-meal chooser state, handlers (`handleChangeMealFromLibrary`, `handleChangeMealCapturePhoto`, `handleChangeMealPhotoSaved`), dedicated `changeMealCaptureRef`, and two new render blocks (chooser sheet + change-meal AiCaptureSheet)
+
+### Decisions
+- Put the padding fix in `app-shell.tsx` (layout) rather than `page.tsx` so every authenticated route benefits, not just Today View.
+- Reused `AddMealSheet` via optional props instead of creating a new `ChangeMealSheet` component — same visual pattern, no duplication. `DeviatedMealSheet` remains a separate component since its third "Skip" option doesn't fit the two-button chooser.
+- Change-meal photo path uses a separate `AiCaptureSheet` instance with its own ref (`changeMealCaptureRef`) so it doesn't collide with the add-meal or deviated capture sheets. Critical for iOS Safari gesture handling.
+- "Changed to X" toast from library path vs. generic "Meal changed" from photo path (photo flow doesn't know the meal name at trigger time).
+
+### Blockers
+- None
+
+### Next
+- Session 2: Nutrition lookup services — USDA FoodData Central + Open Food Facts API clients
+
+---
+
 ## [ai-onboarding] 2026-04-08
 
 **Task**: Session 1: DB foundation — `onboarding_state` table + state CRUD API [feature: ai-onboarding]

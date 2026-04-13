@@ -8,6 +8,11 @@ interface AddMealSheetProps {
   onOpenChange: (open: boolean) => void
   onSelectFromLibrary: () => void
   onCaptureWithPhoto: () => void
+  title?: string
+  libraryLabel?: string
+  libraryDescription?: string
+  photoLabel?: string
+  photoDescription?: string
 }
 
 export function AddMealSheet({
@@ -15,6 +20,11 @@ export function AddMealSheet({
   onOpenChange,
   onSelectFromLibrary,
   onCaptureWithPhoto,
+  title = 'Add meal',
+  libraryLabel = 'Select from Library',
+  libraryDescription = 'Choose from your saved meals',
+  photoLabel = 'Capture with Photo',
+  photoDescription = 'Take a photo to auto-fill macros',
 }: AddMealSheetProps) {
   return (
     <AnimatePresence>
@@ -49,7 +59,7 @@ export function AddMealSheet({
             {/* Header */}
             <div className="flex items-center justify-between px-6 pb-2">
               <h2 id="add-meal-sheet-title" className="text-lg font-semibold text-foreground">
-                Add meal
+                {title}
               </h2>
               <button
                 onClick={() => onOpenChange(false)}
@@ -74,8 +84,8 @@ export function AddMealSheet({
                   <BookOpen className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Select from Library</p>
-                  <p className="text-sm text-muted-foreground">Choose from your saved meals</p>
+                  <p className="font-medium text-foreground">{libraryLabel}</p>
+                  <p className="text-sm text-muted-foreground">{libraryDescription}</p>
                 </div>
               </button>
 
@@ -90,8 +100,8 @@ export function AddMealSheet({
                   <Camera className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Capture with Photo</p>
-                  <p className="text-sm text-muted-foreground">Take a photo to auto-fill macros</p>
+                  <p className="font-medium text-foreground">{photoLabel}</p>
+                  <p className="text-sm text-muted-foreground">{photoDescription}</p>
                 </div>
               </button>
             </div>

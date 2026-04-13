@@ -46,6 +46,7 @@
 
 <!-- Recently completed, for context -->
 
+- [x] Today View quick fixes — safe-area bottom padding + change-meal photo-capture option (2026-04-13) [feature: infrastructure]
 - [x] AI capture complete (Sessions 1-4) — vision, frontend, deviated flow, context injection (2026-03-29) [feature: ai-capture]
 - [x] ADR-013 Session 3: Frontend deviated meal display + history — source badge, source filter, deviated flow with actual_meal linking (2026-03-29) [feature: ai-capture]
 - [x] ADR-014 Session 6: Google OAuth — authlib OIDC flow, auto-link accounts, conditional UI (2026-03-22) [feature: auth]

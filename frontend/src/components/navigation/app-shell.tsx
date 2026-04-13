@@ -16,7 +16,7 @@ export function AppShell({ children }: AppShellProps) {
       <Sidebar />
 
       {/* Main Content */}
-      <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0" role="main">
+      <main className="flex flex-1 flex-col overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" role="main">
         {children}
       </main>
 
