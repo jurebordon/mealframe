@@ -47,6 +47,13 @@ class Settings(BaseSettings):
     openai_api_key: str = ""  # Override via OPENAI_API_KEY env var
     captures_dir: str = "/data/captures"  # Local volume mount for food photos
 
+    # AI Onboarding (ADR-015)
+    anthropic_api_key: str = ""  # Override via ANTHROPIC_API_KEY env var
+    usda_api_key: str = ""  # Override via USDA_API_KEY env var (FoodData Central)
+    nutrition_cache_item_ttl_days: int = 90
+    nutrition_cache_search_ttl_days: int = 30
+    open_food_facts_user_agent: str = "MealFrame/1.0 (https://mealframe.io)"
+
     # Google OAuth (ADR-014 Session 6)
     google_client_id: str = ""  # Override via GOOGLE_CLIENT_ID env var
     google_client_secret: str = ""  # Override via GOOGLE_CLIENT_SECRET env var

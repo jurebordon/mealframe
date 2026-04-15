@@ -5,6 +5,49 @@
 
 ---
 
+## [ai-onboarding] 2026-04-15
+
+**Task**: Session 2 — Nutrition lookup services (USDA FoodData Central + Open Food Facts API clients) [feature: ai-onboarding]
+**Branch**: feat/ai-onboarding
+
+### Summary
+- New `backend/app/services/nutrition/` package with two upstream clients (`usda_client.py`, `open_food_facts_client.py`) and a unified `lookup.py` service. `lookup_ingredient(db, query, *, hint=...)` picks a preferred source by hint (`whole_food` → USDA first, `branded` → OFF first) and falls back to the other source on empty results or upstream errors.
+- Per-ingredient DB cache via new `nutrition_cache` table (migration `20260414_add_nutrition_cache.py`). Two rows per ingredient: one `search` row mapping a normalized query → external id (30-day TTL), and one `item` row mapping the external id → normalized per-100g macros + raw upstream payload (90-day TTL). Expired rows are ignored at read time — no cleanup job needed yet.
+- On upstream 5xx/timeout or when both sources return nothing, the service returns `NutritionResult.empty()` (`source=NONE`, `confidence=NONE`, `macros=None`) so the caller (Session 4 chat loop) can decide how to fall back. Missing `USDA_API_KEY` also short-circuits cleanly into OFF.
+- Config additions: `anthropic_api_key`, `usda_api_key`, `nutrition_cache_item_ttl_days` (90), `nutrition_cache_search_ttl_days` (30), `open_food_facts_user_agent`. Added `anthropic>=0.40.0` to `requirements.txt` now so Session 3 has the SDK available.
+- Tests: 12 new tests in `tests/test_nutrition_lookup.py` covering normalizers, two-layer cache writes, query normalization, USDA→OFF fallback, `hint="branded"` ordering, upstream 5xx → empty result, expired-row invalidation, and missing-key fallback. Uses `httpx.MockTransport` injected through `nutrition/_http.py` — no new test deps.
+
+### Files Changed
+- `backend/alembic/versions/20260414_add_nutrition_cache.py` — new migration (reversible; round-tripped locally)
+- `backend/app/models/nutrition_cache.py` — new model
+- `backend/app/models/__init__.py` — register `NutritionCache`
+- `backend/app/schemas/nutrition.py` — `NutritionSource`, `NutritionConfidence`, `NormalizedMacros`, `NutritionResult`
+- `backend/app/services/nutrition/__init__.py`
+- `backend/app/services/nutrition/errors.py` — `NutritionUpstreamError`
+- `backend/app/services/nutrition/_http.py` — test-overridable httpx transport helper
+- `backend/app/services/nutrition/usda_client.py`
+- `backend/app/services/nutrition/open_food_facts_client.py`
+- `backend/app/services/nutrition/lookup.py`
+- `backend/tests/test_nutrition_lookup.py`
+- `backend/app/config.py` — new settings
+- `backend/requirements.txt` — add `anthropic>=0.40.0`
+- `.env.example` — document `ANTHROPIC_API_KEY` + `USDA_API_KEY`
+
+### Decisions
+- **Cache granularity**: per-ingredient (`chicken breast`), not per-meal. Meals during onboarding are 3-8 ingredients and vary wildly by weight, while individual ingredient lookups are highly shareable across users. Two layers (query→id and id→macros) mean repeat queries for the same normalized string skip *both* upstream calls.
+- **Single table, not two**: resolves SPEC open question #1. `(source, cache_type, cache_key)` unique index discriminates row type. Simpler than two separate tables and fits the `expires_at` TTL index cleanly.
+- **Fallback = null result**: resolves SPEC open question #2. The service never calls an LLM for estimated macros — that's an orchestration concern for Session 4's chat loop, which already owns the Claude tool-calling context.
+- **Anthropic SDK installed now, not used yet**: avoids a dependency/config churn session at the start of Session 3. No code paths import it yet, so there's no runtime risk.
+- **Transport injection for tests**: added `nutrition/_http.py` with a module-level transport override instead of monkeypatching httpx per call site. Keeps production calls untouched and makes `httpx.MockTransport` routing trivial.
+
+### Blockers
+- None.
+
+### Next
+- Session 3: AI setup generation — Claude Sonnet 4 tool-calling flow that produces meal types, day templates, and a week plan from intake answers. Will consume `ANTHROPIC_API_KEY` (already configured) and the `OnboardingState.generated_setup` JSONB column from Session 1. Nutrition lookup service from this session is *not* used by Session 3; it's first wired in Session 4 (meal chat).
+
+---
+
 ## [infrastructure] 2026-04-13
 
 **Task**: Today View quick fixes — safe-area bottom padding + change-meal photo-capture option [feature: infrastructure]

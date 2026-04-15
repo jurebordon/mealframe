@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last Updated**: 2026-03-29
+**Last Updated**: 2026-04-15
 **Current Phase**: Phase 2 — Feature Expansion & Multi-User
 
 ## Now (Current Work)
@@ -9,11 +9,11 @@
 
 | Feature | ADR | Branch | Status |
 |---------|-----|--------|--------|
-| AI-Powered Onboarding | ADR-015 | feat/ai-onboarding | In progress (Session 2) |
+| AI-Powered Onboarding | ADR-015 | feat/ai-onboarding | In progress (Session 3) |
 
 **AI Onboarding sessions [feature: ai-onboarding]:**
 - [x] Session 1: DB foundation — `onboarding_state` table + state CRUD API [feature: ai-onboarding]
-- [ ] Session 2: Nutrition lookup services — USDA FoodData Central + Open Food Facts API clients [feature: ai-onboarding]
+- [x] Session 2: Nutrition lookup services — USDA FoodData Central + Open Food Facts API clients [feature: ai-onboarding]
 - [ ] Session 3: AI setup generation — Claude Sonnet tool calling for meal types, templates, week plan [feature: ai-onboarding]
 - [ ] Session 4: Meal chat backend — SSE streaming endpoint with nutrition tool calling [feature: ai-onboarding]
 - [ ] Session 5: Apply service — create all entities + generate first weekly plan [feature: ai-onboarding]

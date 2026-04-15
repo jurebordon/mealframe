@@ -16,6 +16,7 @@ from .app_config import AppConfig
 from .landing_pageview import LandingPageview
 from .onboarding_state import OnboardingState
 from .openai_usage import OpenAIUsage
+from .nutrition_cache import NutritionCache
 
 __all__ = [
     "User",
@@ -37,4 +38,5 @@ __all__ = [
     "LandingPageview",
     "OnboardingState",
     "OpenAIUsage",
+    "NutritionCache",
 ]
