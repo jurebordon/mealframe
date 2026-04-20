@@ -170,7 +170,7 @@ export function WeekPlanEditor({
                 return (
                   <div
                     key={weekday}
-                    className="rounded-lg border border-border bg-card p-3"
+                    className="overflow-hidden rounded-lg border border-border bg-card p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-24 shrink-0 text-sm font-medium">
@@ -201,7 +201,7 @@ export function WeekPlanEditor({
                       </div>
                     </div>
                     {templateId && preview && (
-                      <p className="mt-1 ml-27 text-xs text-muted-foreground">
+                      <p className="mt-1 ml-3 sm:ml-27 text-xs text-muted-foreground break-words">
                         {preview}
                       </p>
                     )}
