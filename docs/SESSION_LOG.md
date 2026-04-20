@@ -5,6 +5,40 @@
 
 ---
 
+## [ai-onboarding] 2026-04-20
+
+**Task**: Session 3 — AI setup generation (Claude Sonnet tool-calling for meal types, templates, week plan) [feature: ai-onboarding]
+**Branch**: feat/ai-onboarding
+
+### Summary
+- New `GeneratedSetup` Pydantic schema hierarchy in `schemas/onboarding.py` with nested types (`GeneratedMealType`, `GeneratedDayTemplate`, `GeneratedDayTemplateSlot`, `GeneratedWeekPlan`, `GeneratedWeekPlanDay`) and cross-field validators: unique names per kind, slot→meal_type_name and day→day_template_name reference resolution, exactly 7 unique weekdays 0-6. Shape is designed for direct compatibility with `MealTypeCreate`, `DayTemplateCreate`, `WeekPlanCreate` schemas (Session 5 apply).
+- New `services/onboarding_generation.py` with `generate_setup(intake_answers) → GeneratedSetup`. Uses Anthropic async SDK with tool-calling: defines a `submit_setup` tool whose input_schema is `GeneratedSetup.model_json_schema()`, forces the model to call it via `tool_choice={"type": "tool", "name": "submit_setup"}`. System prompt guides the model on meal-planning domain rules (slot counts match user's stated meals, clear naming, tag conventions). Test-injectable client via `set_client()` following the `nutrition/_http.py` pattern.
+- New `POST /api/v1/onboarding/generate` endpoint: validates status is `intake`, transitions to `generating` (visible mid-flight), calls generation service, stores `generated_setup` JSONB and transitions to `review` on success. On failure (timeout/API error/validation), rolls state back to `intake` with `error_message` set; returns 502 (timeout/API) or 422 (validation).
+- 22 new tests: 16 service-level (9 schema validation + 7 async service with mocked client) + 6 API integration (happy path, wrong status 409, no onboarding 404, timeout 502 rollback, API error 502 rollback, validation 422 rollback). Total suite: 260 passing.
+
+### Files Changed
+- `backend/app/schemas/onboarding.py` — `GeneratedSetup` and nested schemas with validators
+- `backend/app/services/onboarding_generation.py` — new, Claude tool-calling service
+- `backend/app/api/onboarding.py` — `POST /generate` endpoint
+- `backend/tests/test_onboarding_generation.py` — new, 16 service + schema tests
+- `backend/tests/test_onboarding_generate_api.py` — new, 6 API integration tests
+- `docs/ROADMAP.md` — mark Session 3 complete
+
+### Decisions
+- **Tool-calling over JSON mode**: Forces structured output through `submit_setup` tool with Pydantic-derived JSON Schema. Gives us schema validation for free and makes Session 4 extensible (add nutrition tools to the same tool list without refactoring).
+- **Name-based references in generated JSONB**: Slots reference meal types by `meal_type_name`, week plan days reference templates by `day_template_name`. Session 5 resolves these to real UUIDs during the apply step. Avoids premature ID generation and keeps the JSONB human-readable.
+- **Test-injectable client (`set_client`)**: Follows Session 2's `_http.set_transport` pattern for consistency. Tests inject a mock `AsyncAnthropic` directly, no monkeypatching needed.
+- **No usage/cost logging table yet**: Deferred. The `ai_capture.py` → `OpenAIUsage` pattern exists if we need it. Adding prematurely would create a migration for a table that might not match the final tracking needs.
+- **Model constant, not config setting**: `CLAUDE_MODEL = "claude-sonnet-4-20250514"` lives as a module constant in `onboarding_generation.py`. Will promote to config if Session 4 needs the same value.
+
+### Blockers
+- None.
+
+### Next
+- Session 4: Meal chat backend — SSE streaming endpoint with nutrition tool calling. Will use the `onboarding_generation` client pattern and wire in the Session 2 nutrition lookup service as a Claude tool.
+
+---
+
 ## [ai-onboarding] 2026-04-15
 
 **Task**: Session 2 — Nutrition lookup services (USDA FoodData Central + Open Food Facts API clients) [feature: ai-onboarding]

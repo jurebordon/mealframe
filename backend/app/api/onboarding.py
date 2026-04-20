@@ -1,4 +1,6 @@
 """API routes for onboarding state management (ADR-015)."""
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +19,14 @@ from ..services.onboarding import (
     get_onboarding_status,
     update_onboarding,
 )
+from ..services.onboarding_generation import (
+    SetupGenerationFailed,
+    SetupGenerationTimeout,
+    SetupValidationError,
+    generate_setup,
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/onboarding", tags=["Onboarding"])
 
@@ -81,3 +91,65 @@ async def get_status(
     """Check whether the user has completed onboarding or has one in progress."""
     has_completed, has_active = await get_onboarding_status(db, user.id)
     return OnboardingStatusResponse(has_completed=has_completed, has_active=has_active)
+
+
+@router.post("/generate", response_model=OnboardingStateResponse)
+async def generate_onboarding_setup(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> OnboardingStateResponse:
+    """Generate AI meal planning setup from intake answers.
+
+    Transitions intake → generating → review on success.
+    Rolls back to intake on failure.
+    """
+    state = await get_active_onboarding(db, user.id)
+    if not state:
+        raise HTTPException(status_code=404, detail="No active onboarding")
+    if state.status != "intake":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot generate from status '{state.status}', expected 'intake'",
+        )
+
+    # Transition to generating
+    state.status = "generating"
+    state.error_message = None
+    db.add(state)
+    await db.flush()
+
+    try:
+        result = await generate_setup(state.intake_answers)
+    except SetupGenerationTimeout as e:
+        logger.warning("Setup generation timed out for user %s: %s", user.id, e)
+        state.status = "intake"
+        state.error_message = "AI generation timed out. Please try again."
+        db.add(state)
+        await db.flush()
+        raise HTTPException(status_code=502, detail=str(e))
+    except SetupGenerationFailed as e:
+        logger.error("Setup generation failed for user %s: %s", user.id, e)
+        state.status = "intake"
+        state.error_message = "AI generation failed. Please try again."
+        db.add(state)
+        await db.flush()
+        raise HTTPException(status_code=502, detail=str(e))
+    except SetupValidationError as e:
+        logger.error(
+            "Setup validation failed for user %s: %s | raw: %s",
+            user.id, e, e.raw_payload,
+        )
+        state.status = "intake"
+        state.error_message = "AI generated an invalid setup. Please try again."
+        db.add(state)
+        await db.flush()
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # Success — persist and transition to review
+    state.generated_setup = result.model_dump(mode="json")
+    state.status = "review"
+    state.error_message = None
+    db.add(state)
+    await db.flush()
+
+    return OnboardingStateResponse.model_validate(state)
