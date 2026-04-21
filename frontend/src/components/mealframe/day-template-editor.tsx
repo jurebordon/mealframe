@@ -161,7 +161,7 @@ export function DayTemplateEditor({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit Day Template' : 'Add Day Template'}
@@ -248,7 +248,7 @@ export function DayTemplateEditor({
                     </div>
 
                     {/* Meal Type Selector */}
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <Select
                         value={slot.meal_type_id}
                         onValueChange={(value) =>
@@ -256,7 +256,7 @@ export function DayTemplateEditor({
                         }
                         disabled={isSaving}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

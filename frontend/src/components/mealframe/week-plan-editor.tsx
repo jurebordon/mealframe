@@ -201,7 +201,7 @@ export function WeekPlanEditor({
                       </div>
                     </div>
                     {templateId && preview && (
-                      <p className="mt-1 ml-3 sm:ml-27 text-xs text-muted-foreground break-words">
+                      <p className="mt-1 ml-3 sm:ml-27 max-w-full text-xs text-muted-foreground break-words">
                         {preview}
                       </p>
                     )}
