@@ -139,7 +139,7 @@ export function WeekPlanEditor({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit Week Plan' : 'Add Week Plan'}
@@ -176,7 +176,7 @@ export function WeekPlanEditor({
                       <div className="w-24 shrink-0 text-sm font-medium">
                         {WEEKDAY_NAMES[weekday]}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <Select
                           value={templateId ?? UNASSIGNED_VALUE}
                           onValueChange={(value) =>
@@ -184,7 +184,7 @@ export function WeekPlanEditor({
                           }
                           disabled={isSaving}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="No template" />
                           </SelectTrigger>
                           <SelectContent>

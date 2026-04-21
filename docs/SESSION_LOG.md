@@ -5,6 +5,34 @@
 
 ---
 
+## [infrastructure] 2026-04-21
+
+**Task**: Fix Edit Week Plan dialog horizontal overflow on mobile [feature: infrastructure]
+**Branch**: fix/week-plan-dialog-overflow
+
+### Summary
+- Root-caused the mobile overflow: `SelectTrigger`'s default `w-fit` with `whitespace-nowrap` let long template names (e.g. "Morning Workout Workday") grow the flex row beyond the dialog, which in turn stretched beyond viewport because the dialog used `max-w-2xl` unconditionally and lacked an `overflow-x` clamp.
+- Three CSS-only changes in `week-plan-editor.tsx`:
+  - `max-w-2xl` → `sm:max-w-2xl` + added `overflow-x-hidden` on `DialogContent` (mobile now inherits base `max-w-[calc(100%-2rem)]`).
+  - `flex-1` → `flex-1 min-w-0` on the Select's wrapper (break the default `min-width: auto` floor on flex items).
+  - Added `className="w-full"` to `SelectTrigger` so it fills the now-shrinkable parent and `SelectValue`'s existing `line-clamp-1` truncates long names cleanly.
+- Previous commit `2a68b8c` only addressed preview-text wrapping; this fixes the actual width issue.
+
+### Files Changed
+- `frontend/src/components/mealframe/week-plan-editor.tsx` — three class-only edits, no logic changes.
+
+### Decisions
+- Mirrored the pattern `day-template-editor.tsx` already uses (`overflow-x-hidden` on `DialogContent`) for consistency across the setup dialogs.
+- Did not touch the base `Dialog` primitive — this was a caller-side sizing bug, not a framework issue.
+
+### Blockers
+- None
+
+### Next
+- ADR-008 (Grocery List) Session 1: `needs_groceries` DB foundation + template editor toggle
+
+---
+
 ## [ai-capture] 2026-03-29
 
 **Task**: ADR-013 Session 4 — User meal context injection into vision prompt [feature: ai-capture]
