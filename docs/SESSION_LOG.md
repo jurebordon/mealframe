@@ -5,6 +5,31 @@
 
 ---
 
+## [bugfix] 2026-04-21
+
+**Task**: Fix week plan editor preview text clipping on mobile + forwarded headers
+**Branch**: fix/week-plan-preview-clipping (merged to main), feat/ai-onboarding
+
+### Summary
+- Fixed preview text (e.g., "Breakfast → Mid Morning Protein Snack → ...") overflowing card boundaries on mobile in the Edit Week Plan dialog. Added `overflow-hidden` to card container, responsive left margin (`ml-3 sm:ml-27`), and `break-words` for wrapping.
+- Committed pending infra fix: `--forwarded-allow-ips='*'` in gunicorn entrypoint and `X-Forwarded-Proto $http_x_forwarded_proto` in nginx config for correct HTTPS detection behind proxy.
+
+### Files Changed
+- `frontend/src/components/mealframe/week-plan-editor.tsx` — responsive preview text margins + overflow handling
+- `backend/entrypoint.sh` — forwarded-allow-ips for gunicorn
+- `nginx.conf` — X-Forwarded-Proto from upstream header
+
+### Decisions
+- None
+
+### Blockers
+- Deploy failed with "no space left on device" on homelab `/tmp` — triggered a redeploy, likely transient Docker build cache issue
+
+### Next
+- Session 4: Meal chat backend — SSE streaming endpoint with nutrition tool calling [feature: ai-onboarding]
+
+---
+
 ## [ai-onboarding] 2026-04-20
 
 **Task**: Session 3 — AI setup generation (Claude Sonnet tool-calling for meal types, templates, week plan) [feature: ai-onboarding]
