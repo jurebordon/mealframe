@@ -146,7 +146,7 @@ export function WeekPlanEditor({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="min-w-0 space-y-6 py-4">
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="week-plan-name">Name</Label>
@@ -173,7 +173,7 @@ export function WeekPlanEditor({
                     className="overflow-hidden rounded-lg border border-border bg-card p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-24 shrink-0 text-sm font-medium">
+                      <div className="w-20 sm:w-24 shrink-0 text-sm font-medium">
                         {WEEKDAY_NAMES[weekday]}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -201,7 +201,7 @@ export function WeekPlanEditor({
                       </div>
                     </div>
                     {templateId && preview && (
-                      <p className="mt-1 ml-3 sm:ml-27 max-w-full text-xs text-muted-foreground break-words">
+                      <p className="mt-1 ml-23 sm:ml-27 max-w-full text-xs text-muted-foreground break-words">
                         {preview}
                       </p>
                     )}

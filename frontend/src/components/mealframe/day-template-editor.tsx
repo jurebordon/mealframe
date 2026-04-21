@@ -168,7 +168,7 @@ export function DayTemplateEditor({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="min-w-0 space-y-6 py-4">
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="template-name">Template Name</Label>
@@ -256,7 +256,7 @@ export function DayTemplateEditor({
                         }
                         disabled={isSaving}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full overflow-hidden">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
