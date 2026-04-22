@@ -30,6 +30,16 @@ import { WEEKDAY_NAMES } from '@/lib/types'
 
 const UNASSIGNED_VALUE = '__none__'
 
+const WEEKDAY_NAMES_SHORT: Record<Weekday, string> = {
+  0: 'Mon',
+  1: 'Tue',
+  2: 'Wed',
+  3: 'Thu',
+  4: 'Fri',
+  5: 'Sat',
+  6: 'Sun',
+}
+
 const ALL_WEEKDAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6]
 
 interface WeekPlanEditorProps {
@@ -173,8 +183,9 @@ export function WeekPlanEditor({
                     className="overflow-hidden rounded-lg border border-border bg-card p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-20 sm:w-24 shrink-0 text-sm font-medium">
-                        {WEEKDAY_NAMES[weekday]}
+                      <div className="w-10 sm:w-24 shrink-0 text-sm font-medium">
+                        <span className="sm:hidden">{WEEKDAY_NAMES_SHORT[weekday]}</span>
+                        <span className="hidden sm:inline">{WEEKDAY_NAMES[weekday]}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <Select
@@ -184,7 +195,7 @@ export function WeekPlanEditor({
                           }
                           disabled={isSaving}
                         >
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full overflow-hidden">
                             <SelectValue placeholder="No template" />
                           </SelectTrigger>
                           <SelectContent>
@@ -201,7 +212,7 @@ export function WeekPlanEditor({
                       </div>
                     </div>
                     {templateId && preview && (
-                      <p className="mt-1 ml-23 sm:ml-27 max-w-full text-xs text-muted-foreground break-words">
+                      <p className="mt-1 ml-13 sm:ml-27 max-w-full text-xs text-muted-foreground break-words">
                         {preview}
                       </p>
                     )}
