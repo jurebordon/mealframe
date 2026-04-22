@@ -226,8 +226,8 @@ async def google_authorize(request: Request):
             detail="Google OAuth is not configured",
         )
 
-    # Build callback URL from the current request
-    redirect_uri = str(request.url_for("google_callback"))
+    # Build callback URL — prefer explicit config over dynamic resolution
+    redirect_uri = settings.google_redirect_uri or str(request.url_for("google_callback"))
     authorization_url, state = await build_authorization_url(redirect_uri)
 
     # Store state for CSRF validation
@@ -251,7 +251,7 @@ async def google_callback(
             detail="Invalid OAuth state parameter",
         )
 
-    redirect_uri = str(request.url_for("google_callback"))
+    redirect_uri = settings.google_redirect_uri or str(request.url_for("google_callback"))
 
     try:
         google_info = await exchange_code_for_user_info(code, redirect_uri)

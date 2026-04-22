@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     # Google OAuth (ADR-014 Session 6)
     google_client_id: str = ""  # Override via GOOGLE_CLIENT_ID env var
     google_client_secret: str = ""  # Override via GOOGLE_CLIENT_SECRET env var
+    google_redirect_uri: str = ""  # Override via GOOGLE_REDIRECT_URI env var; falls back to dynamic request.url_for()
 
     # Rate limiting
     login_rate_limit: str = "5/minute"
