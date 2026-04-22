@@ -9,6 +9,7 @@ exec gunicorn app.main:app \
   --worker-class uvicorn.workers.UvicornWorker \
   --bind 0.0.0.0:8003 \
   --workers "${GUNICORN_WORKERS:-2}" \
+  --forwarded-allow-ips '*' \
   --timeout 120 \
   --access-logfile - \
   --error-logfile -
