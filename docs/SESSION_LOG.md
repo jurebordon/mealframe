@@ -5,6 +5,37 @@
 
 ---
 
+## [auth] 2026-04-26
+
+**Task**: Fix Google OAuth redirect_uri_mismatch error [feature: auth]
+**Branch**: main (direct fix)
+
+### Summary
+- Google OAuth returned `Error 400: redirect_uri_mismatch` because `request.url_for()` produced `http://` behind the Nginx Proxy Manager reverse proxy
+- Root cause: Gunicorn only trusts `X-Forwarded-Proto` from `127.0.0.1` by default; NPM connects from Docker network IPs
+- Added `--forwarded-allow-ips '*'` to gunicorn in `entrypoint.sh` (necessary but not sufficient — NPM doesn't forward `X-Forwarded-Proto`)
+- Added explicit `GOOGLE_REDIRECT_URI` config option as reliable override, bypassing dynamic URL construction entirely
+- Deploy script uses `docker-compose.prod.yml`, not `docker-compose.npm.yml` — initial fix targeted the wrong compose file
+
+### Files Changed
+- `backend/entrypoint.sh` — added `--forwarded-allow-ips '*'` to gunicorn
+- `backend/app/config.py` — added `google_redirect_uri` setting
+- `backend/app/api/auth.py` — use explicit redirect URI when configured, fall back to dynamic
+- `docker-compose.prod.yml` — set `GOOGLE_REDIRECT_URI` default to production URL
+- `docker-compose.npm.yml` — set `GOOGLE_REDIRECT_URI` default (for completeness)
+
+### Decisions
+- Explicit env var over proxy header trust: more reliable across different reverse proxy setups
+- Kept dynamic `request.url_for()` as fallback for local dev where no env var is set
+
+### Blockers
+- None
+
+### Next
+- ADR-008 (Grocery List) Session 1: `needs_groceries` DB foundation + template editor toggle
+
+---
+
 ## [infrastructure] 2026-04-21
 
 **Task**: Fix Edit Week Plan dialog horizontal overflow on mobile [feature: infrastructure]
